@@ -3,7 +3,7 @@
 **Status:** Draft — scoping settled (API-only v1), no code yet | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-27
 **Origin:** apiTestTask (2022 — specification-driven API testing, the spec tier's ancestor) and Akela RFC 0003 (2026 — deterministic compilation over rectified context, the evidence loop this tool will eventually feed). Akela's own normative record is QABuddy RFC 0001/0002.
 
-**One sentence:** Rikki-Tikki is an intent compiler for functional API testing — human-owned acceptance criteria and invariants compile (via an LLM, at authoring time only) into schema-gated declarative test specs executed by a deterministic runner; procedures may escape to generated code, assertions never do; and every escape is telemetry that evolves the spec DSL from evidence, not speculation.
+**One sentence:** Rikki-Tikki is an intent compiler for functional API testing — human-owned acceptance criteria and invariants compile (via an LLM, at authoring time only) into schema-gated declarative test cases executed by a deterministic runner; procedures may escape to generated code, assertions never do; and every escape is telemetry that evolves the case DSL from evidence, not speculation.
 
 *"Run and find out." — the mongoose family motto, and the whole product.*
 
@@ -16,7 +16,7 @@ Every "AI-native" testing tool surveyed on 2026-08-27 (Octomind, Momentic, Shipl
 Rikki-Tikki inverts the design around AI's actual failure profile:
 
 - **Generation is cheap and untrusted** → the LLM compiles, and a deterministic schema gate catches hallucinated output. A model can argue with a prose instruction; it cannot argue with a validator.
-- **Runtime nondeterminism is unacceptable** → no LLM step exists at execution time. Same specs, same service state → same verdicts.
+- **Runtime nondeterminism is unacceptable** → no LLM step exists at execution time. Same cases, same service state → same verdicts.
 - **Human judgment is the scarce resource** → it is spent only where it is irreplaceable: authoring intent, reviewing intent-level diffs, and adjudicating drift. Never on reading generated procedure code line by line.
 
 The three mechanisms no surveyed tool ships, and this design's reason to exist:
@@ -31,17 +31,17 @@ The three mechanisms no surveyed tool ships, and this design's reason to exist:
 
 | 2022 observation | Rikki-Tikki requirement |
 |---|---|
-| `teardown: { sleep: 1000 }`, hardcoded 100 ms waits → flaky | `pollUntil` is a day-one DSL primitive; wall-clock sleeps are a lint error in specs |
-| "restart the app between runs" — shared service state | specs declare no dependence on prior runs; compiler emits unique payload discriminators per run |
-| joi validation of the spec itself, loud errors | the spec schema is the compilation gate: an invalid compile is *refused*, never patched |
+| `teardown: { sleep: 1000 }`, hardcoded 100 ms waits → flaky | `pollUntil` is a day-one DSL primitive; wall-clock sleeps are a lint error in cases |
+| "restart the app between runs" — shared service state | cases declare no dependence on prior runs; compiler emits unique payload discriminators per run |
+| joi validation of the spec itself, loud errors | the case schema is the compilation gate: an invalid compile is *refused*, never patched |
 | `$alias` runtime chaining setup → test | kept as-is — it is the essential primitive, proven |
-| `toMatchObject` subset assertions | kept — subset match keeps specs terse and drift-tolerant on additive change |
-| specs were JS despite a "JSON for everyone" pitch | specs are pure JSON; anything JSON cannot express is *by definition* an escape hatch (§4.5) |
+| `toMatchObject` subset assertions | kept — subset match keeps cases terse and drift-tolerant on additive change |
+| specs were JS despite a "JSON for everyone" pitch | cases are pure JSON; anything JSON cannot express is *by definition* an escape hatch (§4.5) |
 
 ### From Akela, mechanisms borrowed (not yet the engine — see §4.8)
 
 - Addressable intent sections with stable ids (`<!-- rikki: id=… -->`, Akela-compatible tag grammar).
-- Content-hash lineage: every spec records which intent text, at which hash, it was compiled from.
+- Content-hash lineage: every case records which intent text, at which hash, it was compiled from.
 - Manifests: every compile and every run says what it produced, what it dropped, and why.
 - Evidence gates as arithmetic, thresholds as constants: no tunable knobs.
 - The supervision geometry: **agents propose, determinism gates, the expert decides.**
@@ -67,10 +67,10 @@ Rikki-Tikki competes on the synthesis and the discipline, not the ingredients.
  ┌──────────────────────────────────────────────────────────────┐
  │ intent/  — acceptance criteria + invariants     AC- / INV-   │ ← human-authored markdown; the only source of truth
  ├──────────────────────────────────────────────────────────────┤
- │ specs/   — compiled declarative tests           SPEC-        │ ← LLM-compiled, schema-gated, regenerable; reviewed as diffs
+ │ cases/   — compiled declarative tests           CASE-        │ ← LLM-compiled, schema-gated, regenerable; reviewed as diffs
  │ steps/   — generated escape-hatch code          STEP-        │ ← typed contract, sandboxed, regenerable; every one logged
  ├──────────────────────────────────────────────────────────────┤
- │ runner   — deterministic execution → verdicts + evidence     │ ← zero LLM; every failure names its spec, request, and diff
+ │ runner   — deterministic execution → verdicts + evidence     │ ← zero LLM; every failure names its case, request, and diff
  └──────────────────────────────────────────────────────────────┘
         ↑ recompile on intent change          ↓ triage on failure (bug | drift | flake) — proposals only
 ```
@@ -90,17 +90,17 @@ Invariant: for all requests r, for all users u ≠ submitter(r): GET status(r) a
 A valid authenticated submission is accepted and returns the registered request id.
 ```
 
-- `kind=ac` compiles to one or more example specs.
-- `kind=invariant` compiles to a **spec template plus generators** — fresh concrete cases minted per run (§4.4). Humans vouch for a small set of invariants instead of reviewing thousands of generated assertions.
+- `kind=ac` compiles to one or more example cases.
+- `kind=invariant` compiles to a **case template plus generators** — fresh concrete cases minted per run (§4.4). Humans vouch for a small set of invariants instead of reviewing thousands of generated assertions.
 - Untagged headings derive ids from slugs, exactly as Akela's `derive` mode — an existing test plan (e.g. apiTestTask's `doc/test-plan.md`) plugs in with zero edits.
 
-### 4.3 The spec format
+### 4.3 The case format
 
 Pure JSON, schema-gated. The schema **is** the DSL definition — a primitive exists iff the schema admits it.
 
 ```jsonc
 {
-  "id": "SPEC-result-isolation-001",
+  "id": "CASE-result-isolation-001",
   "from": { "intent": "result-isolation", "hash": "a1b2c3d4e5f6" },   // lineage, mandatory
   "setup": [
     { "request": { "method": "post", "route": "/groovy/submit", "auth": "$users.alice",
@@ -121,17 +121,17 @@ Three vocabulary amendments from the 2022-corpus audit ([findings 2026-08-27](fi
 
 ### 4.4 The compiler
 
-`rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which specs; which compilations were refused and why; which fell back to escape hatches. A spec whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
+`rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which cases; which compilations were refused and why; which fell back to escape hatches. A case whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
 
 An OpenAPI document, where one exists, is an **optional compilation input** (decided 2026-08-27, §9): the compiler uses it to ground routes and payload shapes and to cross-check its own output before the schema gate, and PR4's generators may draw typed holes from it. Nothing requires it; compilation from intent alone is the baseline path.
 
-Invariant sections compile to a template + generator pair: the template is a spec with typed holes (`{user: any two distinct fixture principals}`, `{code: any valid expression}`); the runner instantiates *N* fresh cases per run from seeded generators (seeded → reproducible: a failing generated case is re-runnable by seed). Generation is deterministic given the seed; the seed is recorded in the run manifest.
+Invariant sections compile to a template + generator pair: the template is a case with typed holes (`{user: any two distinct fixture principals}`, `{code: any valid expression}`); the runner instantiates *N* fresh cases per run from seeded generators (seeded → reproducible: a failing generated case is re-runnable by seed). Generation is deterministic given the seed; the seed is recorded in the run manifest.
 
 ### 4.5 The oracle discipline (the load-bearing rule)
 
 **Procedure may escape the DSL. The assertion layer may not. Ever.**
 
-When intent requires logic the DSL cannot express (orchestrating a concurrency window, computing a signature), the compiler emits a **step**: a sandboxed function with a typed contract — reads `runtimeData`, returns values into `runtimeData`, no ambient I/O beyond the provided HTTP client, no assertions. The spec references it by id; the *claim being verified* stays in the spec's declarative `expect`, diffable and reviewable at the intent level.
+When intent requires logic the DSL cannot express (orchestrating a concurrency window, computing a signature), the compiler emits a **step**: a sandboxed function with a typed contract — reads `runtimeData`, returns values into `runtimeData`, no ambient I/O beyond the provided HTTP client, no assertions. The case references it by id; the *claim being verified* stays in the case's declarative `expect`, diffable and reviewable at the intent level.
 
 This is why the trust model survives generation: humans vouch for **claims**, which stay data; procedures are regenerable and merely have to terminate with the right shape. A step that asserts is a schema violation, refused at compile.
 
@@ -148,26 +148,26 @@ Promotion is a human edit to the schema (a new primitive), after which `rikki co
 
 On a failed run, `rikki triage` (LLM, offline, proposals only) classifies each failure:
 
-- **bug** — behavior contradicts intent → a structured finding (the issue-report deliverable falls out of the evidence for free: spec, request, expected vs actual, intent section violated).
-- **drift** — behavior changed but still satisfies intent (200 → 202 where intent says "accepted") → a proposed *intent-level* diff plus the recompiled spec. The human approves or rejects the diff; the tool never self-heals silently. An approved drift updates intent (or confirms it), and lineage hashes make the recompile mechanical.
+- **bug** — behavior contradicts intent → a structured finding (the issue-report deliverable falls out of the evidence for free: case, request, expected vs actual, intent section violated).
+- **drift** — behavior changed but still satisfies intent (200 → 202 where intent says "accepted") → a proposed *intent-level* diff plus the recompiled case. The human approves or rejects the diff; the tool never self-heals silently. An approved drift updates intent (or confirms it), and lineage hashes make the recompile mechanical.
 - **flake** — evidence insufficient to distinguish; re-run by seed is the first prescription.
 
-Triage verdicts are recorded next to the run evidence. Because HTTP evidence is exact — every failure names its spec, its request, and its diff deterministically — the blame-misattribution problem that dogs Akela's free-text domains does not exist here. **This is the reason API testing is the right first domain.**
+Triage verdicts are recorded next to the run evidence. Because HTTP evidence is exact — every failure names its case, its request, and its diff deterministically — the blame-misattribution problem that dogs Akela's free-text domains does not exist here. **This is the reason API testing is the right first domain.**
 
 ### 4.8 Akela, eventually
 
-Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts, triage decisions) and does **not** depend on Akela — Akela is itself pre-1.0, and coupling two moving engines helps neither. The seam is kept deliberately: intent sections use the Akela tag grammar, evidence events are shaped like `applied`/`contradicted` (a passing spec validates its intent section; a triaged bug contradicts the service; a triaged drift contradicts the *spec*), and when both engines are stable, Rikki-Tikki becomes an Akela domain pack whose evidence channel is fully deterministic — the domain where Akela's open misattribution problem vanishes by construction.
+Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts, triage decisions) and does **not** depend on Akela — Akela is itself pre-1.0, and coupling two moving engines helps neither. The seam is kept deliberately: intent sections use the Akela tag grammar, evidence events are shaped like `applied`/`contradicted` (a passing case validates its intent section; a triaged bug contradicts the service; a triaged drift contradicts the *case*), and when both engines are stable, Rikki-Tikki becomes an Akela domain pack whose evidence channel is fully deterministic — the domain where Akela's open misattribution problem vanishes by construction.
 
 ## 5. Invariants (the things that do not change)
 
 1. No LLM step at runtime. Compile and triage are the only model-facing surfaces, and both produce proposals gated by deterministic validation.
-2. Intent is the only source of truth. Specs and steps are regenerable artifacts; a hand-edit that diverges from lineage is flagged, not silently accepted.
+2. Intent is the only source of truth. Cases and steps are regenerable artifacts; a hand-edit that diverges from lineage is flagged, not silently accepted.
 3. Assertions are declarative, always. A step that asserts is refused at the schema gate.
 4. Every compile and every run writes a manifest — what was produced, what was dropped or refused, and why.
 5. Every escape hatch is logged. Silent fallback is a bug in Rikki-Tikki, not a behavior.
-6. Drift never self-heals. A spec changes only through an approved intent-level decision.
+6. Drift never self-heals. A case changes only through an approved intent-level decision.
 7. Thresholds and caps are constants, not configuration.
-8. Generated cases are seeded and reproducible; verdicts are a function of (specs, seed, service state).
+8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state).
 
 ## 6. Non-goals (v1)
 
@@ -182,7 +182,7 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 
 | PR | Scope | Proves |
 |---|---|---|
-| **PR1** | Spec schema + deterministic runner + evidence log; hand-written specs only. Zero-dep Node ≥ 18, same as Akela. | the DSL's five primitives cover the ancestor's ground (§8) |
+| **PR1** | Case schema + deterministic runner + evidence log; hand-written cases only. Zero-dep Node ≥ 18, same as Akela. | the DSL's five primitives cover the ancestor's ground (§8) |
 | **PR2** | Intent layer (tagged + derived markdown) + `rikki compile` with schema gate, lineage hashes, manifests | compilation fidelity is measurable |
 | **PR3** | Escape-hatch steps (typed contract, sandbox) + fallback telemetry + `rikki stats` | the DSL-evolution loop closes |
 | **PR4** | Invariant templates + seeded generators | semantic properties mint real cases |
@@ -198,7 +198,7 @@ Rikki-Tikki targets RESTful APIs generally; the bed is one AUT among any, and no
 
 The 2022 corpus — **27 executable specs** (32 files; 5 are traceability stubs, which Rikki-Tikki replaces structurally with lineage manifests) plus `doc/test-plan.md` — is the ground truth either way:
 
-- **PR1 gate:** the five primitives (with the §4.3 amendments) re-express all 27 executable specs, running green against the fixture with zero escape hatches and zero sleeps — every sleep becomes `pollUntil` (the flakiness fix the 2022 README apologized for, now enforced by lint). **Desk-audited 2026-08-27: 27/27 expressible; the audit is the schema's requirements list.**
+- **PR1 gate:** the five primitives (with the §4.3 amendments) re-express all 27 executable 2022 specs as cases, running green against the fixture with zero escape hatches and zero sleeps — every sleep becomes `pollUntil` (the flakiness fix the 2022 README apologized for, now enforced by lint). **Desk-audited 2026-08-27: 27/27 expressible; the audit is the schema's requirements list.**
 - **PR2 gate:** compile the 2022 test plan's acceptance criteria (ingested via derive mode, zero edits) and measure fidelity against the hand-written specs: agreement rate, hallucinations refused by the gate, honest disagreements adjudicated by the author — who happens to be the ground truth's author too. One adjudication is pre-registered: AC 1.4 says 403 for cross-user access, spec `1-5` asserts the observed 401 — the intent/spec divergence the ancestor recorded nowhere, and exactly the case §4.7 exists to catch.
 - **PR5 gate:** introduce deliberate fixture-behavior shifts and measure triage precision: bug/drift confusion rate is the headline number, because it is the number the whole category's trust depends on.
 
@@ -209,4 +209,4 @@ Per the Akela program's hardest-won lesson: instrument first, and let the harnes
 - Spec granularity for compiled invariants: N cases per run — constant, or budget-derived? (Leaning: small constant, seeded; budgets invite knobs, knobs violate invariant 7.)
 - ~~Where OpenAPI fits: as an *input* to compilation (schema substrate for generators) it is pure upside; as a required artifact it excludes exactly the messy services that need testing most.~~ **Decided 2026-08-27: optional compilation input, never required.** When present, it feeds the compiler (route/shape grounding, hallucination cross-check) and the PR4 generators (typed holes drawn from schemas); its absence changes nothing about what compiles. No Rikki-Tikki mechanism may ever *require* it — the messy services that need testing most are the ones without one.
 - Whether `rikki triage`'s bug findings should export Jira-shaped payloads in v1 or stay JSONL until a real consumer asks.
-- The word for a compiled unit: "spec" collides with the BDD lexicon's baggage; "case" is anonymous. (Unresolved; "spec" until it hurts.)
+- ~~The word for a compiled unit: "spec" collides with the BDD lexicon's baggage; "case" is anonymous.~~ **Decided 2026-08-27: "case."** It is the word QA teams already use — a familiar term beats a fancy one — and it disambiguates for free: in this project's documents, "spec" now always means the 2022 ancestor's artifacts. Ids are `CASE-`, the folder is `cases/`.
