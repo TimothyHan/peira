@@ -121,6 +121,8 @@ Day-one primitives, chosen from the ancestor's scar tissue and nothing else: `re
 
 `rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which specs; which compilations were refused and why; which fell back to escape hatches. A spec whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
 
+An OpenAPI document, where one exists, is an **optional compilation input** (decided 2026-08-27, §9): the compiler uses it to ground routes and payload shapes and to cross-check its own output before the schema gate, and PR4's generators may draw typed holes from it. Nothing requires it; compilation from intent alone is the baseline path.
+
 Invariant sections compile to a template + generator pair: the template is a spec with typed holes (`{user: any two distinct fixture principals}`, `{code: any valid expression}`); the runner instantiates *N* fresh cases per run from seeded generators (seeded → reproducible: a failing generated case is re-runnable by seed). Generation is deterministic given the seed; the seed is recorded in the run manifest.
 
 ### 4.5 The oracle discipline (the load-bearing rule)
@@ -198,6 +200,6 @@ Per the Akela program's hardest-won lesson: instrument first, and let the harnes
 ## 9. Open questions
 
 - Spec granularity for compiled invariants: N cases per run — constant, or budget-derived? (Leaning: small constant, seeded; budgets invite knobs, knobs violate invariant 7.)
-- Where OpenAPI fits: as an *input* to compilation (schema substrate for generators) it is pure upside; as a required artifact it excludes exactly the messy services that need testing most. (Leaning: optional input, never required.)
+- ~~Where OpenAPI fits: as an *input* to compilation (schema substrate for generators) it is pure upside; as a required artifact it excludes exactly the messy services that need testing most.~~ **Decided 2026-08-27: optional compilation input, never required.** When present, it feeds the compiler (route/shape grounding, hallucination cross-check) and the PR4 generators (typed holes drawn from schemas); its absence changes nothing about what compiles. No Rikki-Tikki mechanism may ever *require* it — the messy services that need testing most are the ones without one.
 - Whether `rikki triage`'s bug findings should export Jira-shaped payloads in v1 or stay JSONL until a real consumer asks.
 - The word for a compiled unit: "spec" collides with the BDD lexicon's baggage; "case" is anonymous. (Unresolved; "spec" until it hurts.)
