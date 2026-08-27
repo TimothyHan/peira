@@ -117,6 +117,8 @@ Pure JSON, schema-gated. The schema **is** the DSL definition — a primitive ex
 
 Day-one primitives, chosen from the ancestor's scar tissue and nothing else: `request`, `capture`/`$alias` chaining, `expect` (status + body subset + optional JSON-schema match), `pollUntil` (predicate + timeout), `$unique.*` (per-run discriminators), `$users.*` (fixture principals). **That is the whole DSL at v1.** Everything else waits for telemetry to demand it (§4.6).
 
+Three vocabulary amendments from the 2022-corpus audit ([findings 2026-08-27](findings/2026-08-27-dsl-audit.md)), normative for PR1: (A) `expect` bodies admit a closed matcher vocabulary — `{"$any": "string" | "number" | "boolean"}` and literal `null`; (B) `auth` takes three forms — `"$users.<alias>"`, a literal `{username, password}` (negative auth tests are the security section), or absent for anonymous; (C) `{{token}}` interpolation resolves at any depth and inside strings, in requests and expected bodies both — the ancestor's top-level-only substitution was a documented limitation. Two patterns are on the telemetry watchlist, deliberately not primitives: transient-state assertions and generator-paired unique payloads.
+
 ### 4.4 The compiler
 
 `rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which specs; which compilations were refused and why; which fell back to escape hatches. A spec whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
@@ -187,13 +189,18 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 | **PR5** | `rikki triage` (bug / drift / flake) + intent-diff proposals | drift adjudication at intent level |
 | **PR6** | Akela pack + npm publish (`rikki-tikki` — verified free 2026-08-27) | the evidence loop generalizes |
 
-## 8. Validation bed (the poetic part)
+## 8. Validation bed
 
-The first system under test is **apiTestTask's groovy runner** — the 2022 take-home service. It is small, its behavior is known, and 33 hand-written 2022 specs plus `doc/test-plan.md` exist as ground truth:
+Rikki-Tikki targets RESTful APIs generally; the bed is one AUT among any, and nothing in the tool may know which bed it points at — the difference is a base URL. (Decided 2026-08-27, after the boot check found no local Java runtime; [findings](findings/2026-08-27-dsl-audit.md).)
 
-- **PR1 gate:** the five primitives re-express all 33 specs of 2022 with zero escape hatches *except* the sleeps — which must all become `pollUntil` (the flakiness fix the 2022 README apologized for, now enforced by lint).
-- **PR2 gate:** compile the 2022 test plan's acceptance criteria (ingested via derive mode, zero edits) and measure fidelity against the hand-written specs: agreement rate, hallucinations refused by the gate, honest disagreements adjudicated by the author — who happens to be the ground truth's author too.
-- **PR5 gate:** introduce deliberate service-behavior shifts (Akela-experiment style) and measure triage precision: bug/drift confusion rate is the headline number, because it is the number the whole category's trust depends on.
+- **Primary bed: an in-repo fixture service** — a zero-dep Node HTTP server in `test/fixtures/`, implementing the observable semantics the 2022 corpus tests (basic auth with fixture users, submit/status resources, async jobs, a capacity-2 queue, PENDING → IN_PROGRESS → COMPLETED/FAILED). Owning the fixture also lets PR5 inject deliberate behavior shifts, Akela-experiment style.
+- **Secondary bed, optional and for provenance: apiTestTask's groovy runner** — the 2022 take-home service the spec tier descends from; runs where Java exists (the 2022 CI ran it on `ubuntu-latest`).
+
+The 2022 corpus — **27 executable specs** (32 files; 5 are traceability stubs, which Rikki-Tikki replaces structurally with lineage manifests) plus `doc/test-plan.md` — is the ground truth either way:
+
+- **PR1 gate:** the five primitives (with the §4.3 amendments) re-express all 27 executable specs, running green against the fixture with zero escape hatches and zero sleeps — every sleep becomes `pollUntil` (the flakiness fix the 2022 README apologized for, now enforced by lint). **Desk-audited 2026-08-27: 27/27 expressible; the audit is the schema's requirements list.**
+- **PR2 gate:** compile the 2022 test plan's acceptance criteria (ingested via derive mode, zero edits) and measure fidelity against the hand-written specs: agreement rate, hallucinations refused by the gate, honest disagreements adjudicated by the author — who happens to be the ground truth's author too. One adjudication is pre-registered: AC 1.4 says 403 for cross-user access, spec `1-5` asserts the observed 401 — the intent/spec divergence the ancestor recorded nowhere, and exactly the case §4.7 exists to catch.
+- **PR5 gate:** introduce deliberate fixture-behavior shifts and measure triage precision: bug/drift confusion rate is the headline number, because it is the number the whole category's trust depends on.
 
 Per the Akela program's hardest-won lesson: instrument first, and let the harness's own evidence channel audit the harness. If a trainee ever files a bug against Rikki-Tikki itself, read it the same day.
 
