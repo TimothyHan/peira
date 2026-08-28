@@ -119,6 +119,8 @@ Day-one primitives, chosen from the ancestor's scar tissue and nothing else: `re
 
 Three vocabulary amendments from the 2022-corpus audit ([findings 2026-08-27](findings/2026-08-27-dsl-audit.md)), normative for PR1: (A) `expect` bodies admit a closed matcher vocabulary — `{"$any": "string" | "number" | "boolean"}` and literal `null`; (B) `auth` takes three forms — `"$users.<alias>"`, a literal `{username, password}` (negative auth tests are the security section), or absent for anonymous; (C) `{{token}}` interpolation resolves at any depth and inside strings, in requests and expected bodies both — the ancestor's top-level-only substitution was a documented limitation. Two patterns are on the telemetry watchlist, deliberately not primitives: transient-state assertions and generator-paired unique payloads.
 
+Two clarifications from the CEO review (2026-08-27): `$unique.*` values are **derived from the run seed** — invariant 8 applies to them, so re-run-by-seed reproduces the exact payloads; and body subset-matching follows Jest `toMatchObject` semantics exactly (index-wise subset for arrays), the ancestor's proven behavior.
+
 ### 4.4 The compiler
 
 `rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which cases; which compilations were refused and why; which fell back to escape hatches. A case whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
@@ -146,11 +148,15 @@ Promotion is a human edit to the schema (a new primitive), after which `rikki co
 
 ### 4.7 Drift triage
 
+Runner verdicts are `pass | fail | error`: `fail` means an assertion did not hold; `error` means infrastructure failed first (connection refused, DNS, timeout before any assertion) — the two are never conflated, because a triage that reads env-unreachable as a product bug is the misattribution trap Akela's experiments documented. `error` cases route to triage as flake/infrastructure, never as bug.
+
 On a failed run, `rikki triage` (LLM, offline, proposals only) classifies each failure:
 
 - **bug** — behavior contradicts intent → a structured finding (the issue-report deliverable falls out of the evidence for free: case, request, expected vs actual, intent section violated).
 - **drift** — behavior changed but still satisfies intent (200 → 202 where intent says "accepted") → a proposed *intent-level* diff plus the recompiled case. The human approves or rejects the diff; the tool never self-heals silently. An approved drift updates intent (or confirms it), and lineage hashes make the recompile mechanical.
 - **flake** — evidence insufficient to distinguish; re-run by seed is the first prescription.
+
+Triage reads AUT response bodies, which are untrusted input to its LLM — a hostile response could try to steer the verdict. The mitigation is structural, not prompt-based: triage output is schema-gated, proposal-only, and human-approved; no verdict acts on its own.
 
 Triage verdicts are recorded next to the run evidence. Because HTTP evidence is exact — every failure names its case, its request, and its diff deterministically — the blame-misattribution problem that dogs Akela's free-text domains does not exist here. **This is the reason API testing is the right first domain.**
 
@@ -167,7 +173,8 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 5. Every escape hatch is logged. Silent fallback is a bug in Rikki-Tikki, not a behavior.
 6. Drift never self-heals. A case changes only through an approved intent-level decision.
 7. Thresholds and caps are constants, not configuration.
-8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state).
+8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state). `$unique.*` values derive from the seed.
+9. The evidence log redacts credential material by default — `Authorization`, `Cookie`, and `Set-Cookie` values are stored as `[REDACTED:<sha256-prefix>]` so equality across events survives but secrets never land in plaintext JSONL.
 
 ## 6. Non-goals (v1)
 
