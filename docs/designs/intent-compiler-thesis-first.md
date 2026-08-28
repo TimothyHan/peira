@@ -54,20 +54,22 @@ Aim v1 at a real third-party API with public intent files and cron-published dri
 
 | PR (new order) | Scope | Carries RFC gate |
 |---|---|---|
-| **PR1** | Case schema v0 incl. step contract + refusal fixtures; fixture service with three planted behaviors; deterministic runner; evidence log | schema-refusal criteria (new); runner determinism (inv. 1, 8) |
-| **PR2** | Minimal `intent/` (Akela tag grammar, lineage hashes) + 3 ported cases incl. the 403/401 bug case; minimal `triage` demoing bug / drift / flake on the planted behaviors | triage demo (was PR5's demo half) |
-| **PR3** | Complete the 27-case port, green with zero escape hatches and zero sleeps | original PR1 gate |
-| **PR4** | Compiler + manifests + lineage; compile-fidelity measurement vs the 2022 test plan (the 403/401 intent-vs-spec adjudication happens here, at compile time) | original PR2 gate |
-| **PR5** | Escape-hatch steps + telemetry + `stats`; then invariant templates + seeded generators | original PR3/PR4 gates |
-| **PR6** | Deliberate fixture shifts + triage-precision measurement; Akela pack; npm publish (name-gated) | original PR5/PR6 gates |
+| **PR1** | Case schema v0 incl. step contract + refusal fixtures; fixture service with three planted behaviors; deterministic runner; evidence log. Provenance check is **field-presence only** — `intent/` doesn't exist yet (OV-9) | schema-refusal criteria (new); runner determinism (inv. 1, 8) |
+| **PR2** | Minimal `intent/` (Akela tag grammar, lineage hashes; hash *verification* becomes a validator rule here — OV-9) + 3 ported cases incl. the 403/401 bug case; minimal `triage` demoing bug / drift / flake; **intent-diff format + stale-cascade workflow spec'd** (one intent edit flags every derived case stale → mechanical recompile, human reviews the batch diff — OV-6) | triage demo (was PR5's demo half) |
+| **PR3** | Complete the 27-case port — **including authoring the ~24 remaining intent sections** (OV-9) — green with zero escape hatches and zero sleeps | original PR1 gate |
+| **PR4** | Compiler + manifests + lineage; compile fidelity defined as **verdict-equivalence** (compiled cases and hand-ported cases both run against the fixture; verdicts must match — OV-8), plus refusal and adjudication counts; the 403/401 intent-vs-spec adjudication happens here | original PR2 gate |
+| **PR5** | Escape-hatch steps (child-process isolation, AUT-allowlisted network — OV-4) + telemetry + `stats`; **gate: one case that genuinely requires a step (HMAC-signed request endpoint on the fixture) and one full promote-and-migrate cycle demonstrated** (OV-2 — the fossil record launches with a fossil); then invariant templates + seeded generators | original PR3/PR4 gates |
+| **PR6** | Triage-precision measurement against a **pre-registered catalog of ≥30 labeled fixture shifts**; confusion rate quoted only at that N; the offline eval reruns on any prompt/model change (goldens remain the CI check — OV-5). **Pre-publish gate: point the tool at one small public API the author didn't write, author real intent for it, record what breaks as a findings doc** (OV-10 — breaks the closed loop, dry-runs the observatory). Then Akela pack; npm publish (name-gated) | original PR5/PR6 gates |
 
 ## The Fixture's Three Planted Behaviors
 
-Plants are **isolated behind a fixture mode flag** (`--plant bug,drift,flake`); with no flag the fixture is intent-faithful and clean. PR2's triage demo runs with plants on; PR3's 27-case all-green gate runs plants off; PR6's deliberate-shift injection reuses the same plant mechanism. Plants never poison the corpus surface.
+Plants are **isolated behind a fixture mode flag** (`--plant bug,drift,flake`); with no flag the fixture is intent-faithful and clean. Each plant lives on a **dedicated demo endpoint called by exactly one demo case**, and that case makes all N requests itself (eng review 2026-08-27) — so plant behavior never depends on traffic from other cases. PR2's triage demo runs with plants on; PR3's 27-case all-green gate runs plants off; PR6's deliberate-shift injection reuses the same plant mechanism. Plants never poison the corpus surface.
 
 1. **Bug:** with the plant on, the status endpoint returns 401 for cross-user access where intent says 403 — behavior contradicts intent (RFC §4.7: bug). Triage emits a structured finding, not an intent diff. The ported case is **authored from intent (expects 403)**, deliberately diverging from the 2022 spec's observed-401 assertion; PR4's compile-time adjudication later re-derives that divergence mechanically.
 2. **Drift:** with the plant on, the submit endpoint returns 202 where the intent section says "accepted" and the case (written when intent was) expects 200 — behavior still satisfies intent (RFC §4.7: drift). Triage proposes the intent-level clarification plus the recompiled case — in PR2 that "recompile" is hand-authored compiler-stub output matching the proposed diff; PR4 replaces it with a real recompile.
 3. **Flake:** one endpoint fails deterministically every 3rd request via an internal counter — reproducible by construction (RFC invariant 8 holds; verdicts remain a function of cases, seed, and service state). Triage's prescription "re-run by seed" is meaningful because the flakiness is counter-based, not random.
+
+**Normative timing constants (OV-3):** fixture long-job duration **1000 ms**, short-job **0 ms**, runner poll interval **100 ms**, pollUntil default timeout **10 s**, drain timeout **15 s**. Constants, not config (RFC invariant 7). Transient-state assertions are in-spec against the fixture because these constants are pinned; against arbitrary AUTs they are honestly race-prone (RFC invariant 8 caveat).
 
 ## Open Questions
 
@@ -97,8 +99,36 @@ Plants are **isolated behind a fixture mode flag** (`--plant bug,drift,flake`); 
 3. PR2: hand-author minimal `intent/` sections (Akela tag grammar, lineage hashes) for the 3 ported cases — cases need intent to point at, and triage needs intent text to diff; port the 3 cases; build minimal `triage` — LLM-backed via the same fetch/provider config as `compile`, run on recorded evidence after a run; the README demo is a recorded session, and **CI never invokes an LLM** — and record the three-verdict demo.
 4. PR3–PR6 per the table.
 
+## Test Requirements (eng review 2026-08-27)
+
+The tool's own suite, zero-dep `node test/run.js` (Akela convention). Written alongside the code, per PR — not after.
+
+**PR1 — validator:** refuses assertion-in-step; refuses provenance-less case; refuses unresolved `$alias`/`$users` token (static resolution, D16); warns on empty `expect` body (TODOS P3); accepts all ported cases. Conventions under test: case discovery is `cases/**/*.json` (no index files); `{{{{` escapes a literal `{{` in interpolated strings.
+**PR1 — runner:** subset match (nested, arrays index-wise, `$any` matchers, literal `null`); capture happy path + path-absent → `CaptureError`; `pollUntil` satisfied + timeout-with-last-state; `$unique` derives from seed (same seed → same payloads); `teardown.drain` polls captured ids to terminal; auth-header redaction (invariant 9); verdict taxonomy `pass|fail|error` — infra failure is `error`, never `fail`.
+**PR1 — evidence log:** event-schema round-trip; write failure is loud and fatal.
+**PR1 — fixture:** plants off by default; each plant on a dedicated endpoint called by exactly one demo case.
+**PR1 — determinism (E2E):** same cases + seed + fresh fixture → identical verdicts. **Chaos:** kill fixture mid-run → `error` verdict path, clean report.
+**PR2 — triage (golden files, CI never calls an LLM):** bug plant → structured finding, no diff; drift plant → intent diff; flake plant → re-run prescription; malformed LLM output → one retry → recorded un-triaged.
+**PR2 — CLI:** `validate` exit codes (0 clean / 2 refusal); `run` exit codes (0 green / 1 fail-or-error / 2 config); `--seed` reproduces a failing run.
+**PR4 — compile fidelity:** measured eval vs the 2022 test plan (agreement rate, refusals, adjudications) — the one LLM-facing measurement, run offline.
+
 ## What I noticed about how you think
 
 - You said "its better to use familiar term instead of new fancy term" and renamed the whole spec layer to "case" on the spot — you optimize for the reader you'll onboard, not the vocabulary you invented.
 - You caught your own tool's scope drift before any reviewer did: "the groovy jar is just an application under test. we should create for RESTFUL API generally" — one sentence that inverted the validation bed the right way around.
 - The through-line across three projects (2022 spec framework → Akela → this) is the same bet stated three ways: verifiable declarative artifacts over trusted automation. The cold-read subagent spotted it independently from a summary — that's a signature, not a coincidence.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR (PLAN) | mode: HOLD_SCOPE, 0 critical gaps; its 1 carried decision resolved by eng D16 |
+| Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | — |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR (PLAN) | 13 issues (2 arch, 1 test, 10 outside-voice), all resolved into scope; 0 critical gaps |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — (no UI scope) | — |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+**CROSS-MODEL:** outside voice (fresh-context subagent) found 10 issues the structured reviews missed; all 10 accepted (D20–D29). Highest-value: compile fidelity redefined as verdict-equivalence (OV-8) and the external-API pre-publish gate (OV-10).
+**VERDICT:** CEO + ENG CLEARED — ready to implement (PR1 per the re-sequenced table above).
+
+NO UNRESOLVED DECISIONS

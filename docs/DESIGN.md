@@ -15,7 +15,7 @@ Every "AI-native" testing tool surveyed on 2026-08-27 (Octomind, Momentic, Shipl
 
 Rikki-Tikki inverts the design around AI's actual failure profile:
 
-- **Generation is cheap and untrusted** → the LLM compiles, and a deterministic schema gate catches hallucinated output. A model can argue with a prose instruction; it cannot argue with a validator.
+- **Generation is cheap and untrusted** → the LLM compiles, and a deterministic schema gate catches malformed output. A model can argue with a prose instruction; it cannot argue with a validator. The gate secures *shape*, not meaning — the full trust boundary is schema gate + human case-diff review + measured compile fidelity (§8), stated as such rather than oversold.
 - **Runtime nondeterminism is unacceptable** → no LLM step exists at execution time. Same cases, same service state → same verdicts.
 - **Human judgment is the scarce resource** → it is spent only where it is irreplaceable: authoring intent, reviewing intent-level diffs, and adjudicating drift. Never on reading generated procedure code line by line.
 
@@ -119,13 +119,15 @@ Day-one primitives, chosen from the ancestor's scar tissue and nothing else: `re
 
 Three vocabulary amendments from the 2022-corpus audit ([findings 2026-08-27](findings/2026-08-27-dsl-audit.md)), normative for PR1: (A) `expect` bodies admit a closed matcher vocabulary — `{"$any": "string" | "number" | "boolean"}` and literal `null`; (B) `auth` takes three forms — `"$users.<alias>"`, a literal `{username, password}` (negative auth tests are the security section), or absent for anonymous; (C) `{{token}}` interpolation resolves at any depth and inside strings, in requests and expected bodies both — the ancestor's top-level-only substitution was a documented limitation. Two patterns are on the telemetry watchlist, deliberately not primitives: transient-state assertions and generator-paired unique payloads.
 
+From the eng review (2026-08-27): cases may declare `teardown: { "drain": true }` — the runner polls every job id captured by the case until it reaches a terminal state (capped timeout), so a case that occupies the AUT's queue cannot poison the next case's transient-state assertions. This is the declarative replacement for the ancestor's `teardown.sleep`; wall-clock sleeps stay banned.
+
 Two clarifications from the CEO review (2026-08-27): `$unique.*` values are **derived from the run seed** — invariant 8 applies to them, so re-run-by-seed reproduces the exact payloads; and body subset-matching follows Jest `toMatchObject` semantics exactly (index-wise subset for arrays), the ancestor's proven behavior.
 
 ### 4.4 The compiler
 
 `rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which cases; which compilations were refused and why; which fell back to escape hatches. A case whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
 
-An OpenAPI document, where one exists, is an **optional compilation input** (decided 2026-08-27, §9): the compiler uses it to ground routes and payload shapes and to cross-check its own output before the schema gate, and PR4's generators may draw typed holes from it. Nothing requires it; compilation from intent alone is the baseline path.
+An OpenAPI document, where one exists, is an **optional compilation input** (decided 2026-08-27, §9): nothing requires it, and compilation from intent alone is the baseline path. But when one IS present, the cross-check is **mandatory, not advisory** (eng review OV-1): compiled routes, methods, and payload shapes that contradict the spec are refused like any schema violation — a semantic gate layered on the structural one. PR4's generators may draw typed holes from it.
 
 Invariant sections compile to a template + generator pair: the template is a case with typed holes (`{user: any two distinct fixture principals}`, `{code: any valid expression}`); the runner instantiates *N* fresh cases per run from seeded generators (seeded → reproducible: a failing generated case is re-runnable by seed). Generation is deterministic given the seed; the seed is recorded in the run manifest.
 
@@ -133,7 +135,7 @@ Invariant sections compile to a template + generator pair: the template is a cas
 
 **Procedure may escape the DSL. The assertion layer may not. Ever.**
 
-When intent requires logic the DSL cannot express (orchestrating a concurrency window, computing a signature), the compiler emits a **step**: a sandboxed function with a typed contract — reads `runtimeData`, returns values into `runtimeData`, no ambient I/O beyond the provided HTTP client, no assertions. The case references it by id; the *claim being verified* stays in the case's declarative `expect`, diffable and reviewable at the intent level.
+When intent requires logic the DSL cannot express (orchestrating a concurrency window, computing a signature), the compiler emits a **step**: a function with a typed contract — reads `runtimeData`, returns values into `runtimeData`, no assertions — **isolated by contract and review**, not by an in-process sandbox (`node:vm` is not a security boundary, per Node's own docs; the PR5 implementation direction is a child process whose only network path is allowlisted to the AUT base URL). The case references it by id; the *claim being verified* stays in the case's declarative `expect`, diffable and reviewable at the intent level.
 
 This is why the trust model survives generation: humans vouch for **claims**, which stay data; procedures are regenerable and merely have to terminate with the right shape. A step that asserts is a schema violation, refused at compile.
 
@@ -173,7 +175,7 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 5. Every escape hatch is logged. Silent fallback is a bug in Rikki-Tikki, not a behavior.
 6. Drift never self-heals. A case changes only through an approved intent-level decision.
 7. Thresholds and caps are constants, not configuration.
-8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state). `$unique.*` values derive from the seed.
+8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state) — **scoped caveat (eng review OV-3):** transient-state assertions additionally depend on the AUT's scheduling; against the fixture this is tamed by normatively pinned timing constants (job durations, poll interval — spec'd in the build plan), and against arbitrary AUTs transient cases are honestly race-prone, which is why they sit on the telemetry watchlist. `$unique.*` values derive from the seed.
 9. The evidence log redacts credential material by default — `Authorization`, `Cookie`, and `Set-Cookie` values are stored as `[REDACTED:<sha256-prefix>]` so equality across events survives but secrets never land in plaintext JSONL.
 
 ## 6. Non-goals (v1)
@@ -198,7 +200,7 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 
 ## 8. Validation bed
 
-Rikki-Tikki targets RESTful APIs generally; the bed is one AUT among any, and nothing in the tool may know which bed it points at — the difference is a base URL. (Decided 2026-08-27, after the boot check found no local Java runtime; [findings](findings/2026-08-27-dsl-audit.md).)
+Rikki-Tikki targets RESTful APIs generally; the bed is one AUT among any, and nothing in the tool may know which bed it points at. The per-bed surface is a **bed config** (eng review OV-7): base URL, a map of `$users` principals, and an optional reset hook (command or endpoint) run between suites — the minimum a real service needs that a fixture gets for free. Rate-limit handling stays out of v1. (Decided 2026-08-27, after the boot check found no local Java runtime; [findings](findings/2026-08-27-dsl-audit.md).)
 
 - **Primary bed: an in-repo fixture service** — a zero-dep Node HTTP server in `test/fixtures/`, implementing the observable semantics the 2022 corpus tests (basic auth with fixture users, submit/status resources, async jobs, a capacity-2 queue, PENDING → IN_PROGRESS → COMPLETED/FAILED). Owning the fixture also lets PR5 inject deliberate behavior shifts, Akela-experiment style.
 - **Secondary bed, optional and for provenance: apiTestTask's groovy runner** — the 2022 take-home service the spec tier descends from; runs where Java exists (the 2022 CI ran it on `ubuntu-latest`).
