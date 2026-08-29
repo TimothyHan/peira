@@ -5,7 +5,7 @@ The journey from zero to CI, for a team with a RESTful API. Command reference: `
 ## 0. Install (~2 minutes)
 
 ```bash
-npm install -g peira        # Node ≥ 18, zero runtime dependencies
+npm install -g peira        # Node ≥ 18; one first-party dependency (akela) — no third-party code
 ```
 
 `peira run`, `validate`, `stats`, `render`, `evidence` need nothing else — ever. Only the two
