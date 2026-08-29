@@ -1,10 +1,10 @@
 {
   "id": "CASE-2022-4-5",
-  "title": "As a service, I should mark the newly accepted request as PENDING",
+  "title": "4.5 As a service, I should mark the newly accepted request as PENDING",
   "notes": "Transient-state assertion (telemetry watchlist): deterministic against the fixture because the poll interval is pinned far below the long-job duration. teardown.drain replaces the 2022 teardown.sleep(1000).",
   "from": {
-    "intent": "2022-test-plan/4.5",
-    "hash": "8b1c86a41c6d"
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
   },
   "setup": [
     {

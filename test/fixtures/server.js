@@ -163,6 +163,7 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, plant = null } =
       if (header.startsWith('Basic ')) {
         const [user, ...rest] = Buffer.from(header.slice(6), 'base64').toString().split(':');
         if (users[user] !== undefined && (users[user] === rest.join(':') || flags.authAcceptAny)) username = user;
+        if (username === null && flags.anonAccept && user === '') username = Object.keys(users)[0];
       } else if (flags.anonAccept) {
         username = Object.keys(users)[0];
       }

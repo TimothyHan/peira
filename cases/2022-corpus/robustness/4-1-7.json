@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-4-1-7",
-  "title": "As a user, I should be able to submit class definition",
+  "title": "4.1.7 As a user, I should be able to submit class definition",
   "from": {
-    "intent": "2022-test-plan/4.1.7",
-    "hash": "1c1f46c34423"
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
   },
   "test": {
     "request": {

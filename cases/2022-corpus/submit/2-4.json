@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-2-4",
-  "title": "As submit endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload has invalid value type for code field",
+  "title": "2.4 As submit endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload has invalid value type for code field",
   "from": {
-    "intent": "2022-test-plan/2.4",
-    "hash": "ad081f0d7403"
+    "intent": "post-groovy-submit",
+    "hash": "08cc92149789"
   },
   "test": {
     "request": {

@@ -95,6 +95,9 @@ each failure. You PROPOSE; a human decides; nothing you output is applied automa
 - "flake" — the evidence is insufficient to distinguish, or the failure pattern suggests
             nondeterminism (intermittent failures across similar requests, boot transients,
             a small failing fraction of otherwise-identical probes). Prescribe a re-run.
+            Use the run context: when a handful of probes failed while many near-identical
+            probes of the same endpoint passed in the same run, nondeterminism is the likely
+            story; when every probe of a behavior failed identically, it is not.
 
 Judge against the INTENT TEXT, not against the case: a case is a regenerable artifact and may
 over-specify. If the intent is silent on the failing detail, that points to drift. If the
