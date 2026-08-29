@@ -10,6 +10,7 @@ import { resolveValue, UnresolvedTokenError } from './interpolate.js';
 import { matchExpect } from './expect.js';
 import { httpRequest, InfraError } from './http.js';
 import { EvidenceLog } from './evidence.js';
+import { mintAll } from './generate.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -264,13 +265,22 @@ function classify(caseId, err) {
  * Run a case set sequentially. `loaded` is [{file, caseObj}] in execution order.
  * Returns { seed, verdicts, counts }.
  */
-export async function runCases(loaded, { bed, baseUrl, seed, evidencePath = null, steps = new Map() }) {
+export async function runCases(loaded, { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map() }) {
   const evidence = new EvidenceLog(evidencePath);
   const resolvedBase = baseUrl ?? bed.baseUrl;
-  evidence.append({ event: 'run-start', seed, baseUrl: resolvedBase, cases: loaded.length });
+
+  // invariant templates mint fresh concrete cases for THIS run (RFC §4.4); the evidence log
+  // carries each minted case in full — (template, seed, instance) regenerates it bit-for-bit
+  const minted = mintAll(templates, { bedUsers: bed.users ?? {}, seed });
+  evidence.append({ event: 'run-start', seed, baseUrl: resolvedBase, cases: loaded.length, minted: minted.length });
+  const executable = [...loaded];
+  for (const m of minted) {
+    evidence.append({ event: 'minted', template: m.template, seed, instance: m.instance, case: m.caseObj });
+    executable.push({ file: `minted:${m.caseObj.id}`, caseObj: m.caseObj });
+  }
 
   const verdicts = [];
-  for (const { caseObj } of loaded) {
+  for (const { caseObj } of executable) {
     verdicts.push(await runCase(caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps }));
   }
 

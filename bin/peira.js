@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadCases } from '../src/load.js';
-import { validateCaseSet, loadSteps } from '../src/validate.js';
+import { validateCaseSet, loadSteps, loadTemplates } from '../src/validate.js';
 import { computeStats, formatStats } from '../src/stats.js';
 import { runCases } from '../src/runner.js';
 import { httpRequest } from '../src/http.js';
@@ -44,6 +44,7 @@ const { values: flags, positionals } = parseArgs({
     out: { type: 'string' },
     section: { type: 'string', multiple: true },
     steps: { type: 'string' },
+    templates: { type: 'string' },
   },
 });
 
@@ -54,6 +55,16 @@ const bed = flags.bed ? JSON.parse(readFileSync(flags.bed, 'utf8')) : null;
 function stepsRegistry() {
   const dir = flags.steps ?? [join(casesDir, 'steps'), 'steps'].find((d) => existsSync(d)) ?? null;
   const { steps, results } = loadSteps(dir);
+  return { steps, errorCount: reportRegistry(results) };
+}
+
+function templatesRegistry(steps) {
+  const dir = flags.templates ?? [join(casesDir, 'templates'), 'templates'].find((d) => existsSync(d)) ?? null;
+  const { templates, results } = loadTemplates(dir, { bedUsers: bed?.users, steps });
+  return { templates, errorCount: reportRegistry(results) };
+}
+
+function reportRegistry(results) {
   let errorCount = 0;
   for (const r of results) {
     for (const msg of r.errors) {
@@ -61,14 +72,15 @@ function stepsRegistry() {
       errorCount += 1;
     }
   }
-  return { steps, errorCount };
+  return errorCount;
 }
 
 if (command === 'validate') {
   const { loaded, parseErrors } = loadCases(casesDir);
   const { steps, errorCount: stepErrors } = stepsRegistry();
+  const { errorCount: templateErrors } = templatesRegistry(steps);
   const { results } = validateCaseSet(loaded, { bedUsers: bed?.users, steps });
-  let errorCount = reportValidation(results, parseErrors) + stepErrors;
+  let errorCount = reportValidation(results, parseErrors) + stepErrors + templateErrors;
   if (flags.intent) {
     const { stale, missing } = checkStale(loaded, loadIntentDir(flags.intent));
     for (const s of stale) {
@@ -105,8 +117,9 @@ if (command === 'validate') {
     }
   }
   const stepsDir = flags.steps ?? join(flags.out, 'steps');
+  const templatesDir = flags.templates ?? join(flags.out, 'templates');
   const { steps: existingSteps } = loadSteps(stepsDir);
-  const { accepted, acceptedSteps, manifest } = await compileSections(sections, {
+  const { accepted, acceptedSteps, acceptedTemplates, manifest } = await compileSections(sections, {
     llm: claudeCliTransport(),
     bedUsers: bed?.users,
     steps: existingSteps,
@@ -135,6 +148,9 @@ if (command === 'validate') {
         for (const staleStep of entry.steps ?? []) {
           rmSync(join(stepsDir, `${staleStep}.json`), { force: true });
         }
+        for (const staleTpl of entry.templates ?? []) {
+          rmSync(join(templatesDir, `${staleTpl}.json`), { force: true });
+        }
       }
       finalManifest = {
         ...previous,
@@ -151,9 +167,17 @@ if (command === 'validate') {
   for (const { stepObj } of acceptedSteps) {
     writeFileSync(join(stepsDir, `${stepObj.id}.json`), JSON.stringify(stepObj, null, 2) + '\n');
   }
+  if (acceptedTemplates.length > 0) mkdirSync(templatesDir, { recursive: true });
+  for (const { tplObj } of acceptedTemplates) {
+    writeFileSync(join(templatesDir, `${tplObj.id}.json`), JSON.stringify(tplObj, null, 2) + '\n');
+  }
   writeFileSync(manifestPath, JSON.stringify(finalManifest, null, 2) + '\n');
   const outcomes = manifest.sections.reduce((acc, s) => ((acc[s.outcome] = (acc[s.outcome] ?? 0) + 1), acc), {});
-  console.log(`compiled ${accepted.length} case(s)${acceptedSteps.length > 0 ? ` + ${acceptedSteps.length} step(s)` : ''} from ${sections.length} section(s) → ${flags.out}`);
+  const extras = [
+    acceptedSteps.length > 0 ? `${acceptedSteps.length} step(s)` : null,
+    acceptedTemplates.length > 0 ? `${acceptedTemplates.length} template(s)` : null,
+  ].filter(Boolean).map((s) => ` + ${s}`).join('');
+  console.log(`compiled ${accepted.length} case(s)${extras} from ${sections.length} section(s) → ${flags.out}`);
   console.log(`sections: ${JSON.stringify(outcomes)} | manifest: ${join(flags.out, 'compile-manifest.json')}`);
   const failedTransport = manifest.sections.some((s) => s.outcome === 'transport-error');
   process.exit(failedTransport ? 1 : 0);
@@ -170,8 +194,9 @@ if (command === 'validate') {
   }
   const { loaded, parseErrors } = loadCases(casesDir);
   const { steps, errorCount: stepErrors } = stepsRegistry();
+  const { templates, errorCount: templateErrors } = templatesRegistry(steps);
   const { results, ok } = validateCaseSet(loaded, { bedUsers: bed?.users, steps });
-  const errorCount = reportValidation(results, parseErrors) + stepErrors;
+  const errorCount = reportValidation(results, parseErrors) + stepErrors + templateErrors;
   if (errorCount > 0 || !ok) {
     console.error('\nvalidation failed — nothing was run');
     process.exit(1);
@@ -189,6 +214,7 @@ if (command === 'validate') {
     seed,
     evidencePath: flags.evidence ?? null,
     steps,
+    templates,
   });
 
   for (const v of verdicts) {

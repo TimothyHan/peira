@@ -28,6 +28,28 @@ export async function withFixture(fn) {
   }
 }
 
+/** The RFC §4.2 result-isolation invariant as a template — shared across PR4 suites. */
+export function isolationTemplate(over = {}) {
+  return {
+    id: 'TPL-result-isolation-001',
+    from: { intent: 'result-isolation', hash: 'abcdef123456' },
+    holes: {
+      submitter: { kind: 'principal' },
+      other: { kind: 'principal', distinctFrom: 'submitter' },
+      script: { kind: 'expression' },
+    },
+    setup: [{
+      request: { method: 'post', route: '/groovy/submit', auth: '$holes.submitter', body: { code: '{{holes.script.code}}' } },
+      capture: { requestId: 'body.id' },
+    }],
+    test: {
+      request: { method: 'get', route: '/groovy/status', auth: '$holes.other', query: { id: '$requestId' } },
+      expect: { status: 403 },
+    },
+    ...over,
+  };
+}
+
 /** A minimal valid case, override what the test needs. */
 export function makeCase(overrides = {}) {
   return {
