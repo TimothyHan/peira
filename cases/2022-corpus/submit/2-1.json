@@ -4,7 +4,7 @@
   "title": "2.1 As submit endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload is missing code field",
   "from": {
     "intent": "post-groovy-submit",
-    "hash": "08cc92149789"
+    "hash": "6da1a5fc7ff5"
   },
   "test": {
     "request": {

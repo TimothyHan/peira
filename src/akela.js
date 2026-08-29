@@ -1,35 +1,37 @@
-// The Akela seam (RFC 0001 §4.8). Peira keeps its own flat evidence log and does NOT depend
-// on Akela — this module just reshapes a run (+ its triage adjudications) into the
-// applied/contradicted grammar both engines will eventually share:
+// The Akela evidence mapping (RFC 0001 §4.8, revised 2026-08-29 on adoption of the real engine).
+// Akela's grammar asks exactly one question per knowledge section: was this knowledge right?
 //
-//   a passing case APPLIES its intent section
-//   a triaged bug CONTRADICTS the service
-//   a triaged drift CONTRADICTS the case (the encoded expectation, not the intent)
+//   pass          → applied      (the intent section proved valid)
+//   triaged bug   → applied      (the section did its job: it correctly predicted what should
+//                                 happen and caught the service violating it — the defect is a
+//                                 Peira finding, the knowledge earned trust)
+//   triaged drift → contradicted (reality contradicted the intent text — trust drops, the
+//                                 author amends; the note carries the adjudication verbatim)
+//   flake / error / untriaged → nothing (unadjudicated signal never becomes evidence)
 //
-// `error` verdicts, untriaged failures, and flake adjudications export NOTHING — unadjudicated
-// signal never becomes evidence (D4; Akela's own gate ethos applied to ourselves).
-// Pure function of its inputs: same run + same proposals → byte-identical output.
+// Two views: per-case records (the exported JSONL, self-contained), and per-SECTION evidence
+// (deduped — at most one applied per section per run, contradiction dominating a mixed section)
+// sized for Akela's promotion arithmetic, which counts runs, not cases.
 
 import { parseEvidence, routeVerdicts } from './triage.js';
 
 /**
+ * Per-case evidence records (the exported JSONL).
  * @param {string} runEvidenceText run JSONL
  * @param {object|null} triageProposals parsed proposals (peira triage output), or null
- * @returns {object[]} applied/contradicted records, in verdict order
  */
 export function deriveAkelaEvidence(runEvidenceText, triageProposals = null) {
   const { seed, verdicts, definitions } = parseEvidence(runEvidenceText);
   if (triageProposals && triageProposals.seed !== seed) {
     throw new Error(`triage proposals are for seed ${triageProposals.seed}, run evidence is seed ${seed} — refusing to mix runs`);
   }
-  const adjudications = new Map((triageProposals?.verdicts ?? []).map((v) => [v.case, v.classification]));
+  const adjudications = new Map((triageProposals?.verdicts ?? []).map((v) => [v.case, v]));
   const { failures } = routeVerdicts(verdicts);
   const failureIds = new Set(failures.map((f) => f.id));
 
   const records = [];
   for (const v of verdicts) {
-    const def = definitions.get(v.id);
-    const from = def?.from;
+    const from = definitions.get(v.id)?.from;
     if (!from?.intent) continue; // no lineage, no evidence
     const lineage = {
       intent: from.intent,
@@ -39,14 +41,51 @@ export function deriveAkelaEvidence(runEvidenceText, triageProposals = null) {
       ...(from.template !== undefined ? { template: from.template, instance: from.instance } : {}),
     };
     if (v.verdict === 'pass') {
-      records.push({ event: 'applied', ...lineage });
+      records.push({ event: 'applied', via: 'pass', ...lineage });
     } else if (failureIds.has(v.id)) {
       const adjudication = adjudications.get(v.id);
-      if (adjudication === 'bug') records.push({ event: 'contradicted', subject: 'service', ...lineage, via: 'triage:bug' });
-      else if (adjudication === 'drift') records.push({ event: 'contradicted', subject: 'case', ...lineage, via: 'triage:drift' });
-      // flake or untriaged: nothing — insufficient or unadjudicated evidence is not evidence
+      if (adjudication?.classification === 'bug') {
+        records.push({ event: 'applied', via: 'triage:bug', ...lineage });
+      } else if (adjudication?.classification === 'drift') {
+        records.push({ event: 'contradicted', via: 'triage:drift', ...lineage, note: adjudication.rationale });
+      }
+      // flake or untriaged: nothing
     }
     // error verdicts: nothing, by construction
   }
   return records;
+}
+
+/**
+ * Collapse per-case records into per-section evidence for an Akela run: at most one event per
+ * section, contradiction dominating a mixed section (the note says why). Section ids map to
+ * Akela source ids (`PEIRA-<file-stem>#<id>`) via the live intent sections.
+ * @param {object[]} records from deriveAkelaEvidence
+ * @param {Array<{id: string, file: string}>} sections from loadIntentDir
+ * @param {string} [namespace]
+ */
+export function sectionEvidence(records, sections, namespace = 'PEIRA') {
+  const srcFor = new Map(sections.map((s) => [s.id, `${namespace}-${s.file.replace(/\.md$/, '')}#${s.id}`]));
+  const bySection = new Map();
+  const unmapped = new Set();
+  for (const r of records) {
+    if (!srcFor.has(r.intent)) {
+      unmapped.add(r.intent);
+      continue;
+    }
+    if (!bySection.has(r.intent)) bySection.set(r.intent, []);
+    bySection.get(r.intent).push(r);
+  }
+  const applied = [];
+  const contradicted = [];
+  for (const [intent, events] of bySection) {
+    const src = srcFor.get(intent);
+    const drift = events.find((e) => e.event === 'contradicted');
+    if (drift) {
+      contradicted.push({ src, note: drift.note ?? `drift adjudicated on ${drift.case}` });
+    } else {
+      applied.push(src);
+    }
+  }
+  return { applied: applied.sort(), contradicted: contradicted.sort((a, b) => a.src.localeCompare(b.src)), unmapped: [...unmapped].sort() };
 }

@@ -12,7 +12,8 @@ export const USAGE = `usage: peira <command>
   compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>]
   stats    [casesDir] [--steps <dir>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
-  evidence --evidence <run.jsonl> [--triage <proposals.json>] [--out <path>]
+  evidence --evidence <run.jsonl> [--triage <proposals.json>] --intent <dir> [--out <path>] [--no-akela]
+           records the run into Akela (Peira is an Akela domain); also writes the portable JSONL export
   render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--triage <proposals.json>] [--format md|html] [--out <path>]
   adopt    <messy.md> --out <intent/name.md>
 
@@ -47,6 +48,7 @@ export function buildContext(argv) {
       steps: { type: 'string' },
       templates: { type: 'string' },
       format: { type: 'string' },
+      'no-akela': { type: 'boolean' },
     },
   });
 

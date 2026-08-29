@@ -55,8 +55,11 @@ nothing. You decide.
    write time). `peira stats` reports DSL coverage and recurring escape shapes.
 5. When intent changes: `peira validate --intent` flags stale cases; `peira compile --section`
    regenerates exactly those. When runs fail: `peira triage` proposes; you adjudicate.
-6. `peira evidence --evidence run.jsonl --triage run-triage.json` exports the run as flat
-   `applied`/`contradicted` records (the [Akela](https://github.com/) evidence grammar).
+6. `peira evidence --evidence run.jsonl --triage run-triage.json --intent intent` records the
+   run into [Akela](https://www.npmjs.com/package/akela) — Peira is an Akela domain, the way
+   QABuddy is: passing sections log `applied`, adjudicated drift logs `contradicted` (with the
+   verbatim note), and intent sections earn evidence-gated trust. A portable JSONL export is
+   written alongside.
 
 ## Measured, not promised (v0.1, against the in-repo bed and its 2022 ancestor)
 
@@ -76,7 +79,8 @@ Experiments and findings: `docs/findings/`.
 
 ## Status
 
-v0.1. Zero runtime dependencies, Node ≥ 18. Single AUT per run. Compile and triage require the
+v0.2-dev. One first-party runtime dependency (akela — same author, itself dependency-free:
+no third-party code on the trust path), Node ≥ 18. Single AUT per run. Compile and triage require the
 Claude Code CLI (they run on your session; no API key). Akela integration is a seam, not a
 dependency. UI testing, load testing, mocking, and contract brokering are explicit non-goals.
 

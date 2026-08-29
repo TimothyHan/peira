@@ -4,7 +4,7 @@
   "title": "1.1 As a user, I should be able to fetch the request detail that I created with a valid credential",
   "from": {
     "intent": "security-2",
-    "hash": "f1a9c46dadcc"
+    "hash": "ae5ab7a63816"
   },
   "setup": [
     {

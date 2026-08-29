@@ -5,7 +5,7 @@
   "notes": "Ported as observed in 2022: asserts 401. Test-plan AC 1.4 says 403 — the pre-registered PR2 adjudication specimen (RFC 0001 §8).",
   "from": {
     "intent": "security-2",
-    "hash": "f1a9c46dadcc"
+    "hash": "ae5ab7a63816"
   },
   "setup": [
     {

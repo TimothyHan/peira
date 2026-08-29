@@ -132,12 +132,19 @@ Commit `intent/`, `cases/`, and the bed configs. **CI runs zero LLM** — no key
 ```
 
 The exit code gates the merge. When CI goes red, pull the evidence artifact and triage it
-locally — adjudication stays a human act, never a bot in the pipeline. Optionally export
-adjudicated runs as flat evidence records:
+locally — adjudication stays a human act, never a bot in the pipeline. Then record the
+adjudicated run into [Akela](https://www.npmjs.com/package/akela) — Peira is an Akela domain,
+so your intent sections earn evidence-gated trust across runs:
 
 ```bash
-peira evidence --evidence run.jsonl --triage run-triage.json     # applied/contradicted JSONL
+peira evidence --evidence run.jsonl --triage run-triage.json --intent intent
 ```
+
+Passing sections log `applied` (a triaged bug also logs `applied` — the section did its job
+catching the violation); adjudicated drift logs `contradicted` with the verbatim note; flake
+and untriaged failures log nothing. One event per section per run, so `akela stats` counts
+runs, not case volume. A portable JSONL export is written alongside. Note: intent sections
+live at `##` heading level — that is the sectioning both Peira and Akela index.
 
 ## Understanding seeds (test data by formula)
 

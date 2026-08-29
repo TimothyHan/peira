@@ -4,7 +4,7 @@
   "title": "1.3 As a user, I should receive 401 Unauthorized when I submit the request with a invalid credential",
   "from": {
     "intent": "security-2",
-    "hash": "f1a9c46dadcc"
+    "hash": "ae5ab7a63816"
   },
   "setup": [
     {

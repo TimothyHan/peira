@@ -4,7 +4,7 @@
   "title": "4.4 As a service, I should mark the request status as FAILED, and provide error message through result field",
   "from": {
     "intent": "robustness-2",
-    "hash": "9b8cd66e6aae"
+    "hash": "3ef9a6b32657"
   },
   "setup": [
     {

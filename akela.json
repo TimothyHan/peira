@@ -1,0 +1,31 @@
+{
+  "domain": "default",
+  "knowledge": [
+    {
+      "path": "intent",
+      "namespace": "PEIRA",
+      "untagged": "derive"
+    }
+  ],
+  "learnings": "akela/LEARNINGS.md",
+  "runs": ".akela/runs",
+  "idTag": "peira",
+  "activities": [
+    "run",
+    "compile",
+    "triage",
+    "adopt"
+  ],
+  "statuses": [
+    "DONE",
+    "DONE_WITH_CONCERNS",
+    "BLOCKED",
+    "NEEDS_CONTEXT"
+  ],
+  "fingerprints": [
+    "bed-artifact",
+    "stale-lineage",
+    "misadjudication",
+    "weak-oracle"
+  ]
+}

@@ -5,7 +5,7 @@
   "notes": "Also covers 2022 spec 4.6, its verbatim duplicate — 26 case files cover 27 executable specs.",
   "from": {
     "intent": "get-groovy-status",
-    "hash": "de45e3d45544"
+    "hash": "44fab395c9a7"
   },
   "test": {
     "request": {
