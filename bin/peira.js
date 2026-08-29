@@ -10,6 +10,7 @@ const COMMANDS = {
   stats: () => import('../src/cli/stats.js'),
   triage: () => import('../src/cli/triage.js'),
   evidence: () => import('../src/cli/evidence.js'),
+  render: () => import('../src/cli/render.js'),
 };
 
 const ctx = buildContext(process.argv);
