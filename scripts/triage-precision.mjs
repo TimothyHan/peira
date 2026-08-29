@@ -8,12 +8,12 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PLANTS } from '../test/fixtures/plants.js';
 import { startFixture } from '../test/fixtures/server.js';
-import { loadCases } from '../src/load.js';
-import { loadIntentDir, parseIntent } from '../src/intent.js';
-import { loadTemplates } from '../src/validate.js';
-import { runCases } from '../src/runner.js';
-import { triageRun } from '../src/triage.js';
-import { claudeCliTransport } from '../src/llm.js';
+import { loadCases } from '../dist/load.js';
+import { loadIntentDir, parseIntent } from '../dist/intent.js';
+import { loadTemplates } from '../dist/validate.js';
+import { runCases } from '../dist/runner.js';
+import { triageRun } from '../dist/triage.js';
+import { claudeCliTransport } from '../dist/llm.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = join(root, 'experiments', 'triage-precision');

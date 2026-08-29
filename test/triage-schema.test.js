@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gateTriageOutput } from '../src/triage.js';
+import { gateTriageOutput } from '../dist/triage.js';
 
 const failureIds = new Set(['CASE-a-001', 'CASE-b-001']);
 const bug = (caseId = 'CASE-a-001') => ({

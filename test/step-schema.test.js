@@ -1,7 +1,7 @@
 // The oracle discipline's enforcement surface (RFC §4.5): steps and invocations at the gate.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateStep, validateCase, loadSteps } from '../src/validate.js';
+import { validateStep, validateCase, loadSteps } from '../dist/validate.js';
 import { makeCase } from './helpers.js';
 
 const goodStep = (over = {}) => ({

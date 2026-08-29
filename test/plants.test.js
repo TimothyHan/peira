@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PLANTS } from './fixtures/plants.js';
 import { startFixture } from './fixtures/server.js';
-import { httpRequest } from '../src/http.js';
+import { httpRequest } from '../dist/http.js';
 import { testEach } from './helpers.js';
 
 const alice = { username: 'user_1', password: 'pass_1' };

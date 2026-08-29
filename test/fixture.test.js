@@ -1,9 +1,9 @@
 // The fixture honors its own semantics — so a red corpus case indicts the case, not the bed.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { httpRequest } from '../src/http.js';
+import { httpRequest } from '../dist/http.js';
 import { withFixture } from './helpers.js';
-import { POLL_INTERVAL_MS } from '../src/constants.js';
+import { POLL_INTERVAL_MS } from '../dist/constants.js';
 
 const alice = { username: 'user_1', password: 'pass_1' };
 const bob = { username: 'user_2', password: 'pass_2' };

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gateAdoptedDocument, adoptDocument, buildAdoptPrompt } from '../src/adopt.js';
-import { lintIntent, parseIntent } from '../src/intent.js';
+import { gateAdoptedDocument, adoptDocument, buildAdoptPrompt } from '../dist/adopt.js';
+import { lintIntent, parseIntent } from '../dist/intent.js';
 
 const SOURCE = `Requirements
 

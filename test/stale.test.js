@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseIntent } from '../src/intent.js';
-import { checkStale } from '../src/stale.js';
+import { parseIntent } from '../dist/intent.js';
+import { checkStale } from '../dist/stale.js';
 
 const original = parseIntent('## Submit works\n\nSubmitting returns an id.\n');
 const caseFor = (section) => ({

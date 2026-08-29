@@ -7,7 +7,7 @@
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseIntent } from '../src/intent.js';
+import { parseIntent } from '../dist/intent.js';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
 const root = join(repo, 'cases', '2022-corpus');

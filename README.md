@@ -79,8 +79,9 @@ Experiments and findings: `docs/findings/`.
 
 ## Status
 
-v0.2-dev. One first-party runtime dependency (same author, itself dependency-free: no
-third-party code on the trust path), Node ≥ 18. Single AUT per run. Compile and triage require
+v0.2-dev. Written in TypeScript; ships compiled JS with full type declarations. One
+first-party runtime dependency (same author, itself dependency-free: no third-party code on
+the trust path), Node ≥ 18. Single AUT per run. Compile and triage require
 the Claude Code CLI (they run on your session; no API key). UI testing, load testing, mocking,
 and contract brokering are explicit non-goals.
 

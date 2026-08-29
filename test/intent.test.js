@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseIntent, loadIntentDir, hashSection, normalizeText } from '../src/intent.js';
+import { parseIntent, loadIntentDir, hashSection, normalizeText } from '../dist/intent.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 

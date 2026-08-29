@@ -1,8 +1,8 @@
 // Steps inside the runner: the hand-written HMAC case end-to-end, and verdict classification.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runCase } from '../src/runner.js';
-import { EvidenceLog } from '../src/evidence.js';
+import { runCase } from '../dist/runner.js';
+import { EvidenceLog } from '../dist/evidence.js';
 import { withFixture, makeCase, makeBed } from './helpers.js';
 
 const SIGN_STEP = {

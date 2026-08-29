@@ -1,0 +1,11 @@
+import { loadCases } from '../load.js';
+import { computeStats, formatStats } from '../stats.js';
+import type { CliContext } from './context.js';
+
+export async function main(ctx: CliContext): Promise<number> {
+  const { loaded, parseErrors } = loadCases(ctx.casesDir);
+  for (const msg of parseErrors) console.error(`ERROR ${msg}`);
+  const { steps } = ctx.stepsRegistry();
+  console.log(formatStats(computeStats(loaded, steps)));
+  return parseErrors.length > 0 ? 1 : 0;
+}

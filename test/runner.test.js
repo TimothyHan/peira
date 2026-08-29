@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runCase, runCases } from '../src/runner.js';
-import { EvidenceLog } from '../src/evidence.js';
-import { httpRequest } from '../src/http.js';
+import { runCase, runCases } from '../dist/runner.js';
+import { EvidenceLog } from '../dist/evidence.js';
+import { httpRequest } from '../dist/http.js';
 import { withFixture, makeCase } from './helpers.js';
 
 const run = (caseObj, bed, url, seed = 1) =>

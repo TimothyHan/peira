@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEvidence, routeVerdicts, buildFailurePacket, buildTriagePrompt, triageRun, UNTRUSTED_OPEN, UNTRUSTED_CLOSE } from '../src/triage.js';
-import { parseIntent } from '../src/intent.js';
+import { parseEvidence, routeVerdicts, buildFailurePacket, buildTriagePrompt, triageRun, UNTRUSTED_OPEN, UNTRUSTED_CLOSE } from '../dist/triage.js';
+import { parseIntent } from '../dist/intent.js';
 
 const sections = parseIntent('## Result isolation\n<!-- peira: id=result-isolation kind=invariant -->\nOnly the submitter sees results: others get 403.\n');
 

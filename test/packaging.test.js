@@ -8,15 +8,16 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-test('npm pack ships exactly bin + src + schema + README + package.json', async () => {
+test('npm pack ships exactly bin + dist + schema + README + package.json', async () => {
   const { stdout } = await promisify(execFile)('npm', ['pack', '--dry-run', '--json'], { cwd: root });
   const [report] = JSON.parse(stdout);
   const files = report.files.map((f) => f.path).sort();
-  const allowed = /^(package\.json|README\.md|bin\/peira\.js|src\/(cli\/)?[a-z-]+\.js|schema\/[a-z.]+\.schema\.json|types\/(cli\/)?[a-z-]+\.d\.ts(\.map)?)$/;
+  const allowed = /^(package\.json|README\.md|bin\/peira\.js|dist\/(cli\/)?[a-z-]+\.(js|d\.ts)|schema\/[a-z.]+\.schema\.json)$/;
   for (const file of files) {
     assert.match(file, allowed, `unexpected file in tarball: ${file}`);
   }
-  for (const required of ['bin/peira.js', 'src/runner.js', 'src/compile.js', 'src/triage.js', 'src/ledger.js', 'src/cli/run.js', 'src/index.js', 'schema/case.schema.json', 'schema/step.schema.json', 'schema/triage.schema.json', 'README.md']) {
+  for (const required of ['bin/peira.js', 'dist/runner.js', 'dist/runner.d.ts', 'dist/compile.js', 'dist/triage.js', 'dist/ledger.js', 'dist/cli/main.js', 'dist/index.js', 'dist/index.d.ts', 'schema/case.schema.json', 'schema/step.schema.json', 'schema/triage.schema.json', 'README.md']) {
     assert.ok(files.includes(required), `missing from tarball: ${required}`);
   }
+  assert.ok(!files.some((f) => f.startsWith('src/')), 'TypeScript sources do not ship — dist is the artifact');
 });

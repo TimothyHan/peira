@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderCase, renderDocument } from '../src/render.js';
+import { renderCase, renderDocument } from '../dist/render.js';
 import { makeCase, isolationTemplate } from './helpers.js';
 
 const hmacStep = {

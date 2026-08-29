@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveLedgerEvidence, sectionEvidence } from '../src/ledger.js';
+import { deriveLedgerEvidence, sectionEvidence } from '../dist/ledger.js';
 
 const lineage = (extra = {}) => ({ intent: 'result-isolation', hash: 'abcdef123456', ...extra });
 const evidence = (verdictRows) =>

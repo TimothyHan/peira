@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderHtmlDocument } from '../src/render-html.js';
+import { renderHtmlDocument } from '../dist/render-html.js';
 import { makeCase } from './helpers.js';
 
 const evidenceText = [
@@ -80,7 +80,7 @@ test('failing cards carry the observed exchange log; summaries carry timing; her
   assert.match(html, /<small>pass rate<\/small>/);
   assert.match(html, /class="chip drift">drift 1</);
 
-  const { renderDocument } = await import('../src/render.js');
+  const { renderDocument } = await import('../dist/render.js');
   const md = renderDocument({ loaded: [{ file: 'x', caseObj: makeCase() }], evidenceText: withHttp, triageProposals });
   assert.match(md, /Observed exchanges \(2\)/);
   assert.match(md, /\[test attempt 1\] GET \/thing\?id=x → 401 \(8ms\)/);
@@ -88,7 +88,7 @@ test('failing cards carry the observed exchange log; summaries carry timing; her
 });
 
 test('markdown renderer also weaves triage', async () => {
-  const { renderDocument } = await import('../src/render.js');
+  const { renderDocument } = await import('../dist/render.js');
   const md = renderDocument({ loaded: [{ file: 'x', caseObj: makeCase() }], evidenceText, triageProposals });
   assert.match(md, /\*\*Triage proposes: DRIFT\*\*/);
   assert.match(md, /~~old & busted~~ → \*\*new <hotness>\*\*/);
