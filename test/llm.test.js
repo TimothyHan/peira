@@ -77,3 +77,26 @@ test('CLI smoke: peira compile with the fake binary writes cases and a complete 
   const merged = JSON.parse(readFileSync(join(outDir, 'compile-manifest.json'), 'utf8'));
   assert.deepEqual(merged.sections.map((s) => s.cases).flat(), ['CASE-fake-v2-001']);
 });
+
+test('compile advises adopt on fragile intent, and refuses an empty intent dir with the hint', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'peira-lint-'));
+  const intentDir = join(dir, 'intent');
+  const { mkdirSync } = await import('node:fs');
+  mkdirSync(intentDir, { recursive: true });
+  const binPath = join(here, '..', 'bin', 'peira.js');
+  const env = { ...process.env, PEIRA_CLAUDE_BIN: fakeBin };
+
+  // colliding derived slugs → advisory, compile still proceeds
+  writeFileSync(join(intentDir, 'plan.md'), '## Security\n\na\n\n## Security\n\nb\n');
+  const ok = await promisify(execFile)(process.execPath, [binPath, 'compile', intentDir, '--out', join(dir, 'out')], { env });
+  assert.match(ok.stderr, /derived slug collision/);
+  assert.match(ok.stderr, /consider the one-time `peira adopt`/);
+
+  // empty intent dir → refused with the adopt pointer
+  const emptyDir = join(dir, 'empty');
+  mkdirSync(emptyDir);
+  await assert.rejects(
+    () => promisify(execFile)(process.execPath, [binPath, 'compile', emptyDir, '--out', join(dir, 'out2')], { env }),
+    (err) => /no intent sections found/.test(err.stderr) && /peira adopt/.test(err.stderr),
+  );
+});
