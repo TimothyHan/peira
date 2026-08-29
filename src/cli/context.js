@@ -12,8 +12,9 @@ export const USAGE = `usage: peira <command>
   compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>]
   stats    [casesDir] [--steps <dir>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
-  evidence --evidence <run.jsonl> [--triage <proposals.json>] --intent <dir> [--out <path>] [--no-akela]
-           records the run into Akela (Peira is an Akela domain); also writes the portable JSONL export
+  evidence --evidence <run.jsonl> [--triage <proposals.json>] --intent <dir> [--out <path>] [--no-ledger]
+           records the run into the evidence ledger; also writes the portable JSONL export
+  trust    shows the ledger standings — per intent section: applied, contradicted, runs
   render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--triage <proposals.json>] [--format md|html] [--out <path>]
   adopt    <messy.md> --out <intent/name.md>
 
@@ -27,7 +28,8 @@ flags:
   --templates <dir>   templates registry (default: <casesDir>/templates, else ./templates)
   --out <dir|file>    output target — compile: cases dir; triage/evidence/render/adopt: file
   --section <id>      compile only this intent section (repeatable; targeted recompile merges the manifest)
-  --triage <path>     triage proposals JSON to fold into the Akela evidence export
+  --triage <path>     triage proposals JSON to fold into the ledger evidence export
+  --no-ledger         write the JSONL export only; skip recording into the evidence ledger
 
 docs: docs/GETTING-STARTED.md | design: docs/DESIGN.md`;
 
@@ -48,7 +50,7 @@ export function buildContext(argv) {
       steps: { type: 'string' },
       templates: { type: 'string' },
       format: { type: 'string' },
-      'no-akela': { type: 'boolean' },
+      'no-ledger': { type: 'boolean' },
     },
   });
 

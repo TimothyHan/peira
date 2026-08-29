@@ -1,5 +1,5 @@
-// The Akela evidence mapping (RFC 0001 §4.8, revised 2026-08-29 on adoption of the real engine).
-// Akela's grammar asks exactly one question per knowledge section: was this knowledge right?
+// The evidence-ledger mapping (RFC 0001 §4.8, revised 2026-08-29 on adoption of the real engine).
+// The ledger asks exactly one question per intent section: was this knowledge right?
 //
 //   pass          → applied      (the intent section proved valid)
 //   triaged bug   → applied      (the section did its job: it correctly predicted what should
@@ -11,7 +11,7 @@
 //
 // Two views: per-case records (the exported JSONL, self-contained), and per-SECTION evidence
 // (deduped — at most one applied per section per run, contradiction dominating a mixed section)
-// sized for Akela's promotion arithmetic, which counts runs, not cases.
+// sized for the ledger's promotion arithmetic, which counts runs, not cases.
 
 import { parseEvidence, routeVerdicts } from './triage.js';
 
@@ -20,7 +20,7 @@ import { parseEvidence, routeVerdicts } from './triage.js';
  * @param {string} runEvidenceText run JSONL
  * @param {object|null} triageProposals parsed proposals (peira triage output), or null
  */
-export function deriveAkelaEvidence(runEvidenceText, triageProposals = null) {
+export function deriveLedgerEvidence(runEvidenceText, triageProposals = null) {
   const { seed, verdicts, definitions } = parseEvidence(runEvidenceText);
   if (triageProposals && triageProposals.seed !== seed) {
     throw new Error(`triage proposals are for seed ${triageProposals.seed}, run evidence is seed ${seed} — refusing to mix runs`);
@@ -57,10 +57,10 @@ export function deriveAkelaEvidence(runEvidenceText, triageProposals = null) {
 }
 
 /**
- * Collapse per-case records into per-section evidence for an Akela run: at most one event per
+ * Collapse per-case records into per-section evidence for a ledger run: at most one event per
  * section, contradiction dominating a mixed section (the note says why). Section ids map to
- * Akela source ids (`PEIRA-<file-stem>#<id>`) via the live intent sections.
- * @param {object[]} records from deriveAkelaEvidence
+ * ledger source ids (`PEIRA-<file-stem>#<id>`) via the live intent sections.
+ * @param {object[]} records from deriveLedgerEvidence
  * @param {Array<{id: string, file: string}>} sections from loadIntentDir
  * @param {string} [namespace]
  */

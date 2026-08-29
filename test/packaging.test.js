@@ -16,7 +16,7 @@ test('npm pack ships exactly bin + src + schema + README + package.json', async 
   for (const file of files) {
     assert.match(file, allowed, `unexpected file in tarball: ${file}`);
   }
-  for (const required of ['bin/peira.js', 'src/runner.js', 'src/compile.js', 'src/triage.js', 'src/akela.js', 'src/cli/run.js', 'src/index.js', 'schema/case.schema.json', 'schema/step.schema.json', 'schema/triage.schema.json', 'README.md']) {
+  for (const required of ['bin/peira.js', 'src/runner.js', 'src/compile.js', 'src/triage.js', 'src/ledger.js', 'src/cli/run.js', 'src/index.js', 'schema/case.schema.json', 'schema/step.schema.json', 'schema/triage.schema.json', 'README.md']) {
     assert.ok(files.includes(required), `missing from tarball: ${required}`);
   }
 });
