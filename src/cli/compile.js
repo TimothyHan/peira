@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadIntentDir } from '../intent.js';
+import { loadIntentDir, lintIntent } from '../intent.js';
 import { loadSteps } from '../validate.js';
 import { compileSections } from '../compile.js';
 import { claudeCliTransport } from '../llm.js';
@@ -14,6 +14,17 @@ export async function main(ctx) {
   }
   const intentDir = positionals[0] ?? 'intent';
   const allSections = loadIntentDir(intentDir);
+  if (allSections.length === 0) {
+    console.error(`no intent sections found in ${intentDir} — every "##" heading with body text becomes a section.`);
+    console.error('an unstructured document can be restructured once with: peira adopt <file> --out <intent/name.md>');
+    return 1;
+  }
+  // advisory only — the tool teaches the adopt workflow, it never normalizes uninvited
+  const lintWarnings = lintIntent(allSections);
+  for (const msg of lintWarnings) console.error(`warn  intent: ${msg}`);
+  if (lintWarnings.length > 0) {
+    console.error('warn  intent: coarse or fragile sections compile, but lineage suffers — consider the one-time `peira adopt` (you review and own the result)');
+  }
   const fullDocument = allSections.map((s) => `## ${s.title}\n\n${s.text}`).join('\n\n');
   let sections = allSections;
   if (flags.section?.length) {
