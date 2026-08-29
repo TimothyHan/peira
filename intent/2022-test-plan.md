@@ -65,14 +65,14 @@ For this section, I will assume that the endpoint should reject the request that
 
 #### GET /groovy/status
 
-For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.
+For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — "not valid" in 3.6 means not UUID-shaped, "does not exist" in 3.5 means UUID-shaped but unknown).
 
 - 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field
 - 3.2 As a service endpoint, I should return a request detail with 200 OK when the request ID is found in the database
 - 3.3 As a service endpoint, I should return request `id`, `status` and `result` field when the request ID is found
-- 3.4 As a service endpoint, I should return 400 Bad request or 422 Unprocessable entitity when the request payload does not only contain `id` field and its value
+- 3.4 As a service endpoint, I should ignore any query parameter other than `id` and process the request normally (amended 2026-08-29: was "400 Bad request or 422 when the payload does not only contain `id`" — a better-practice assumption that was never implemented and never tested; adjudicated to observed behavior)
 - 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database
-- 3.6 As a service endpoint, I should respond with 404 Not found when the `id` is not valid
+- 3.6 As a service endpoint, I should respond with 400 Bad request when the `id` is not valid (amended 2026-08-29: was "404 Not found"; adjudicated to observed behavior — a malformed id is a bad request, not a missing resource)
 
 ### Robustness
 

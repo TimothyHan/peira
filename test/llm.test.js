@@ -61,4 +61,19 @@ test('CLI smoke: peira compile with the fake binary writes cases and a complete 
   assert.equal(manifest.sections.length, 1);
   assert.equal(manifest.sections[0].outcome, 'compiled');
   assert.equal(manifest.model, 'claude-opus-5');
+
+  // targeted recompile (--section): superseded case files removed, manifest merged in place
+  const replacement = {
+    cases: [{
+      id: 'CASE-fake-v2-001',
+      title: 'recompiled case',
+      test: { request: { method: 'get', route: '/thing' }, expect: { status: 200, body: { ok: true } } },
+    }],
+  };
+  await promisify(execFile)(process.execPath, [binPath, 'compile', intentDir, '--out', outDir, '--section', 'thing-works'], {
+    env: { ...process.env, PEIRA_CLAUDE_BIN: fakeBin, FAKE_CLAUDE_OUTPUT: JSON.stringify(replacement) },
+  });
+  assert.deepEqual(readdirSync(outDir).sort(), ['CASE-fake-v2-001.json', 'compile-manifest.json']);
+  const merged = JSON.parse(readFileSync(join(outDir, 'compile-manifest.json'), 'utf8'));
+  assert.deepEqual(merged.sections.map((s) => s.cases).flat(), ['CASE-fake-v2-001']);
 });

@@ -40,6 +40,7 @@ const { values: flags, positionals } = parseArgs({
     evidence: { type: 'string' },
     intent: { type: 'string' },
     out: { type: 'string' },
+    section: { type: 'string', multiple: true },
   },
 });
 
@@ -71,8 +72,20 @@ if (command === 'validate') {
     process.exit(2);
   }
   const intentDir = positionals[0] ?? 'intent';
-  const sections = loadIntentDir(intentDir);
-  const fullDocument = sections.map((s) => `## ${s.title}\n\n${s.text}`).join('\n\n');
+  const allSections = loadIntentDir(intentDir);
+  const fullDocument = allSections.map((s) => `## ${s.title}\n\n${s.text}`).join('\n\n');
+  let sections = allSections;
+  if (flags.section?.length) {
+    const wanted = new Set(flags.section);
+    sections = allSections.filter((s) => wanted.has(s.id));
+    const known = new Set(allSections.map((s) => s.id));
+    for (const id of wanted) {
+      if (!known.has(id)) {
+        console.error(`no intent section "${id}" — known: ${[...known].join(', ')}`);
+        process.exit(2);
+      }
+    }
+  }
   const { accepted, manifest } = await compileSections(sections, {
     llm: claudeCliTransport(),
     bedUsers: bed?.users,
@@ -81,10 +94,36 @@ if (command === 'validate') {
     onProgress: (msg) => console.error(msg),
   });
   mkdirSync(flags.out, { recursive: true });
+  // targeted recompile: merge into the existing manifest and remove the superseded case files
+  const manifestPath = join(flags.out, 'compile-manifest.json');
+  let finalManifest = manifest;
+  if (flags.section?.length) {
+    let previous = null;
+    try {
+      previous = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    } catch {
+      // no prior manifest — a targeted compile into a fresh dir is just a small full compile
+    }
+    if (previous) {
+      const recompiled = new Set(sections.map((s) => s.id));
+      const { rmSync } = await import('node:fs');
+      for (const entry of previous.sections.filter((s) => recompiled.has(s.id))) {
+        for (const staleId of entry.cases ?? []) {
+          rmSync(join(flags.out, `${staleId}.json`), { force: true });
+        }
+      }
+      finalManifest = {
+        ...previous,
+        model: manifest.model,
+        contractHash: manifest.contractHash,
+        sections: previous.sections.map((entry) => (recompiled.has(entry.id) ? manifest.sections.find((s) => s.id === entry.id) : entry)),
+      };
+    }
+  }
   for (const { caseObj } of accepted) {
     writeFileSync(join(flags.out, `${caseObj.id}.json`), JSON.stringify(caseObj, null, 2) + '\n');
   }
-  writeFileSync(join(flags.out, 'compile-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(manifestPath, JSON.stringify(finalManifest, null, 2) + '\n');
   const outcomes = manifest.sections.reduce((acc, s) => ((acc[s.outcome] = (acc[s.outcome] ?? 0) + 1), acc), {});
   console.log(`compiled ${accepted.length} case(s) from ${sections.length} section(s) → ${flags.out}`);
   console.log(`sections: ${JSON.stringify(outcomes)} | manifest: ${join(flags.out, 'compile-manifest.json')}`);

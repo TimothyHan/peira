@@ -100,15 +100,15 @@
     },
     {
       "id": "get-groovy-status",
-      "hash": "6db0a93e9397",
+      "hash": "de45e3d45544",
       "outcome": "compiled",
       "cases": [
         "CASE-status-missing-id-001",
-        "CASE-status-found-returns-200-001",
-        "CASE-status-returns-id-status-result-001",
-        "CASE-status-extra-field-rejected-001",
-        "CASE-status-unknown-id-404-001",
-        "CASE-status-invalid-id-404-001"
+        "CASE-status-found-returns-detail-002",
+        "CASE-status-returns-id-status-result-003",
+        "CASE-status-ignores-extra-query-004",
+        "CASE-status-unknown-id-404-005",
+        "CASE-status-invalid-id-400-006"
       ],
       "refused": []
     },

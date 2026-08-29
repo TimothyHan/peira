@@ -35,6 +35,37 @@ Per RFC §4.7's taxonomy these are **bug** candidates (behavior contradicts inte
 author amends the intent — precisely the adjudication PR5's triage will mechanize. The 2022
 suite could never raise them: it was written *from* the observed behavior.
 
+## Adjudication (author, 2026-08-29) — and the full lifecycle, run by hand once
+
+- **#1 — BUG, intent stands.** Cross-user access should be 403; the AUT answers 401. Recorded
+  here as the AUT's first logged defect (`BUG-2022-01`: wrong refusal semantics on
+  `GET /groovy/status` for a non-submitter). The two compiled 403 cases stay in the corpus and
+  stay red — a known bug failing honestly is the correct steady state.
+- **#2 — AMENDED.** AC 3.6 now says 400 for a malformed id; a malformed id is a bad request,
+  not a missing resource.
+- **#3 — AMENDED.** AC 3.4 now says extra query parameters are ignored; the 400-on-extras
+  reading was a stated assumption, never implemented and never tested.
+
+The lifecycle then executed exactly as designed: the amendments changed the
+`get-groovy-status` section hash → `peira validate --intent` flagged all six of its cases
+**stale** → `peira compile --section get-groovy-status` regenerated them (superseded case files
+removed, manifest merged) → stale flags cleared → final run **35 pass / 2 fail / 0 error**,
+the two fails being `BUG-2022-01`.
+
+Two observations from the recompile worth carrying forward:
+
+- **Recompile nondeterminism can weaken sibling probes.** The first recompile's 3.5 case probed
+  with `"99999999"` — not UUID-shaped — and so hit the (freshly amended) malformed-id 400 path
+  instead of the unknown-id 404 path. The root cause was **underspecified intent**: the plan
+  never said ids are UUIDs; the 2022 tests relied on author knowledge the document lacked. Fix,
+  per the tool's own rules: enrich the intent (one sentence defining the id format), recompile.
+  The general lesson: a compiled case that regresses after an amendment is usually the intent
+  under-constraining the model — and the drift loop's proper response is intent enrichment,
+  not case hand-editing (invariant 2).
+- **Case-diff review is where regenerate-on-amend earns its keep:** the recompiled section's
+  diff (6 files, one section) was small enough to review in one glance — the human-judgment
+  budget the RFC's thesis promises to protect.
+
 ## What the model did well
 
 - **Skip discipline:** every prose section skipped with a specific, correct reason; no case was

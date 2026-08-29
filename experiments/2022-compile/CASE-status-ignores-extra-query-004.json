@@ -1,0 +1,43 @@
+{
+  "id": "CASE-status-ignores-extra-query-004",
+  "title": "3.4 As a service endpoint, I should ignore any query parameter other than `id` and process the request normally",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'extra query {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId",
+        "unexpected": "value"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "de45e3d45544"
+  }
+}

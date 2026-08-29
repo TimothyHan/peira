@@ -1,5 +1,5 @@
 {
-  "id": "CASE-status-returns-id-status-result-001",
+  "id": "CASE-status-returns-id-status-result-003",
   "title": "3.3 As a service endpoint, I should return request `id`, `status` and `result` field when the request ID is found",
   "setup": [
     {
@@ -8,11 +8,11 @@
         "route": "/groovy/submit",
         "auth": "$users.user_1",
         "body": {
-          "code": "1 + 1 // {{unique.nonce}}"
+          "code": "return 'status fields {{unique.nonce}}'"
         }
       },
       "capture": {
-        "jobId": "body.id"
+        "requestId": "body.id"
       }
     }
   ],
@@ -22,7 +22,7 @@
       "route": "/groovy/status",
       "auth": "$users.user_1",
       "query": {
-        "id": "$jobId"
+        "id": "$requestId"
       }
     },
     "pollUntil": {
@@ -36,8 +36,10 @@
     "expect": {
       "status": 200,
       "body": {
-        "id": "$jobId",
-        "status": "COMPLETED",
+        "id": "$requestId",
+        "status": {
+          "$any": "string"
+        },
         "result": {
           "$any": "string"
         }
@@ -49,6 +51,6 @@
   },
   "from": {
     "intent": "get-groovy-status",
-    "hash": "6db0a93e9397"
+    "hash": "de45e3d45544"
   }
 }
