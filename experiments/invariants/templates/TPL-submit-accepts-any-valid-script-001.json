@@ -1,0 +1,65 @@
+{
+  "id": "TPL-submit-accepts-any-valid-script-001",
+  "title": "For all authenticated principals p and all valid groovy arithmetic expressions e: POST /groovy/submit as p with code e returns 200 with a request id, and the request eventually reaches status COMPLETED with result equal to the exact value of e (as a string)",
+  "holes": {
+    "p": {
+      "kind": "principal"
+    },
+    "e": {
+      "kind": "expression"
+    }
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$holes.p",
+        "body": {
+          "code": "{{holes.e.code}}"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "id": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$holes.p",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "status": 200,
+        "body": {
+          "status": "COMPLETED"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId",
+        "status": "COMPLETED",
+        "result": "{{holes.e.result}}"
+      }
+    }
+  },
+  "from": {
+    "intent": "submit-accepts-any-valid-script",
+    "hash": "1b5aff5c2638"
+  }
+}

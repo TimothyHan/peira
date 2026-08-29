@@ -105,12 +105,21 @@ Real-session compile of both sections is the gate experiment, PR2/PR3 style.
 
 ## Acceptance checklist
 
-- [ ] Both invariant sections compile to gate-passing templates via the real session
-- [ ] 5 instances per template per run; same seed → byte-identical minted cases and verdicts
-- [ ] Isolation template: every instance fails 401-vs-403 (BUG-2022-01, probed fresh each run)
-- [ ] Submit template: every instance passes, asserting exact generated results
-- [ ] A failing minted case is re-runnable from its recorded (template, seed, instance) alone
-- [ ] Full suite green offline; PR1–PR3 artifacts untouched
+- [x] Both invariant sections compile to gate-passing templates via the real session
+- [x] 5 instances per template per run; same seed → byte-identical minted cases and verdicts
+- [x] Isolation template: every instance fails 401-vs-403 (BUG-2022-01, probed fresh each run)
+- [x] Submit template: every instance passes, asserting exact generated results
+- [x] A failing minted case is re-runnable from its recorded (template, seed, instance) alone
+- [x] Full suite green offline (122 tests); PR1–PR3 artifacts untouched
+
+**Gate results (2026-08-29, `experiments/invariants/`):** one compile of the two tagged
+invariant sections produced 2 gate-passing templates, zero enumerated cases (the
+one-template-per-invariant posture held). Run at `--seed 42`: **5 pass / 5 fail / 0 error** —
+the five fails are the isolation invariant's fresh probes of `BUG-2022-01`, minted from one
+sentence; the five passes assert exact generated results the 2022 corpus never could. Unprompted
+model quality: the isolation template added a `unique` nonce hole and `teardown.drain` on its
+own, and put a 200-with-id expect on its setup step (so a broken submit fails loudly in setup
+rather than confusing the isolation verdict).
 
 ## Decisions folded in (flag if you disagree)
 

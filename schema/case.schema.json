@@ -8,12 +8,16 @@
     "title": { "type": "string" },
     "notes": { "type": "string" },
     "from": {
+      "$comment": "template/seed/instance appear only on cases minted from an invariant template at run time",
       "type": "object",
       "required": ["intent", "hash"],
       "additionalProperties": false,
       "properties": {
         "intent": { "type": "string" },
-        "hash": { "type": "string", "pattern": "^[0-9a-f]{6,64}$" }
+        "hash": { "type": "string", "pattern": "^[0-9a-f]{6,64}$" },
+        "template": { "type": "string", "pattern": "^TPL-[a-z0-9][a-z0-9-]*$" },
+        "seed": { "type": "integer" },
+        "instance": { "type": "integer" }
       }
     },
     "setup": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/step" }, { "$ref": "#/$defs/invocation" }] } },

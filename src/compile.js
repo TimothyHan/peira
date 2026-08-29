@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { validateCase, validateStep } from './validate.js';
+import { validateCase, validateStep, validateTemplate } from './validate.js';
 
 const CASE_SCHEMA_TEXT = readFileSync(
   fileURLToPath(new URL('../schema/case.schema.json', import.meta.url)),
@@ -63,10 +63,30 @@ emit a "steps" array alongside "cases". A step is generated procedure with a typ
 - Prefer declarative. A step you did not need is a defect; a needed step is recorded demand
   that evolves the DSL.
 
+## Invariant sections (kind=invariant) — emit ONE template, not enumerated cases
+
+An invariant quantifies over values ("for all users u ≠ submitter …"). Compile it to a case
+TEMPLATE: identical to a case, except "id" is "TPL-<kebab-slug>-<3 digits>" and it declares a
+"holes" block; the runner mints fresh concrete cases per run from seeded generators.
+
+"holes": { "<name>": { "kind": "principal" | "expression" | "unique",
+                       "distinctFrom": "<earlier principal hole>" (optional) } }
+
+- principal — a bed principal; reference as "$holes.<name>" in an auth position;
+  distinctFrom forces a different principal than the named hole.
+- expression — a generated arithmetic script WITH its known result; reference as
+  "{{holes.<name>.code}}" (the script) and "{{holes.<name>.result}}" / "$holes.<name>.result"
+  (the exact expected result — assert it; the generator knows the answer).
+- unique — a seed-derived discriminator string; reference as "{{holes.<name>}}".
+
+One template per invariant; let the generators do the enumeration. Do not hand-enumerate
+example cases for an invariant section.
+
 ## Output protocol — respond with ONLY one JSON object, no prose, no code fences
 
-{"cases": [ <case>, ... ], "steps": [ <step>, ... ]}
-  — one case per distinct behavior the section demands; "steps" only when genuinely needed; or
+{"cases": [ <case>, ... ], "steps": [ <step>, ... ], "templates": [ <template>, ... ]}
+  — one case per distinct behavior the section demands; "steps" only when genuinely needed;
+    "templates" only for kind=invariant sections; or
 {"skip": "<reason>"}
   — when the section is not automatable as functional API cases (e.g. it prescribes manual,
     load, or stress testing, is prose context only, or duplicates coverage it names).
@@ -94,8 +114,9 @@ function parseModelOutput(text) {
   if (start === -1 || end <= start) return null;
   try {
     const parsed = JSON.parse(stripped.slice(start, end + 1));
-    if (parsed !== null && typeof parsed === 'object' && (Array.isArray(parsed.cases) || typeof parsed.skip === 'string')) {
+    if (parsed !== null && typeof parsed === 'object' && (Array.isArray(parsed.cases) || Array.isArray(parsed.templates) || typeof parsed.skip === 'string')) {
       if (parsed.steps !== undefined && !Array.isArray(parsed.steps)) return null;
+      if (parsed.templates !== undefined && !Array.isArray(parsed.templates)) return null;
       return parsed;
     }
     return null;
@@ -140,8 +161,10 @@ export async function compileSections(sections, { llm, bedUsers, steps = new Map
   };
   const accepted = [];
   const acceptedSteps = [];
+  const acceptedTemplates = [];
   const registry = new Map(steps); // existing steps + everything accepted this compile
   const usedIds = new Set();
+  const usedTemplateIds = new Set();
 
   for (const section of sections) {
     onProgress(`compiling ${section.id} …`);
@@ -189,7 +212,26 @@ export async function compileSections(sections, { llm, bedUsers, steps = new Map
       }
     }
 
-    for (const candidate of output.cases) {
+    for (const candidate of output.templates ?? []) {
+      if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        (entry.refusedTemplates ??= []).push({ id: null, errors: ['template candidate is not an object'] });
+        continue;
+      }
+      candidate.from = { intent: section.id, hash: section.hash };
+      const { errors } = validateTemplate(candidate, { bedUsers, steps: registry });
+      if (typeof candidate.id === 'string' && usedTemplateIds.has(candidate.id)) {
+        errors.push(`duplicate template id ${candidate.id}`);
+      }
+      if (errors.length > 0) {
+        (entry.refusedTemplates ??= []).push({ id: candidate.id ?? null, errors });
+      } else {
+        usedTemplateIds.add(candidate.id);
+        (entry.templates ??= []).push(candidate.id);
+        acceptedTemplates.push({ sectionId: section.id, tplObj: candidate });
+      }
+    }
+
+    for (const candidate of output.cases ?? []) {
       if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) {
         entry.refused.push({ id: null, errors: ['candidate is not an object'] });
         continue;
@@ -208,8 +250,8 @@ export async function compileSections(sections, { llm, bedUsers, steps = new Map
         accepted.push({ sectionId: section.id, caseObj: candidate });
       }
     }
-    entry.outcome = entry.cases.length > 0 ? 'compiled' : 'refused';
+    entry.outcome = entry.cases.length > 0 || (entry.templates?.length ?? 0) > 0 ? 'compiled' : 'refused';
   }
 
-  return { accepted, acceptedSteps, manifest };
+  return { accepted, acceptedSteps, acceptedTemplates, manifest };
 }

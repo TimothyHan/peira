@@ -65,6 +65,21 @@ export function loadSteps(dir) {
 const ALIAS_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const CAPTURE_PATH_PATTERN = /^(status|body|headers)(\.[A-Za-z0-9_-]+)*$/;
 
+// Hole vocabulary — closed, v1 (RFC PR4 D3). attrs: which sub-references a hole admits.
+export const HOLE_KINDS = {
+  principal: { attrs: [] },
+  expression: { attrs: ['code', 'result'], attrRequired: true },
+  unique: { attrs: [] },
+};
+
+// The template schema is the case schema with: TPL- ids, a required `holes` block, and
+// `$holes.*` admitted in auth position. Derived, not duplicated — one source of truth.
+const TEMPLATE_SCHEMA = structuredClone(CASE_SCHEMA);
+TEMPLATE_SCHEMA.properties.id = { type: 'string', pattern: '^TPL-[a-z0-9][a-z0-9-]*$' };
+TEMPLATE_SCHEMA.required = [...TEMPLATE_SCHEMA.required, 'holes'];
+TEMPLATE_SCHEMA.properties.holes = { type: 'object' };
+TEMPLATE_SCHEMA.$defs.request.properties.auth.anyOf.push({ type: 'string', pattern: '^\\$holes\\.[A-Za-z0-9_]+$' });
+
 function walkMatchers(expected, path, errors) {
   if (expected !== null && typeof expected === 'object' && !Array.isArray(expected)) {
     if ('$any' in expected) {
@@ -82,11 +97,30 @@ function walkMatchers(expected, path, errors) {
   }
 }
 
-function checkTokens(value, where, available, errors) {
+function checkTokens(value, where, available, errors, holes) {
   for (const { name } of findTokens(value)) {
     if (name.startsWith('unique.')) continue;
     if (name.startsWith('users.')) {
       errors.push(`${where}: $${name} is only valid as a request's auth`);
+      continue;
+    }
+    if (name.startsWith('holes.')) {
+      if (!holes) {
+        errors.push(`${where}: $${name} — hole references are only valid in templates`);
+        continue;
+      }
+      const [, holeName, attr, extra] = name.split('.');
+      const decl = holes[holeName];
+      if (!decl || extra !== undefined) {
+        errors.push(`${where}: $${name} — no such hole${decl ? ' attribute' : ''}; declared: ${Object.keys(holes).join(', ')}`);
+        continue;
+      }
+      const rules = HOLE_KINDS[decl.kind];
+      if (attr !== undefined && !rules.attrs.includes(attr)) {
+        errors.push(`${where}: $${name} — a ${decl.kind} hole has no attribute "${attr}"${rules.attrs.length ? ` (has: ${rules.attrs.join(', ')})` : ''}`);
+      } else if (attr === undefined && rules.attrRequired) {
+        errors.push(`${where}: $holes.${holeName} — a ${decl.kind} hole must be referenced by attribute (${rules.attrs.join(' | ')})`);
+      }
       continue;
     }
     if (!available.has(name)) {
@@ -95,7 +129,7 @@ function checkTokens(value, where, available, errors) {
   }
 }
 
-function checkStep(step, label, available, bedUsers, errors, steps) {
+function checkStep(step, label, available, bedUsers, errors, steps, holes) {
   if ('step' in step) {
     // invocation: procedure only — the schema already refused expect/capture by shape
     const def = steps?.get(step.step);
@@ -103,7 +137,7 @@ function checkStep(step, label, available, bedUsers, errors, steps) {
       errors.push(`${label}.step: unknown step "${step.step}" — not in the steps registry`);
       return;
     }
-    if (step.bind !== undefined) checkTokens(step.bind, `${label}.bind`, available, errors);
+    if (step.bind !== undefined) checkTokens(step.bind, `${label}.bind`, available, errors, holes);
     for (const name of def.reads) {
       if (!(step.bind && name in step.bind) && !available.has(name)) {
         errors.push(`${label}: step ${def.id} reads "${name}" — not bound and no prior capture or step produces it`);
@@ -113,11 +147,17 @@ function checkStep(step, label, available, bedUsers, errors, steps) {
     return;
   }
   const req = step.request;
-  checkTokens(req.route, `${label}.request.route`, available, errors);
-  if (req.query !== undefined) checkTokens(req.query, `${label}.request.query`, available, errors);
-  if (req.body !== undefined) checkTokens(req.body, `${label}.request.body`, available, errors);
+  checkTokens(req.route, `${label}.request.route`, available, errors, holes);
+  if (req.query !== undefined) checkTokens(req.query, `${label}.request.query`, available, errors, holes);
+  if (req.body !== undefined) checkTokens(req.body, `${label}.request.body`, available, errors, holes);
 
-  if (typeof req.auth === 'string') {
+  if (typeof req.auth === 'string' && req.auth.startsWith('$holes.')) {
+    const holeName = req.auth.slice('$holes.'.length);
+    if (!holes) errors.push(`${label}.request.auth: "${req.auth}" — hole references are only valid in templates`);
+    else if (holes[holeName]?.kind !== 'principal') {
+      errors.push(`${label}.request.auth: "${req.auth}" must name a principal hole`);
+    }
+  } else if (typeof req.auth === 'string') {
     const alias = req.auth.slice('$users.'.length);
     if (bedUsers && !(alias in bedUsers)) {
       errors.push(`${label}.request.auth: unknown bed principal "$users.${alias}" — bed config defines ${JSON.stringify(Object.keys(bedUsers))}`);
@@ -129,7 +169,7 @@ function checkStep(step, label, available, bedUsers, errors, steps) {
     if (!expectDef) continue;
     const where = `${label}.${block === 'expect' ? 'expect' : 'pollUntil.until'}`;
     if ('body' in expectDef) {
-      checkTokens(expectDef.body, `${where}.body`, available, errors);
+      checkTokens(expectDef.body, `${where}.body`, available, errors, holes);
       walkMatchers(expectDef.body, `${where}.body`, errors);
     }
   }
@@ -180,6 +220,92 @@ export function validateCase(caseObj, { bedUsers, steps } = {}) {
   }
 
   return { errors, warnings };
+}
+
+/**
+ * Validate one invariant template (RFC §4.4): derived schema, hole declarations, references.
+ * Returns { errors, warnings }.
+ */
+export function validateTemplate(tplObj, { bedUsers, steps } = {}) {
+  const errors = validateSchema(TEMPLATE_SCHEMA, tplObj).map((e) => e.message);
+  if (errors.length > 0) return { errors, warnings: [] };
+
+  const holes = tplObj.holes;
+  const seen = [];
+  for (const [name, decl] of Object.entries(holes)) {
+    if (!ALIAS_PATTERN.test(name)) errors.push(`holes: invalid hole name "${name}"`);
+    if (decl === null || typeof decl !== 'object' || !(decl.kind in HOLE_KINDS)) {
+      errors.push(`holes.${name}: kind must be one of ${Object.keys(HOLE_KINDS).join(' | ')}`);
+      continue;
+    }
+    const extraKeys = Object.keys(decl).filter((k) => k !== 'kind' && k !== 'distinctFrom');
+    if (extraKeys.length > 0) errors.push(`holes.${name}: unknown key(s) ${extraKeys.join(', ')}`);
+    if (decl.distinctFrom !== undefined) {
+      if (decl.kind !== 'principal') errors.push(`holes.${name}: distinctFrom applies only to principal holes`);
+      else if (!seen.includes(decl.distinctFrom)) {
+        errors.push(`holes.${name}: distinctFrom "${decl.distinctFrom}" must name an earlier-declared hole`);
+      } else if (holes[decl.distinctFrom]?.kind !== 'principal') {
+        errors.push(`holes.${name}: distinctFrom "${decl.distinctFrom}" must name a principal hole`);
+      }
+    }
+    seen.push(name);
+  }
+
+  // distinct-groups must fit in the bed's principal pool
+  if (errors.length === 0 && bedUsers) {
+    const pool = Object.keys(bedUsers).length;
+    const group = (name) => {
+      const members = new Set([name]);
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (const [n, d] of Object.entries(holes)) {
+          if (d.kind !== 'principal' || !d.distinctFrom) continue;
+          if ((members.has(n) || members.has(d.distinctFrom)) && !(members.has(n) && members.has(d.distinctFrom))) {
+            members.add(n);
+            members.add(d.distinctFrom);
+            grew = true;
+          }
+        }
+      }
+      return members.size;
+    };
+    for (const [name, decl] of Object.entries(holes)) {
+      if (decl.kind === 'principal' && group(name) > pool) {
+        errors.push(`holes.${name}: its distinct-group needs ${group(name)} principals, bed config has ${pool}`);
+        break;
+      }
+    }
+  }
+  if (errors.length > 0) return { errors, warnings: [] };
+
+  const available = new Set();
+  (tplObj.setup ?? []).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps, holes));
+  checkStep(tplObj.test, 'test', available, bedUsers, errors, steps, holes);
+  return { errors, warnings: [] };
+}
+
+/** Load a templates directory. Returns { templates: Map, results: [{file, id, errors}] }. */
+export function loadTemplates(dir, opts = {}) {
+  const templates = new Map();
+  const results = [];
+  if (!dir || !existsSync(dir)) return { templates, results };
+  for (const entry of readdirSync(dir).sort()) {
+    if (!entry.endsWith('.json')) continue;
+    const file = join(dir, entry);
+    let tplObj;
+    try {
+      tplObj = JSON.parse(readFileSync(file, 'utf8'));
+    } catch (err) {
+      results.push({ file, id: null, errors: [`not valid JSON — ${err.message}`] });
+      continue;
+    }
+    const { errors } = validateTemplate(tplObj, opts);
+    if (tplObj?.id && templates.has(tplObj.id)) errors.push(`duplicate template id ${tplObj.id}`);
+    if (errors.length === 0) templates.set(tplObj.id, tplObj);
+    results.push({ file, id: tplObj?.id ?? null, errors });
+  }
+  return { templates, results };
 }
 
 /**

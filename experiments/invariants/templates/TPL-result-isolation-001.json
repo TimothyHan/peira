@@ -1,0 +1,59 @@
+{
+  "id": "TPL-result-isolation-001",
+  "title": "For all requests r, for all users u != submitter(r): GET /groovy/status for r as u -> 403 Forbidden",
+  "holes": {
+    "submitter": {
+      "kind": "principal"
+    },
+    "other": {
+      "kind": "principal",
+      "distinctFrom": "submitter"
+    },
+    "nonce": {
+      "kind": "unique"
+    }
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$holes.submitter",
+        "body": {
+          "code": "1 + 1 // {{holes.nonce}}"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "id": {
+            "$any": "string"
+          }
+        }
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$holes.other",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 403
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "result-isolation",
+    "hash": "5ab7e9a5eced"
+  }
+}
