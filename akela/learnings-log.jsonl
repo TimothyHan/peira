@@ -1,0 +1,18 @@
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-85d5a9","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#get-groovy-status"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-85d5a9","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#parallel-execution-and-request-queueing-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-85d5a9","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#post-groovy-submit"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-85d5a9","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#robustness-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-85d5a9","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#security-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-85d5a9","activity":"run","event":"outcome","status":"DONE"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-43-447b60","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#get-groovy-status"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-43-447b60","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#parallel-execution-and-request-queueing-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-43-447b60","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#post-groovy-submit"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-43-447b60","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#robustness-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-43-447b60","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#security-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-43-447b60","activity":"run","event":"outcome","status":"DONE"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-46f934","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#parallel-execution-and-request-queueing-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-46f934","activity":"run","event":"applied","src":"PEIRA-2022-test-plan#robustness-2"}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-46f934","activity":"run","event":"contradicted","src":"PEIRA-2022-test-plan#get-groovy-status","note":"An empty `id` was rejected with 400 Bad Request, satisfying intent 3.1; only the error body's `message` differs from the case's encoded empty string, and the intent says nothing about message wording. This same clause recurs across section 3 — a human may prefer to hoist it into the section preamble once."}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-46f934","activity":"run","event":"contradicted","src":"PEIRA-2022-test-plan#post-groovy-submit","note":"A body missing `code` was rejected with 400 Bad Request, which is what intent 2.1 requires; only the error body's `message` differs from the case's encoded empty string. The intent never specifies message wording."}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-46f934","activity":"run","event":"contradicted","src":"PEIRA-2022-test-plan#security-2","note":"The status (401 for an empty password) is exactly what intent 1.6 requires; the only mismatch is the error body's `message`, which the intent never mentions — the case encoded an empty string that no intent line pins. Silence in the intent on the failing detail points to drift."}
+{"v":1,"ts":"2026-08-29T19:11:42Z","run":"run-seed-42-46f934","activity":"run","event":"outcome","status":"DONE_WITH_CONCERNS"}

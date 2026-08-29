@@ -4,7 +4,7 @@
   "title": "4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
   "from": {
     "intent": "robustness-2",
-    "hash": "9b8cd66e6aae"
+    "hash": "3ef9a6b32657"
   },
   "test": {
     "request": {

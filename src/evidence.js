@@ -2,7 +2,7 @@
 // time, and nowhere else: no other module writes to the log file, so a credential cannot land
 // in plaintext by a caller forgetting to redact.
 
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { REDACT_HASH_PREFIX_LEN } from './constants.js';
@@ -30,7 +30,10 @@ export class EvidenceLog {
   constructor(filePath) {
     this.filePath = filePath;
     this.events = [];
-    if (filePath) mkdirSync(dirname(filePath), { recursive: true });
+    if (filePath) {
+      mkdirSync(dirname(filePath), { recursive: true });
+      writeFileSync(filePath, ''); // one file = one run; a reused path must never mix runs
+    }
   }
 
   append(event) {

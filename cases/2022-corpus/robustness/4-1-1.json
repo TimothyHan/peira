@@ -4,7 +4,7 @@
   "title": "4.1.1 As a user, I should be able to submit single line groovy code",
   "from": {
     "intent": "robustness-2",
-    "hash": "9b8cd66e6aae"
+    "hash": "3ef9a6b32657"
   },
   "test": {
     "request": {

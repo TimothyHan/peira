@@ -4,7 +4,7 @@
   "title": "3.4 As status endpoint, I should return 400 Bad request or 422 Unprocessable entitity when the request payload does not only contain id field and its value",
   "from": {
     "intent": "get-groovy-status",
-    "hash": "de45e3d45544"
+    "hash": "44fab395c9a7"
   },
   "test": {
     "request": {

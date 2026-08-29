@@ -5,7 +5,7 @@
   "notes": "Transient-state assertion (telemetry watchlist). teardown.drain replaces the 2022 teardown.sleep(1000).",
   "from": {
     "intent": "parallel-execution-and-request-queueing-2",
-    "hash": "a76576e14ffb"
+    "hash": "c01f630c1826"
   },
   "setup": [
     {

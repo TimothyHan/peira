@@ -27,5 +27,8 @@
   "devDependencies": {
     "@types/node": "^18.19.130",
     "typescript": "^5.5.0"
+  },
+  "dependencies": {
+    "akela": "^0.1.4"
   }
 }

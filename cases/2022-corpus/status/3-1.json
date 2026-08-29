@@ -4,7 +4,7 @@
   "title": "3.1 As status endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload has id with empty string",
   "from": {
     "intent": "get-groovy-status",
-    "hash": "de45e3d45544"
+    "hash": "44fab395c9a7"
   },
   "test": {
     "request": {

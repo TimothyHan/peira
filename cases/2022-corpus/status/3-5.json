@@ -4,7 +4,7 @@
   "title": "3.5 As a service endpoint, I should respond with 404 Not found when the id does not exist in the database",
   "from": {
     "intent": "get-groovy-status",
-    "hash": "de45e3d45544"
+    "hash": "44fab395c9a7"
   },
   "test": {
     "request": {
