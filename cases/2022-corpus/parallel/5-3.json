@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-5-3",
   "title": "5.3 As a service, I should be able to handle up-to two requests at any given point",
   "notes": "Transient-state assertion (telemetry watchlist). teardown.drain replaces the 2022 teardown.sleep(1000).",

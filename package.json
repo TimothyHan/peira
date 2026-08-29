@@ -4,10 +4,28 @@
   "description": "Peira (πεῖρα) — an intent compiler for functional API testing. Under active development.",
   "license": "MIT",
   "type": "module",
-  "bin": { "peira": "bin/peira.js" },
-  "engines": { "node": ">=18" },
-  "files": ["bin", "src", "schema", "README.md"],
+  "bin": {
+    "peira": "bin/peira.js"
+  },
+  "main": "src/index.js",
+  "types": "types/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schema",
+    "types",
+    "README.md"
+  ],
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "build:types": "tsc -p tsconfig.json",
+    "prepack": "npm run build:types"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "typescript": "^5.5.0"
   }
 }

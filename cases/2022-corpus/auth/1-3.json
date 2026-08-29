@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-1-3",
   "title": "1.3 As a user, I should receive 401 Unauthorized when I submit the request with a invalid credential",
   "from": {

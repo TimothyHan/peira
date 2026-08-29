@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-3-1",
   "title": "3.1 As status endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload has id with empty string",
   "from": {

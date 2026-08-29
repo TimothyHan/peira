@@ -5,19 +5,18 @@ import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateCase, validateCaseSet } from '../src/validate.js';
 import { loadCases, listCaseFiles } from '../src/load.js';
-import { makeCase, makeBed } from './helpers.js';
+import { makeCase, makeBed, testEach } from './helpers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const bedUsers = makeBed('http://x').users;
 
-test('every refusal fixture is refused with a named error', () => {
-  const files = listCaseFiles(join(here, 'refusals'));
-  assert.ok(files.length >= 8, 'refusal fixtures present');
-  for (const file of files) {
-    const caseObj = JSON.parse(readFileSync(file, 'utf8'));
-    const { errors } = validateCase(caseObj, { bedUsers });
-    assert.ok(errors.length > 0, `${basename(file)} must be refused`);
-  }
+// one registered test per refusal fixture — a failure never masks the fixtures after it
+const refusalFiles = listCaseFiles(join(here, 'refusals'));
+test('the refusal fixture set is present', () => assert.ok(refusalFiles.length >= 10));
+testEach(refusalFiles, (file) => `refusal: ${basename(file)} is refused with a named error`, (file) => {
+  const caseObj = JSON.parse(readFileSync(file, 'utf8'));
+  const { errors } = validateCase(caseObj, { bedUsers });
+  assert.ok(errors.length > 0, `${basename(file)} must be refused`);
 });
 
 test('the sleep refusal names the fix', () => {
