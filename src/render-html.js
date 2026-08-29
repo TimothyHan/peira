@@ -129,42 +129,73 @@ ${failure}${observed}${triageBlock}
 }
 
 const CSS = `
-:root { color-scheme: light dark; --pass:#1a7f37; --fail:#cf222e; --error:#bf8700; --drift:#8250df; --muted:#888; --line:#8883; }
+:root {
+  color-scheme: light dark;
+  --bg:#ffffff; --fg:#1f2328; --surface:#f6f8fa; --muted:#59636e; --line:#d1d9e0;
+  --pass:#1a7f37; --fail:#cf222e; --error:#9a6700; --drift:#8250df;
+  --pass-bg:#1a7f3714; --fail-bg:#cf222e12; --error-bg:#9a670014; --drift-bg:#8250df12;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0d1117; --fg:#e6edf3; --surface:#161b22; --muted:#8b949e; --line:#30363d;
+    --pass:#3fb950; --fail:#f85149; --error:#d29922; --drift:#a371f7;
+    --pass-bg:#3fb95021; --fail-bg:#f8514921; --error-bg:#d2992221; --drift-bg:#a371f721;
+  }
+}
+/* CSS-only theme flip: checked = the opposite of the system preference (no scripts) */
+:root:has(#theme-flip:checked) {
+  --bg:#0d1117; --fg:#e6edf3; --surface:#161b22; --muted:#8b949e; --line:#30363d;
+  --pass:#3fb950; --fail:#f85149; --error:#d29922; --drift:#a371f7;
+  --pass-bg:#3fb95021; --fail-bg:#f8514921; --error-bg:#d2992221; --drift-bg:#a371f721;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:has(#theme-flip:checked) {
+    --bg:#ffffff; --fg:#1f2328; --surface:#f6f8fa; --muted:#59636e; --line:#d1d9e0;
+    --pass:#1a7f37; --fail:#cf222e; --error:#9a6700; --drift:#8250df;
+    --pass-bg:#1a7f3714; --fail-bg:#cf222e12; --error-bg:#9a670014; --drift-bg:#8250df12;
+    color-scheme: light;
+  }
+}
 * { box-sizing: border-box; }
-body { font: 15px/1.5 -apple-system, system-ui, sans-serif; max-width: 62rem; margin: 2rem auto; padding: 0 1rem; }
-h1 { font-size: 1.35rem; margin-bottom: .25rem; }
+body { font: 15px/1.5 -apple-system, system-ui, sans-serif; max-width: 62rem; margin: 0 auto; padding: 2rem 1rem; background: var(--bg); color: var(--fg); }
+.themebar { float: right; }
+.themebar input { display: none; }
+.themebar label { cursor: pointer; border: 1px solid var(--line); border-radius: 999px; padding: .2rem .7rem; font-size: .78rem; color: var(--muted); user-select: none; }
+.themebar label:hover { border-color: var(--muted); }
+h1 { font-size: 1.35rem; margin: 0 0 .25rem; }
 h2 { font-size: 1.05rem; margin: 2rem 0 .5rem; display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
-code { font: 12.5px ui-monospace, monospace; background: #8881; padding: 0 .3em; border-radius: 3px; }
+code { font: 12.5px ui-monospace, monospace; background: var(--surface); border: 1px solid var(--line); padding: 0 .3em; border-radius: 3px; }
 blockquote { border-left: 3px solid var(--line); margin: .5rem 0 1rem; padding: .25rem .75rem; color: var(--muted); white-space: pre-wrap; font-size: .88rem; }
 .tiles { display: flex; gap: .75rem; flex-wrap: wrap; margin: 1rem 0 .5rem; }
-.tile { border: 1px solid var(--line); border-radius: 10px; padding: .6rem 1.1rem; min-width: 6.5rem; text-align: center; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: .6rem 1.1rem; min-width: 6.5rem; text-align: center; }
 .tile b { display: block; font-size: 1.6rem; line-height: 1.2; }
 .tile.pass b { color: var(--pass); } .tile.fail b { color: var(--fail); } .tile.error b { color: var(--error); }
 .tile small { color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: .68rem; }
-.bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: #8882; margin: .5rem 0 1.25rem; }
+.bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); margin: .5rem 0 1.25rem; }
 .bar.small { height: 8px; width: 7rem; margin: 0; flex: none; }
 .seg.pass { background: var(--pass); } .seg.fail { background: var(--fail); } .seg.error { background: var(--error); }
 .count { color: var(--muted); font-size: .8rem; font-weight: 400; }
-.failindex { border: 1px solid #cf222e55; background: #cf222e0d; border-radius: 10px; padding: .6rem 1rem; margin: 1rem 0; }
+.failindex { border: 1px solid var(--fail); background: var(--fail-bg); border-radius: 10px; padding: .6rem 1rem; margin: 1rem 0; }
 .failindex a { color: inherit; }
 .failindex li { margin: .15rem 0; }
-details.case { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; margin: .6rem 0; }
+details.case { background: var(--surface); border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; margin: .6rem 0; }
 details.case.pass { border-left-color: var(--pass); } details.case.fail { border-left-color: var(--fail); }
-details.case.error { border-left-color: var(--error); } details.case.doc { border-left-color: #8888; }
+details.case.error { border-left-color: var(--error); } details.case.doc { border-left-color: var(--muted); }
 details.case > summary { cursor: pointer; padding: .5rem .85rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; list-style: none; }
-details.case > summary::before { content: "▸"; color: var(--muted); }
-details.case[open] > summary::before { content: "▾"; }
+details.case > summary::before { content: "\\25B8"; color: var(--muted); }
+details.case[open] > summary::before { content: "\\25BE"; }
 details.case .body { padding: 0 .85rem .75rem 1.9rem; }
 .title { color: var(--muted); font-size: .9rem; }
 table { border-collapse: collapse; } th { text-align: left; vertical-align: top; padding-right: .75rem; color: var(--muted); font-weight: 600; font-size: .85rem; }
 td { padding-bottom: .2rem; font-size: .92rem; }
-.badge { font-size: .68rem; font-weight: 700; padding: .12em .55em; border-radius: 999px; color: #fff; }
+.badge { font-size: .68rem; font-weight: 700; padding: .12em .55em; border-radius: 999px; color: var(--bg); }
 .badge.pass { background: var(--pass); } .badge.fail { background: var(--fail); } .badge.error { background: var(--error); }
 .chip { font-size: .68rem; font-weight: 700; padding: .12em .55em; border-radius: 999px; border: 1.5px solid currentColor; }
 .chip.bug { color: var(--fail); } .chip.drift { color: var(--drift); } .chip.flake { color: var(--error); }
-.failure { background: #cf222e12; border-radius: 6px; padding: .5rem .75rem; margin-top: .5rem; font-size: .9rem; }
+.failure { background: var(--fail-bg); border-radius: 6px; padding: .5rem .75rem; margin-top: .5rem; font-size: .9rem; }
 .failure ul { margin: .25rem 0 0 1rem; padding: 0; }
-.triage { background: #8250df12; border-radius: 6px; padding: .5rem .75rem; margin-top: .5rem; font-size: .9rem; }
+.triage { background: var(--drift-bg); border-radius: 6px; padding: .5rem .75rem; margin-top: .5rem; font-size: .9rem; }
 .diff { margin-top: .35rem; } del { color: var(--fail); } ins { color: var(--pass); text-decoration: none; }
 .lineage, .notes { color: var(--muted); font-size: .82rem; margin: .4rem 0 0; }
 .meta { margin-left: auto; color: var(--muted); font-size: .78rem; }
@@ -176,7 +207,7 @@ table.xchg { width: 100%; margin-top: .35rem; font-size: .82rem; }
 table.xchg td { border-top: 1px solid var(--line); padding: .25rem .5rem .25rem 0; vertical-align: top; word-break: break-word; }
 .xchg-meta { color: var(--muted); white-space: nowrap; }
 footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; }
-@media print { details.case { break-inside: avoid; } details.case:not([open]) > summary ~ * { display: block; } }
+@media print { details.case { break-inside: avoid; } .themebar { display: none; } details.case:not([open]) > summary ~ * { display: block; } }
 `;
 
 /**
@@ -188,6 +219,7 @@ export function renderHtmlDocument({ loaded, steps, templates, sections, evidenc
   const parts = [];
   const title = runHeader ? `Peira run report — seed ${runHeader.seed}` : 'Peira test cases';
   parts.push(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body>`);
+  parts.push(`<span class="themebar"><input type="checkbox" id="theme-flip"><label for="theme-flip">☀ / ☾ theme</label></span>`);
   parts.push(`<h1>${esc(title)}</h1>`);
   parts.push(`<p class="lineage">Generated by <code>peira render</code> — one-way documentation; the JSON cases and the intent are the sources of truth.</p>`);
 
