@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matchSubset, matchExpect } from '../src/expect.js';
+import { matchSubset, matchExpect } from '../dist/expect.js';
 
 test('object subset at every level (toMatchObject parity)', () => {
   assert.deepEqual(matchSubset({ a: 1 }, { a: 1, extra: 'ignored' }), []);

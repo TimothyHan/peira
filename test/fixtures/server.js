@@ -14,7 +14,7 @@ import {
   FIXTURE_JOB_LONG_MS,
   FIXTURE_JOB_SHORT_MS,
   FIXTURE_QUEUE_CAPACITY,
-} from '../../src/constants.js';
+} from '../../dist/constants.js';
 import { PLANTS } from './plants.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

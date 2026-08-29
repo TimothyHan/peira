@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
-      - run: npm run build:types
+      - run: npm run build
       - run: npm test
       - name: gate — corpus validates and runs green against the fixture
         run: |

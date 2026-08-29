@@ -1,8 +1,8 @@
 // The compiler's escape protocol: steps through the gate, assertions refused, demand recorded.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compileSections, buildContract } from '../src/compile.js';
-import { parseIntent } from '../src/intent.js';
+import { compileSections, buildContract } from '../dist/compile.js';
+import { parseIntent } from '../dist/intent.js';
 
 const sections = parseIntent('## Signed echo\n\nRequests must carry an HMAC signature.\n');
 

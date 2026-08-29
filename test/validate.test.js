@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateCase, validateCaseSet } from '../src/validate.js';
-import { loadCases, listCaseFiles } from '../src/load.js';
+import { validateCase, validateCaseSet } from '../dist/validate.js';
+import { loadCases, listCaseFiles } from '../dist/load.js';
 import { makeCase, makeBed, testEach } from './helpers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));

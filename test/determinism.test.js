@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runCases, uniqueValue } from '../src/runner.js';
-import { loadCases } from '../src/load.js';
+import { runCases, uniqueValue } from '../dist/runner.js';
+import { loadCases } from '../dist/load.js';
 import { withFixture } from './helpers.js';
 
 const casesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'cases');

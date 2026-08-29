@@ -1,7 +1,7 @@
 // The child-process step harness, driven directly.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runHarness } from '../src/runner.js';
+import { runHarness } from '../dist/runner.js';
 import { startFixture } from './fixtures/server.js';
 
 test('runs generated code with inputs and returns produced values', async () => {

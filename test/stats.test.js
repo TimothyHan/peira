@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeStats, codeSkeleton, formatStats } from '../src/stats.js';
+import { computeStats, codeSkeleton, formatStats } from '../dist/stats.js';
 import { makeCase } from './helpers.js';
 
 const declarative = (id) => ({ file: `${id}.json`, caseObj: makeCase({ id }) });

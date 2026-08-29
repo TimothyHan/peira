@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prng, drawHoles, mintCase, mintAll } from '../src/generate.js';
+import { prng, drawHoles, mintCase, mintAll } from '../dist/generate.js';
 import { isolationTemplate } from './helpers.js';
 import { makeBed } from './helpers.js';
 
@@ -50,7 +50,7 @@ test('mintCase resolves holes everywhere and stamps identity + provenance', () =
 });
 
 test('a minted case validates as a plain case', async () => {
-  const { validateCase } = await import('../src/validate.js');
+  const { validateCase } = await import('../dist/validate.js');
   const caseObj = mintCase(isolationTemplate(), { bedUsers, seed: 42, index: 0 });
   assert.deepEqual(validateCase(caseObj, { bedUsers }).errors, []);
 });

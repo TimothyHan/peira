@@ -2,8 +2,8 @@
 // every run; the submit invariant asserts exact generated results.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runCases } from '../src/runner.js';
-import { validateTemplate } from '../src/validate.js';
+import { runCases } from '../dist/runner.js';
+import { validateTemplate } from '../dist/validate.js';
 import { withFixture } from './helpers.js';
 import { isolationTemplate } from './helpers.js';
 

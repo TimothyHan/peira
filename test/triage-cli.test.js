@@ -7,8 +7,8 @@ import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync } from '
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runCases } from '../src/runner.js';
-import { EvidenceLog } from '../src/evidence.js';
+import { runCases } from '../dist/runner.js';
+import { EvidenceLog } from '../dist/evidence.js';
 import { withFixture, makeCase } from './helpers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));

@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { deepRedact, redactValue, EvidenceLog } from '../src/evidence.js';
-import { runCases } from '../src/runner.js';
+import { deepRedact, redactValue, EvidenceLog } from '../dist/evidence.js';
+import { runCases } from '../dist/runner.js';
 import { withFixture, makeCase } from './helpers.js';
 
 test('deepRedact: authorization, cookie, set-cookie at any depth, case-insensitive', () => {

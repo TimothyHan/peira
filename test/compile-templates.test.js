@@ -1,8 +1,8 @@
 // The compiler's invariant protocol: templates through the gate, lineage mechanical.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compileSections, buildContract } from '../src/compile.js';
-import { parseIntent } from '../src/intent.js';
+import { compileSections, buildContract } from '../dist/compile.js';
+import { parseIntent } from '../dist/intent.js';
 import { isolationTemplate } from './helpers.js';
 import { makeBed } from './helpers.js';
 

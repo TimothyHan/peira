@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateSchema } from '../src/schema.js';
+import { validateSchema } from '../dist/schema.js';
 
 const ok = (schema, value) => assert.deepEqual(validateSchema(schema, value), []);
 const bad = (schema, value, keyword) => {

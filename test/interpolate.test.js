@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveValue, findTokens, UnresolvedTokenError } from '../src/interpolate.js';
+import { resolveValue, findTokens, UnresolvedTokenError } from '../dist/interpolate.js';
 
 const ctx = {
   captures: { requestId: 'abc-123', count: 7 },

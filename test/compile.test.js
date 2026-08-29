@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compileSections, buildContract, buildPrompt } from '../src/compile.js';
-import { parseIntent } from '../src/intent.js';
+import { compileSections, buildContract, buildPrompt } from '../dist/compile.js';
+import { parseIntent } from '../dist/intent.js';
 
 const sections = parseIntent(`## Submit works
 

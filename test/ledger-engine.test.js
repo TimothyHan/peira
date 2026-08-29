@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { engineBin, ensureLedgerConfig, runEngine, recordRun, outcomeStatus, LedgerError } from '../src/ledger-engine.js';
+import { engineBin, ensureLedgerConfig, runEngine, recordRun, outcomeStatus, LedgerError } from '../dist/ledger-engine.js';
 
 function scratchProject() {
   const root = mkdtempSync(join(tmpdir(), 'peira-ledger-'));

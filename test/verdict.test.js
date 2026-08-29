@@ -1,8 +1,8 @@
 // The verdict split (RFC 0001 §4.7): infrastructure failures are `error`, never `fail`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runCase, runCases } from '../src/runner.js';
-import { EvidenceLog } from '../src/evidence.js';
+import { runCase, runCases } from '../dist/runner.js';
+import { EvidenceLog } from '../dist/evidence.js';
 import { startFixture } from './fixtures/server.js';
 import { makeBed, makeCase } from './helpers.js';
 

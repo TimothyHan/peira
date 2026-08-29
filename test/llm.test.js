@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtempSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { claudeCliTransport, TransportError } from '../src/llm.js';
+import { claudeCliTransport, TransportError } from '../dist/llm.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fakeBin = join(here, 'fixtures', 'fake-claude.js');

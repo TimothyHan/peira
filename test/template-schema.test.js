@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validateTemplate } from '../src/validate.js';
+import { validateTemplate } from '../dist/validate.js';
 import { makeBed, isolationTemplate } from './helpers.js';
 
 const bedUsers = makeBed('http://x').users;
@@ -47,7 +47,7 @@ test('a distinct-group larger than the principal pool is refused', () => {
 });
 
 test('hole references are refused in plain cases', async () => {
-  const { validateCase } = await import('../src/validate.js');
+  const { validateCase } = await import('../dist/validate.js');
   const { makeCase } = await import('./helpers.js');
   const c = makeCase({ test: { request: { method: 'get', route: '/x', query: { q: '$holes.a' } }, expect: { status: 200 } } });
   assert.ok(validateCase(c).errors.some((e) => /only valid in templates/.test(e)));
