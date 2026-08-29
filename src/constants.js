@@ -9,6 +9,10 @@ export const DRAIN_TIMEOUT_MS = 15000;      // queue depth 2 x long job x safety
 export const REQUEST_TIMEOUT_MS = 5000;     // socket-level timeout; hitting it is an `error`, not a `fail`
 export const REDACT_HASH_PREFIX_LEN = 8;    // [REDACTED:<sha256-prefix>] length in evidence JSONL
 
+// Compiler (authoring time only — RFC 0001 invariant 1)
+export const COMPILE_MODEL = 'claude-opus-5'; // decision D1, 2026-08-29
+export const COMPILE_TIMEOUT_MS = 300000;     // per-section ceiling for the CLI transport
+
 // Fixture
 export const FIXTURE_JOB_LONG_MS = 1000;    // jobs whose code calls sleep(); wide enough to observe IN_PROGRESS
 export const FIXTURE_JOB_SHORT_MS = 0;      // everything else completes on the next tick

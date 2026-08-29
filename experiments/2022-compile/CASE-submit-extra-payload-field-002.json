@@ -1,0 +1,22 @@
+{
+  "id": "CASE-submit-extra-payload-field-002",
+  "title": "As a service endpoint, I should return 400 Bad request or 422 Unprocessable Entity when the request payload does not only contain `code` field and value",
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "1 + 1",
+        "unexpected": "extra {{unique.nonce}}"
+      }
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "from": {
+    "intent": "post-groovy-submit",
+    "hash": "08cc92149789"
+  }
+}

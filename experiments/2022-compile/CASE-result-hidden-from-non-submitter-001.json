@@ -1,0 +1,39 @@
+{
+  "id": "CASE-result-hidden-from-non-submitter-001",
+  "title": "Execution result for a request is not available to a user who did not submit it",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'ok {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_2",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 403
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "security",
+    "hash": "b0c53dbf2183"
+  }
+}

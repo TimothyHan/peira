@@ -65,9 +65,12 @@ src/stale.js      case.from.hash vs live intent hash → stale flags (wired into
   overwrites `from` mechanically** — lineage is stamped by code, never trusted from the model;
   refused candidates land in the manifest with their validator errors verbatim. The LLM is an
   injected `async (prompt) => text` — tests use canned transcripts, no network.
-- **llm.js:** raw `fetch` (zero-dep rules out the SDK — the RFC pins "LLM via native fetch"),
-  `POST /v1/messages`, model from `constants.js`, key from `ANTHROPIC_API_KEY`. Adaptive
-  thinking by default (omit the param), `max_tokens` sized for a section's case yield.
+- **llm.js:** *(amended per D3, 2026-08-29)* the default transport spawns the **Claude Code CLI
+  in headless mode** (`claude -p`, prompt over stdin) — compilation runs on the author's own
+  Claude session, no API key, no billing surface, still zero-dep (`node:child_process`). Model
+  from `constants.js` via `--model`; the binary is overridable with `PEIRA_CLAUDE_BIN` (tests
+  point it at a canned-output script — the spawn path is tested for real, offline). A raw-fetch
+  API transport can slot into the same injection seam later if a key-based workflow appears.
 - **stale.js:** `peira validate --intent <dir>` recomputes section hashes and flags any case
   whose `from.hash` no longer matches — **warning** (regenerable artifact out of date), plus a
   hard error when `from.intent` names a section that no longer exists.
@@ -120,24 +123,25 @@ that failing-honestly is the product working. CI green stays defined by the PR1 
 
 ## Acceptance checklist
 
-- [ ] The verbatim 2022 test plan ingests via derive mode with zero edits
-- [ ] `peira compile` (canned LLM) writes only gate-passing cases; every section is accounted
+- [x] The verbatim 2022 test plan ingests via derive mode with zero edits (16 sections)
+- [x] `peira compile` (canned LLM) writes only gate-passing cases; every section is accounted
       for in the manifest; lineage is mechanical
-- [ ] Stale detection: an edited intent section flags its cases by name
-- [ ] Offline test suite green with no `ANTHROPIC_API_KEY` present
-- [ ] Fidelity run executed: agreement rate measured, refusals counted, 1.4/403 and 3.6/404
-      adjudicated in the findings doc
-- [ ] CI green gate unchanged (PR1 corpus); compiled corpus validated but not verdict-gated
+- [x] Stale detection: an edited intent section flags its cases by name
+- [x] Offline test suite green with no key and no network (75 tests)
+- [x] Fidelity run executed (real run: 6 sections compiled, 10 skipped with reasons, 37/37
+      candidates schema-valid, 33 pass / 4 fail / 0 error) — results and the divergence table
+      in [the findings doc](../findings/2026-08-29-compile-fidelity.md); divergences 1.4/403,
+      3.6/404, and the novel 3.4/extra-field await author adjudication
+- [x] CI green gate unchanged (PR1 corpus); compiled corpus validated but not verdict-gated
 
-## Decisions for the author (blocking the build)
+## Decisions (author-approved 2026-08-29)
 
-- **D1 — compiler model:** recommend `claude-opus-5`, pinned in `constants.js`. Authoring-time
-  only, so latency/cost are near-irrelevant and compile quality is the product; Fable 5 is the
+- **D1 — compiler model: `claude-opus-5`**, pinned in `constants.js`. Authoring-time only, so
+  latency/cost are near-irrelevant and compile quality is the product; Fable 5 is the
   escalation if fidelity disappoints.
-- **D2 — API-side structured outputs:** recommend **no** — plain JSON-in-prose prompt, with our
-  own schema gate doing the refusing. Leaning on `output_config.format` would make the API
-  enforce shape and blur the measured "hallucinations refused by the gate" metric; the gate is
-  the product being tested.
-- **D3 — who runs the fidelity compile:** it needs a real `ANTHROPIC_API_KEY`. Either the author
-  runs the one command, or the author exports the key into a session and Peira's CLI is invoked
-  from here. Everything else lands first either way.
+- **D2 — API-side structured outputs: no.** Plain JSON-in-prose prompt, with our own schema
+  gate doing the refusing — `output_config.format` would blur the measured "hallucinations
+  refused by the gate" metric; the gate is the product being tested.
+- **D3 — compile transport: the author's own Claude session**, not the Claude API. The default
+  transport shells out to the Claude Code CLI headless mode (`claude -p`); no `ANTHROPIC_API_KEY`
+  anywhere in v1. The llm.js section above reflects this.

@@ -1,0 +1,87 @@
+{
+  "id": "CASE-parallel-two-in-progress-001",
+  "title": "Service can execute two requests in parallel at any given moment in time",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(5000); return 'a {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobA": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "get",
+        "route": "/groovy/status",
+        "auth": "$users.user_1",
+        "query": {
+          "id": "$jobA"
+        }
+      },
+      "pollUntil": {
+        "until": {
+          "status": 200,
+          "body": {
+            "id": "$jobA",
+            "status": "IN_PROGRESS"
+          }
+        },
+        "timeoutMs": 15000
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(5000); return 'b {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobB": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$jobB"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "status": 200,
+        "body": {
+          "id": "$jobB",
+          "status": "IN_PROGRESS"
+        }
+      },
+      "timeoutMs": 15000
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$jobB",
+        "status": "IN_PROGRESS"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "notes": "Job A is confirmed IN_PROGRESS before Job B is submitted; Job B reaching IN_PROGRESS while A is still sleeping demonstrates two concurrent executions.",
+  "from": {
+    "intent": "parallel-execution-and-request-queueing",
+    "hash": "62ecc06187e8"
+  }
+}

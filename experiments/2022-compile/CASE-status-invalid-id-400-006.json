@@ -1,0 +1,21 @@
+{
+  "id": "CASE-status-invalid-id-400-006",
+  "title": "3.6 As a service endpoint, I should respond with 400 Bad request when the `id` is not valid",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "not-a-uuid"
+      }
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "de45e3d45544"
+  }
+}

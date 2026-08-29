@@ -1,0 +1,140 @@
+{
+  "id": "CASE-queued-request-executes-003",
+  "title": "Queued requests are executed once the capacity is available",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(3000); return 'a {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobA": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "get",
+        "route": "/groovy/status",
+        "auth": "$users.user_1",
+        "query": {
+          "id": "$jobA"
+        }
+      },
+      "pollUntil": {
+        "until": {
+          "status": 200,
+          "body": {
+            "id": "$jobA",
+            "status": "IN_PROGRESS"
+          }
+        },
+        "timeoutMs": 15000
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(3000); return 'b {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobB": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "get",
+        "route": "/groovy/status",
+        "auth": "$users.user_1",
+        "query": {
+          "id": "$jobB"
+        }
+      },
+      "pollUntil": {
+        "until": {
+          "status": 200,
+          "body": {
+            "id": "$jobB",
+            "status": "IN_PROGRESS"
+          }
+        },
+        "timeoutMs": 15000
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'queued {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobC": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "get",
+        "route": "/groovy/status",
+        "auth": "$users.user_1",
+        "query": {
+          "id": "$jobC"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "body": {
+          "id": "$jobC",
+          "status": "PENDING"
+        }
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$jobC"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "status": 200,
+        "body": {
+          "id": "$jobC",
+          "status": "COMPLETED"
+        }
+      },
+      "timeoutMs": 30000
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$jobC",
+        "status": "COMPLETED",
+        "result": {
+          "$any": "string"
+        }
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "notes": "The queued job C is observed PENDING while both slots are busy, then must reach COMPLETED once a slot frees.",
+  "from": {
+    "intent": "parallel-execution-and-request-queueing",
+    "hash": "62ecc06187e8"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "id": "CASE-resubmit-identical-request-009",
+  "title": "4.2 As a user, I should be able to submit the same request over and over again and receive 200 OK",
+  "notes": "The three submissions are byte-identical on purpose — the criterion is about repeating the same request, so no uniqueness nonce is injected.",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 1 + 1"
+        }
+      },
+      "expect": {
+        "status": 200
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 1 + 1"
+        }
+      },
+      "expect": {
+        "status": 200
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "return 1 + 1"
+      }
+    },
+    "expect": {
+      "status": 200
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  }
+}
