@@ -1,0 +1,6 @@
+{
+  "id": "CASE-unknown-key",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "retries": 3,
+  "test": { "request": { "method": "get", "route": "/thing" }, "expect": { "status": 200 } }
+}

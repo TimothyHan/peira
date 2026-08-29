@@ -1,0 +1,13 @@
+{
+  "name": "peira",
+  "version": "0.1.0",
+  "description": "Peira (πεῖρα) — an intent compiler for functional API testing. Under active development.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "peira": "bin/peira.js" },
+  "engines": { "node": ">=18" },
+  "files": ["bin", "src", "schema", "README.md"],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

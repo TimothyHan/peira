@@ -1,0 +1,39 @@
+{
+  "id": "CASE-fetch-other-users-request-detail-001",
+  "title": "1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'ok {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_2",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 403
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "security-2",
+    "hash": "f1a9c46dadcc"
+  }
+}

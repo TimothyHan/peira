@@ -1,0 +1,52 @@
+{
+  "id": "CASE-submit-multi-line-script-002",
+  "title": "4.1.2 As a user, I should be able to submit any valid groovy scripts — multi line",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "def a = 1\ndef b = 2\nreturn a + b"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      },
+      "expect": {
+        "status": 200
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "status": 200,
+        "body": {
+          "status": "COMPLETED"
+        }
+      },
+      "timeoutMs": 15000
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId",
+        "status": "COMPLETED"
+      }
+    }
+  },
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  }
+}

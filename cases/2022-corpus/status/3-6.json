@@ -1,0 +1,31 @@
+{
+  "id": "CASE-2022-3-6",
+  "title": "3.6 As a service endpoint, I should respond with 404 Not found when the id is not valid",
+  "notes": "Also covers 2022 spec 4.6, its verbatim duplicate — 26 case files cover 27 executable specs.",
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "de45e3d45544"
+  },
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "invalidRequestID"
+      }
+    },
+    "expect": {
+      "status": 400,
+      "body": {
+        "error": "Bad Request",
+        "message": "",
+        "path": "/groovy/status",
+        "status": 400,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "CASE-submit-invalid-code-type-004",
+  "title": "As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload has invalid value type for `code` field",
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": 12345
+      }
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "from": {
+    "intent": "post-groovy-submit",
+    "hash": "08cc92149789"
+  }
+}

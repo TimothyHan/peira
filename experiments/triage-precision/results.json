@@ -1,0 +1,2240 @@
+{
+  "summary": {
+    "shifts": 34,
+    "graded": 33,
+    "noFailure": [
+      "queue-capacity-one"
+    ],
+    "correct": 25,
+    "matrix": {
+      "bug": {
+        "bug": 16,
+        "drift": 3,
+        "flake": 2
+      },
+      "drift": {
+        "bug": 1,
+        "drift": 8,
+        "flake": 0
+      },
+      "flake": {
+        "bug": 2,
+        "drift": 0,
+        "flake": 1
+      }
+    },
+    "bugDriftConfusions": 4,
+    "bugDriftConfusionRate": 0.12121212121212122
+  },
+  "results": [
+    {
+      "name": "submit-500",
+      "counts": {
+        "pass": 16,
+        "fail": 10,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 10,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-2",
+          "classification": "bug",
+          "rationale": "The intent requires an authenticated user with a valid credential to be able to submit a request; the service returned 500 for a well-formed submit carrying user_1's valid credential. A 500 contradicts \"should be able to submit\" regardless of whether the intent names a specific success code, and the response body still carries a request id, so the request was evidently accepted while the status line reports server failure.",
+          "finding": {
+            "title": "POST /groovy/submit returns 500 for an authenticated valid submission",
+            "intent": "security-2 — 1.1/1.2: as a user, I should be able to submit the request with a valid credential",
+            "expected": "A successful submission (200) returning the created request id",
+            "actual": "500 Internal Server Error, though the body still contains {\"id\":\"4c89d435-e84e-4491-9fb5-f150b0d28359\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-1",
+          "classification": "bug",
+          "rationale": "Intent 4.1.1 requires that a user be able to submit a valid single-line groovy script; the service answered 500 for `4+1+1`. The intent pins down the capability, so the failure contradicts what it requires rather than only the case's encoding.",
+          "finding": {
+            "title": "Submitting a valid single-line groovy script returns 500",
+            "intent": "robustness-2 — 4.1.1: as a user, I should be able to submit any valid groovy scripts (single line)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"1d78f89d-c9d3-48e2-aeca-747bb7883d46\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-2",
+          "classification": "bug",
+          "rationale": "Intent 4.1.2 requires multi-line valid groovy to be submittable; the service returned 500. Same defect signature as every other submit probe in this run: an id is minted but the status is 5xx.",
+          "finding": {
+            "title": "Submitting a valid multi-line groovy script returns 500",
+            "intent": "robustness-2 — 4.1.2: as a user, I should be able to submit any valid groovy scripts (multi line)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"f4e73e58-bb14-4758-b79a-c707aa3b5cca\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-3",
+          "classification": "bug",
+          "rationale": "Intent 4.1.3 names loop statements as valid submittable groovy; the service returned 500 for a for-loop script. The intent names the behavior, so this is a contradiction of the requirement, not an over-specified case.",
+          "finding": {
+            "title": "Submitting a valid groovy loop statement returns 500",
+            "intent": "robustness-2 — 4.1.3: as a user, I should be able to submit any valid groovy scripts (loop)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"5cb01043-9c09-42fd-b78f-ad724b72069e\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-4",
+          "classification": "bug",
+          "rationale": "Intent 4.1.4 names conditional statements as valid submittable groovy; the service returned 500. Consistent with the run-wide submit failure, not with nondeterminism.",
+          "finding": {
+            "title": "Submitting a valid groovy conditional statement returns 500",
+            "intent": "robustness-2 — 4.1.4: as a user, I should be able to submit any valid groovy scripts (conditional statements)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"b29c6dd5-436b-4615-a9f7-86cb38dc1ba6\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-5",
+          "classification": "bug",
+          "rationale": "Intent 4.1.5 names function definitions as valid submittable groovy; the service returned 500 for a bare `def add(x,y)` definition.",
+          "finding": {
+            "title": "Submitting a valid groovy function definition returns 500",
+            "intent": "robustness-2 — 4.1.5: as a user, I should be able to submit any valid groovy scripts (function definition)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"8c2c328e-9f95-4002-a8ff-e1a307f4d5dc\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-6",
+          "classification": "bug",
+          "rationale": "Intent 4.1.6 names define-and-run scripts as valid submittable groovy; the service returned 500. The failure is at submission time, before any execution semantics are in play.",
+          "finding": {
+            "title": "Submitting a valid groovy define-and-run script returns 500",
+            "intent": "robustness-2 — 4.1.6: as a user, I should be able to submit any valid groovy scripts (function definition and run)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"ae75af51-593f-4e8e-9f7f-6b018ae07b02\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-7",
+          "classification": "bug",
+          "rationale": "Intent 4.1.7 names class definitions as valid submittable groovy; the service returned 500 for a well-formed class declaration.",
+          "finding": {
+            "title": "Submitting a valid groovy class definition returns 500",
+            "intent": "robustness-2 — 4.1.7: as a user, I should be able to submit any valid groovy scripts (class definition)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"7f5c3685-bd45-4356-974c-08012cac3c3b\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-8",
+          "classification": "bug",
+          "rationale": "Intent 4.1.8 names class definition plus instantiation as valid submittable groovy; the service returned 500. Identical failure to the other seven 4.1.x probes.",
+          "finding": {
+            "title": "Submitting a valid groovy class definition with instantiation returns 500",
+            "intent": "robustness-2 — 4.1.8: as a user, I should be able to submit any valid groovy scripts (class definition and instantiation run)",
+            "expected": "Submission accepted with a request id",
+            "actual": "500 Internal Server Error with body {\"id\":\"3f9b53a9-c560-4bf0-9edf-ae587f89f55f\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-2",
+          "classification": "bug",
+          "rationale": "Intent 4.2 explicitly pins the status code: repeated submission of the same request should receive 200 OK. Both the setup submission and the test submission returned 500, so the intent's named requirement is directly contradicted; every submit probe in this run failed the same way, which rules out nondeterminism.",
+          "finding": {
+            "title": "Repeated submission of the same request returns 500 instead of 200 OK",
+            "intent": "robustness-2 — 4.2: as a user, I should be able to submit the same request over and over again and receive 200 OK",
+            "expected": "200 OK on each repeated submission of the same code, with a request id",
+            "actual": "500 Internal Server Error on both the first and the repeated submission (bodies {\"id\":\"1fd89e0d-…\"} and {\"id\":\"4f0d3e64-…\"})"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "status-500",
+      "counts": {
+        "pass": 22,
+        "fail": 4,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 4,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "bug",
+          "rationale": "The intent explicitly requires a user to be able to fetch the detail of a request they created with a valid credential, and the section pins HTTP codes as first-class outcomes (401/403 for the failure modes), so a success path must not answer 500. The service returned the correct body but with HTTP 500, which contradicts what the intent requires.",
+          "finding": {
+            "title": "GET /groovy/status returns HTTP 500 on an authorized, successful detail fetch",
+            "intent": "security-2 — 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential",
+            "expected": "200 OK with {id, result:\"2\", status:\"COMPLETED\"}",
+            "actual": "500 with body {\"id\":\"2d1f0335-696c-4f35-b708-f79bda8b4d2f\",\"status\":\"COMPLETED\",\"result\":\"2\"} — payload correct, status code wrong"
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "bug",
+          "rationale": "The intent requires the service to actually run up to two requests concurrently, which is only observable through a successful status fetch; the endpoint reported IN_PROGRESS correctly but answered HTTP 500, an internal-error signal the intent never permits on a well-formed authorized read. The same 500-with-correct-body symptom appears on every failing status read in this run, so it is a deterministic endpoint defect, not nondeterminism.",
+          "finding": {
+            "title": "GET /groovy/status returns HTTP 500 while correctly reporting IN_PROGRESS for the second concurrent job",
+            "intent": "parallel-execution-and-request-queueing-2 — 5.3 As a service, I should be able to handle up-to two requests at any given point",
+            "expected": "200 OK with {id, result:null, status:\"IN_PROGRESS\"}",
+            "actual": "500 with body {\"id\":\"2467517c-2e6f-4d2c-8f5a-5cb4649654d1\",\"status\":\"IN_PROGRESS\",\"result\":null}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "bug",
+          "rationale": "Eleven consecutive polls of the same id all returned HTTP 500 — including the final one carrying the correct FAILED status and error message — which rules out intermittency and shows a persistent status-endpoint defect. The Robustness section treats HTTP codes as requirements (4.2 200 OK, 4.3 400/422), so an internal-error code on the read path that surfaces 4.4's FAILED marking contradicts the intent.",
+          "finding": {
+            "title": "GET /groovy/status returns HTTP 500 on every poll, including the one reporting FAILED with the error message",
+            "intent": "robustness-2 — 4.4 As a service, I should mark the request status as FAILED, and provide error message through result field",
+            "expected": "200 OK with {id, result:<error string>, status:\"FAILED\"}",
+            "actual": "500 on all 11 attempts; final body {\"id\":\"32e7d0ce-036f-4850-84b5-75e867501f72\",\"status\":\"FAILED\",\"result\":\"No signature of method: Script.somethingWrong() is applicable for argument types\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "bug",
+          "rationale": "The queued request was correctly marked PENDING, but the read that exposes that marking answered HTTP 500 — the identical symptom seen in the other three failures of this run, i.e. a single deterministic defect in GET /groovy/status rather than a case over-specification. Nothing in the intent sanctions a 500 on an authorized, well-formed status read, so this is not merely an encoded-expectation violation.",
+          "finding": {
+            "title": "GET /groovy/status returns HTTP 500 while correctly reporting PENDING for a queued request",
+            "intent": "robustness-2 — 4.5 As a service, I should mark the newly accepted request as `PENDING`",
+            "expected": "200 OK with {id, result:null, status:\"PENDING\"}",
+            "actual": "500 with body {\"id\":\"4cf7e84a-de1b-42d0-bf4b-a77e2f116dc3\",\"status\":\"PENDING\",\"result\":null}"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "submit-id-renamed",
+      "counts": {
+        "pass": 8,
+        "fail": 18,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 18,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "drift",
+          "rationale": "The submit call returned 200 with an identifier, but named it `requestId` rather than `id`; the intent section never names the field that carries the new request's identifier, so only the case's encoded capture path is violated. Every submit probe in this run returned the same shape, so this is deterministic, not nondeterminism.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.1 As a user, I should be able to submit the request with a valid credential",
+            "proposed": "- 1.1 As a user, I should be able to submit the request with a valid credential, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-1-2",
+          "classification": "drift",
+          "rationale": "POST /groovy/submit returned 200 with `{\"requestId\": ...}`; the case asserts `body.id`, a field name the intent never pins down. The intent's actual requirement — submitting with a valid credential succeeds — was satisfied.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.1 As a user, I should be able to submit the request with a valid credential",
+            "proposed": "- 1.1 As a user, I should be able to submit the request with a valid credential, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-1-3",
+          "classification": "drift",
+          "rationale": "Failure is in setup, not in the 401 behavior under test: the submit response carries the identifier as `requestId`, not `id`. The intent is silent on that field name, so the case's capture path is what drifted; the 1.3 assertion itself was never exercised.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.1 As a user, I should be able to submit the request with a valid credential",
+            "proposed": "- 1.1 As a user, I should be able to submit the request with a valid credential, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-1-4",
+          "classification": "drift",
+          "rationale": "Same intent-silent field-name mismatch in setup: the service returns `requestId` where the case captures `body.id`. The no-credential 401 requirement was never reached and is neither confirmed nor contradicted by this run.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.1 As a user, I should be able to submit the request with a valid credential",
+            "proposed": "- 1.1 As a user, I should be able to submit the request with a valid credential, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "drift",
+          "rationale": "The observed failure is the setup capture of `body.id` against a response that returns `requestId`, a field name the intent never states. The pre-registered 401-vs-403 adjudication for cross-user access remains unobserved and should be re-judged once the capture path resolves.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.1 As a user, I should be able to submit the request with a valid credential",
+            "proposed": "- 1.1 As a user, I should be able to submit the request with a valid credential, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "Setup failed on the intent-silent identifier field name (`requestId` vs the case's `body.id`), so the empty-password 401 behavior was never probed. Nothing the intent pins down was contradicted.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.1 As a user, I should be able to submit the request with a valid credential",
+            "proposed": "- 1.1 As a user, I should be able to submit the request with a valid credential, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "drift",
+          "rationale": "The first setup submit returned 200 with `requestId`; the case captures `body.id`. The parallel-execution section says nothing about the submit response's field names, so the concurrency requirement under test was never reached and is not contradicted.",
+          "intentDiff": {
+            "section": "parallel-execution-and-request-queueing-2",
+            "current": "- 5.1 As a user, I should be able to submit as many requests as I want - covered with automation test suite",
+            "proposed": "- 5.1 As a user, I should be able to submit as many requests as I want, each submit returning the new request's identifier as `requestId` in the response body - covered with automation test suite"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-1",
+          "classification": "drift",
+          "rationale": "Single-line script submission succeeded with 200; only the identifier field name differs (`requestId` vs the case's `id`), and the intent never names that field. The requirement — valid Groovy is accepted — holds.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-2",
+          "classification": "drift",
+          "rationale": "Multi-line submission returned 200 with `requestId`; the case's `body.id` assertion is an over-specification the intent does not make. Acceptance of the script — what 4.1.2 requires — was satisfied.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-3",
+          "classification": "drift",
+          "rationale": "Loop script accepted with 200; the failure is solely the intent-silent identifier field name. Identical shape across all 18 submit probes in this run rules out nondeterminism.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-4",
+          "classification": "drift",
+          "rationale": "Conditional-statement script accepted with 200 and an identifier under `requestId`. The intent does not pin the field name, so only the case's encoded expectation is violated.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-5",
+          "classification": "drift",
+          "rationale": "Function-definition script accepted with 200; the response names the identifier `requestId` rather than `id`, a detail the intent leaves open. Nothing 4.1.5 requires was violated.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-6",
+          "classification": "drift",
+          "rationale": "Define-and-run script accepted with 200 under the `requestId` field name. The intent is silent on the identifier's key, so this is an intent-level naming gap, not a contradiction.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-7",
+          "classification": "drift",
+          "rationale": "Class-definition script accepted with 200; only the case's `body.id` path failed against the service's `requestId`. The intent names no such field.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-1-8",
+          "classification": "drift",
+          "rationale": "Class-definition-and-instantiation script accepted with 200 and an identifier under `requestId`. The mismatch is with the case's encoded field name, which the intent never fixes.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-2",
+          "classification": "drift",
+          "rationale": "Both the setup and test submits of the identical script returned 200, which is exactly what 4.2 requires; only the case's extra `body.id` assertion failed because the service names the field `requestId`. The intent stops at the status code.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.2 As a user, I should be able to submit the same request over and over again and receive 200 OK",
+            "proposed": "- 4.2 As a user, I should be able to submit the same request over and over again and receive 200 OK with the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "drift",
+          "rationale": "Setup could not capture `body.id` because the submit response carries `requestId`; the intent names the `result` field but never the identifier field. The FAILED-status-plus-error-message requirement was never reached and needs re-judging after the capture path resolves.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        },
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "drift",
+          "rationale": "The first of three setup submits failed to capture `body.id` against a `requestId` response, so the PENDING-status assertion never ran. The identifier field name is intent-silent, and the deterministic, identical failure across every submit rules out the transient-state nondeterminism this case is watchlisted for.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.1 As a user, I should be able to submit any valid groovy scripts",
+            "proposed": "- 4.1 As a user, I should be able to submit any valid groovy scripts, and receive the new request's identifier as `requestId` in the response body"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": false
+    },
+    {
+      "name": "status-id-renamed",
+      "counts": {
+        "pass": 22,
+        "fail": 4,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 4,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "drift",
+          "rationale": "The fetch succeeded end-to-end for the creating user (200, status COMPLETED, result \"2\"); the only unmet assertion is that the detail echoes the identifier under `id`, while the service returns it under `uuid`. Intent section security-2 requires only that the user can fetch the detail they created with a valid credential and never names the identifier field, so the case over-specifies a response key the intent leaves open.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential",
+            "proposed": "- 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential — the detail response echoes the request identifier in the `uuid` field (submit returns it as `id`)"
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "drift",
+          "rationale": "Everything intent 4.4 actually pins holds: status is FAILED and the error message is delivered through the `result` field (\"No signature of method: Script.somethingWrong()...\"). The failure is solely the identifier key — the response carries `uuid`, not `id` — which section robustness-2 never specifies. Same root cause as the other three failures in this run, so it is systematic, not intermittent.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.4 As a service, I should mark the request status as FAILED, and provide error message through result field",
+            "proposed": "- 4.4 As a service, I should mark the request status as FAILED, and provide error message through result field; the status response echoes the request identifier in the `uuid` field (submit returns it as `id`)"
+          }
+        },
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "drift",
+          "rationale": "The third submission is reported as PENDING with a null result, which is exactly what intent 4.5 requires; only the `id` key assertion failed because the status payload names the identifier `uuid`. Robustness-2 is silent on the identifier field name, so this is an encoded-expectation mismatch rather than a contradiction of the intent.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.5 As a service, I should mark the newly accepted request as `PENDING`",
+            "proposed": "- 4.5 As a service, I should mark the newly accepted request as `PENDING`, echoing the request identifier in the `uuid` field of the status response (submit returns it as `id`)"
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "drift",
+          "rationale": "Two concurrent long jobs were accepted and the second is observed IN_PROGRESS with a null result, satisfying intent 5.3's two-at-a-time capacity claim; the assertion failed only on the identifier key, which the status response supplies as `uuid`. The parallel-execution section says nothing about response field naming.",
+          "intentDiff": {
+            "section": "parallel-execution-and-request-queueing-2",
+            "current": "- 5.3 As a service, I should be able to handle up-to two requests at any given point",
+            "proposed": "- 5.3 As a service, I should be able to handle up-to two requests at any given point, each identifiable by the `uuid` field returned in its status response (submit returns the identifier as `id`)"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": false
+    },
+    {
+      "name": "status-result-dropped",
+      "counts": {
+        "pass": 22,
+        "fail": 4,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 3,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "drift",
+          "rationale": "The service returned 200 with id and status COMPLETED under the valid credential, which is everything the Security section actually requires (1.2 pins only that the creator can fetch their own request detail). The failure is solely the case's expectation of result:\"2\", a payload detail this intent section never specifies, so the over-specifying artifact — not the service — is out of step here.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential",
+            "proposed": "- 1.2 As a user, I should be able to fetch the request detail (id and status) that I created with a valid credential; this section does not pin the presence or content of a result field."
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "drift",
+          "rationale": "The second concurrently submitted job was observed IN_PROGRESS with a 200 response, which is exactly what 5.3 (\"handle up-to two requests at any given point\") requires. Only the case's encoded result:null expectation failed, and the Parallel execution section says nothing about a result field on an in-flight request.",
+          "intentDiff": {
+            "section": "parallel-execution-and-request-queueing-2",
+            "current": "- 5.3 As a service, I should be able to handle up-to two requests at any given point",
+            "proposed": "- 5.3 As a service, I should be able to handle up-to two requests at any given point; the status detail of an IN_PROGRESS request carries id and status only, with no result field."
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "bug",
+          "rationale": "Intent 4.4 explicitly names the result field: the service must mark the request FAILED *and* provide the error message through result. The service reached status FAILED but returned no result property at all, so the observed behavior contradicts what the intent directly requires — this is not an artifact over-specifying.",
+          "finding": {
+            "title": "FAILED requests carry no result field, so the error message is never surfaced",
+            "intent": "robustness-2 / 4.4 — As a service, I should mark the request status as FAILED, and provide error message through result field",
+            "expected": "GET /groovy/status for a request whose script threw returns status FAILED together with a result field containing the error message (a string)",
+            "actual": "GET /groovy/status?id=63174df2-01b0-43cd-988f-0d85bc3ba223 returned {\"id\":\"63174df2-01b0-43cd-988f-0d85bc3ba223\",\"status\":\"FAILED\"} — the result property is absent, so no error message is available to the user"
+          }
+        },
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "drift",
+          "rationale": "The queued third submission was observed as PENDING with a 200 response, satisfying 4.5 exactly as written. The assertion failed only on result:null, and the Robustness section pins a result field for FAILED requests (4.4) but says nothing about one for a newly accepted PENDING request.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.5 As a service, I should mark the newly accepted request as `PENDING`",
+            "proposed": "- 4.5 As a service, I should mark the newly accepted request as `PENDING`; the status detail of a PENDING request carries id and status only, with no result field."
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": false
+    },
+    {
+      "name": "status-status-dropped",
+      "counts": {
+        "pass": 16,
+        "fail": 10,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 5,
+        "drift": 5,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "bug",
+          "rationale": "The fetch itself succeeded (200, correct id, result \"2\"), so 1.2's auth requirement is met, but the request detail never contains a `status` key at all across 97 identical polls. The intent does pin that key — get-groovy-status 3.3 requires the detail to carry `id`, `status` and `result`, and robustness-2 4.7 requires a completed run to be marked COMPLETED — so this is not silence the intent can be amended into; it is a contradiction. Same root cause as CASE-2022-4-4, 4-5 and 5-3: /groovy/status success bodies have lost the `status` field.",
+          "finding": {
+            "title": "GET /groovy/status omits the `status` field from the request detail",
+            "intent": "security-2 1.2, with the detail contract pinned by get-groovy-status 3.3 and robustness-2 4.7",
+            "expected": "200 with a detail containing `id`, `result` and `status`, reaching \"COMPLETED\" once the submitted script finishes",
+            "actual": "200 with `{\"id\":\"dbe5392d-…\",\"result\":\"2\"}` — no `status` property on any of 97 polls over 10s, so the terminal state is never observable"
+          }
+        },
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "The case ports the 2022-observed 401 and its HTTP code matched; the reported diff is only the missing body `status` echo. But triage judges the intent, and intent 1.4 explicitly pins 403 Forbidden for fetching another user's request detail while the service returns 401 Unauthorized for a request bearing user_2's valid credential. Intent names it, behavior contradicts it, so this cannot be drift — the 403/401 gap must be adjudicated by a human, not absorbed into the intent. (The missing body `status` field here is the same case-level over-specification as CASE-2022-1-6.)",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "security-2 1.4 — \"I should receive 403 Forbidden when I fetch the request detail that are made by other users\"",
+            "expected": "403 Forbidden when user_2 presents a valid credential and fetches a request created by user_1 (a recognized principal denied access, not an unauthenticated caller)",
+            "actual": "401 with `{\"error\":\"Unauthorized\",\"message\":\"\",\"path\":\"/groovy/status\",\"timestamp\":\"…\"}` — authenticated-but-unauthorized is reported as unauthenticated"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "Intent 1.6 pins the outcome for an empty password, and the service delivered it: HTTP 401 with an Unauthorized error body. The only failing detail is the numeric `status` echo inside the body, which the case inherited from the 2022 Spring-style error payload and which the intent never specifies. The intent is silent on error-body composition, so this is encoded expectation, not requirement.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password. The 401 body carries `error`, `message`, `path` and `timestamp`; the numeric code is conveyed by the HTTP status line, not by a `status` field in the body."
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "The endpoint returned exactly what 3.1 requires — 400 Bad Request with an error body — for a request whose `id` is absent in substance. The assertion failed only on the numeric `status` field inside the body, a shape the intent never states. Note this is the same missing-key symptom as the success-body failures, but here nothing the intent pins is violated. Shares one root with CASE-2022-3-4/3-5/3-6; a human may prefer to consolidate these four into a single section-level note on error-body shape.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field",
+            "proposed": "- 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field. Error responses carry `error`, `message`, `path` and `timestamp`; the numeric code appears only on the HTTP status line, not as a `status` field in the body."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "This case sends no query parameters at all, so it actually exercises 3.1 (missing `id`), not the amended 3.4 — and the service answered 400 with an error body, which 3.1 requires. The only unmet expectation is the body's numeric `status` echo, which the intent does not specify. Separately worth flagging to the human as a case-regeneration item, not an intent change: the case title still encodes the pre-amendment 3.4 (\"payload does not only contain id\"), which the 2026-08-29 adjudication already retired.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field",
+            "proposed": "- 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field. Error responses carry `error`, `message`, `path` and `timestamp`; the numeric code appears only on the HTTP status line, not as a `status` field in the body."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "A UUID-shaped but unknown id returned 404 Not Found with an error body — precisely what 3.5 pins, including under the 2026-08-29 UUID contract note. The failure is confined to the body's numeric `status` field, which the intent never mentions.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database",
+            "proposed": "- 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database. Error responses carry `error`, `message`, `path` and `timestamp`; the numeric code appears only on the HTTP status line, not as a `status` field in the body."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "The non-UUID id \"invalidRequestID\" produced 400 Bad Request with an error body, satisfying 3.6 as adjudicated on 2026-08-29. Only the body's numeric `status` echo is missing, and the intent does not pin error-body composition.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.6 As a service endpoint, I should respond with 400 Bad request when the `id` is not valid (amended 2026-08-29: was \"404 Not found\"; adjudicated to observed behavior — a malformed id is a bad request, not a missing resource)",
+            "proposed": "- 3.6 As a service endpoint, I should respond with 400 Bad request when the `id` is not valid (amended 2026-08-29: was \"404 Not found\"; adjudicated to observed behavior — a malformed id is a bad request, not a missing resource). Error responses carry `error`, `message`, `path` and `timestamp`; the numeric code appears only on the HTTP status line, not as a `status` field in the body."
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "bug",
+          "rationale": "Intent 4.4 names both halves of the contract: mark the request FAILED and surface the error through `result`. The service delivers the second half (the Groovy \"No signature of method\" message) and none of the first — no `status` property exists on the detail across 96 polls. The intent explicitly requires the field, so this is a bug, not case over-specification.",
+          "finding": {
+            "title": "Failed script runs never report status FAILED — the `status` field is absent",
+            "intent": "robustness-2 4.4 and 4.8 — a failed request must be marked FAILED with the error message in `result`",
+            "expected": "200 with `{id, result: \"<error message>\", status: \"FAILED\"}`",
+            "actual": "200 with `{\"id\":\"8822de6c-…\",\"result\":\"No signature of method: Script.somethingWrong() is applicable for argument types\"}` — the error message is present but no `status` key ever appears"
+          }
+        },
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "bug",
+          "rationale": "Intent 4.5 requires a newly accepted request to be marked PENDING. With the two-slot capacity filled by the sleep jobs, the third request was queued, yet its detail never carries a `status` key on any of 97 polls — by the time it is polled late it merely shows `result` \"9\". The lifecycle state the intent names is unobservable, so the intent's requirement is contradicted, not merely under-specified.",
+          "finding": {
+            "title": "Queued requests never report status PENDING — the `status` field is absent",
+            "intent": "robustness-2 4.5 — \"I should mark the newly accepted request as `PENDING`\"",
+            "expected": "200 with `{id, result: null, status: \"PENDING\"}` while the request waits behind the two running jobs",
+            "actual": "200 with `{\"id\":\"ce904339-…\",\"result\":\"9\"}` — no `status` key at any point, so PENDING is never observable"
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "bug",
+          "rationale": "Section 5's own lines do not name the `status` field, but that does not make this drift: there is no amendment to 5.3 that would state the new reality without leaving the intent self-contradictory, because robustness-2 4.6 and get-groovy-status 3.3 do pin IN_PROGRESS and the `status` field. The second concurrently running job returns `result: null` with no `status` key across 97 polls, so the intent's own means of observing the two-slot capacity is gone. Same root cause as CASE-2022-1-1, 4-4 and 4-5.",
+          "finding": {
+            "title": "Running requests never report status IN_PROGRESS, leaving concurrency capacity unobservable",
+            "intent": "parallel-execution-and-request-queueing-2 5.3, resting on robustness-2 4.6 and get-groovy-status 3.3",
+            "expected": "200 with `{id, result: null, status: \"IN_PROGRESS\"}` for the second of two concurrently executing sleep jobs",
+            "actual": "200 with `{\"id\":\"ee7dc4e6-…\",\"result\":null}` — no `status` key, so neither IN_PROGRESS nor the two-at-a-time capacity can be verified"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "stuck-pending",
+      "counts": {
+        "pass": 22,
+        "fail": 3,
+        "error": 1
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 3,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "bug",
+          "rationale": "The submitted script never leaves PENDING across 98 polls over 10s, so the request detail never reaches COMPLETED with a result. The intent text pins this down explicitly — robustness-2 §4.7 requires a successfully completed request to be marked COMPLETED (and §4.4/§4.6 the other transitions) — so this is not mere case over-specification; the same PENDING-forever signature appears in all three failures, pointing at one root cause: the executor is not picking up queued requests.",
+          "finding": {
+            "title": "Submitted scripts never execute — status stays PENDING indefinitely",
+            "intent": "robustness-2 §4.7 (\"mark the request that is successfully completed as COMPLETED\"); reached via security-2 §1.2 fetching the detail of a request the user created",
+            "expected": "After submitting `1+1`, GET /groovy/status?id=<id> eventually returns 200 with {status: \"COMPLETED\", result: \"2\"}",
+            "actual": "GET /groovy/status returns 200 with {status: \"PENDING\", result: null} on every one of 98 attempts across 10s; the request is never executed"
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "bug",
+          "rationale": "Three requests were submitted and the second one never reached IN_PROGRESS within 10s, staying PENDING — with only two prior sleeps in flight, capacity was not the limiter. This contradicts parallel-execution-and-request-queueing-2 §5.3 (handle up to two requests at any given point) and robustness-2 §4.6 (a running request is marked IN_PROGRESS), both of which the intent names explicitly.",
+          "finding": {
+            "title": "Second concurrent request never enters IN_PROGRESS — no parallel execution observed",
+            "intent": "parallel-execution-and-request-queueing-2 §5.3 (\"handle up-to two requests at any given point\") with robustness-2 §4.6 (\"mark the request that is running as IN_PROGRESS\")",
+            "expected": "With two long-running submissions in flight, the second (sleep(999)) reports {status: \"IN_PROGRESS\", result: null} while occupying the second execution slot",
+            "actual": "GET /groovy/status for the second submission returns {status: \"PENDING\", result: null} on all 98 attempts over 10s; it never occupies a running slot"
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "bug",
+          "rationale": "A script with an undefined method (`somethingWrong() - 2`) is never executed, so it never reaches FAILED nor carries an error message. robustness-2 §4.4 and §4.8 name this behavior directly, so the intent is not silent on the failing detail.",
+          "finding": {
+            "title": "Failing script never marked FAILED — no terminal status and no error message",
+            "intent": "robustness-2 §4.4 (\"mark the request status as FAILED, and provide error message through result field\") and §4.8",
+            "expected": "After submitting `somethingWrong() - 2`, GET /groovy/status eventually returns 200 with {status: \"FAILED\"} and a non-null string error message in result",
+            "actual": "GET /groovy/status returns {status: \"PENDING\", result: null} on all 98 attempts over 10s; the script is never run and never reaches a terminal status"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "result-always-null",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 0,
+        "flake": 1
+      },
+      "majority": "flake",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "flake",
+          "rationale": "The poll gate only waited for status COMPLETED, and the service returned COMPLETED with result still null on the very next 2ms probe — the signature of a read-after-write race where status is published before the result field is populated, not a stable behavior. Intent section security-2 says nothing about the computed result value (only about credential-gated submit and fetch), so there is no intent line to judge a bug or drift against, and this single failure stands alongside 25 passes in the same run.",
+          "prescription": "Re-run CASE-2022-1-1 with seed 42, repeated ~10x. If result is null on some runs and \"2\" on others, it is a service-side status/result publish race — file it against the groovy execution intent, not security-2. If every repetition returns result null after COMPLETED, it is deterministic and should be re-triaged as a bug against the intent section that pins evaluation output. Separately, strengthen the poll gate to require both status COMPLETED and result non-null so the race cannot be mistaken for an assertion failure."
+        }
+      ],
+      "truth": "bug",
+      "correct": false
+    },
+    {
+      "name": "auth-accept-any",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "bug",
+          "rationale": "Intent line 1.6 explicitly pins 401 Unauthorized for a request made with an empty-string password, and the service instead authenticated the request and returned 200 with the request detail. The body-shape assertions are incidental over-specification, but the status contradiction is exactly what the intent requires, and no other probe in this run suggests nondeterminism.",
+          "finding": {
+            "title": "Empty-string password is accepted as a valid credential instead of returning 401",
+            "intent": "security-2 / 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "expected": "GET /groovy/status with credentials {username: user_1, password: \"\"} is rejected with 401 Unauthorized",
+            "actual": "GET /groovy/status?id=9c98e342-bf12-474d-9ad5-60cf90ebccc5 returned 200 with the request detail body {\"id\":\"9c98e342-bf12-474d-9ad5-60cf90ebccc5\",\"status\":\"IN_PROGRESS\",\"result\":null}, so the empty password authenticated successfully"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "anon-accepted",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-4",
+          "classification": "bug",
+          "rationale": "The test sent GET /groovy/status with empty username and password — i.e. no credential — and the service returned 200 with the request's id, status, and result instead of rejecting it. Intent 1.5 explicitly pins this down (\"I should receive 401 Unauthorized when I do not provide any credential\"), and 1.2 makes credentialed access the stated path for fetching request detail, so the intent is not silent on the failing detail. This is a deterministic auth bypass on the read path, not a wording gap or a nondeterministic probe.",
+          "finding": {
+            "title": "Unauthenticated GET /groovy/status returns 200 and discloses request detail",
+            "intent": "security-2 — 1.5 As a user, I should receive 401 Unauthorized when I do not provide any credential (with 1.2 requiring a valid credential to fetch request detail)",
+            "expected": "401 Unauthorized when /groovy/status is called with no credential (empty username and password)",
+            "actual": "200 OK with body {\"id\":\"dfb5deda-400b-4daa-918d-35397b1d9e3f\",\"status\":\"IN_PROGRESS\",\"result\":null} — the request detail was returned to an unauthenticated caller"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "accepts-empty-body",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "bug",
+          "rationale": "Intent line 2.1 explicitly requires 400 or 422 when the payload is missing the `code` field; the request body was `{}` and the service returned 200 with a registered task id, accepting the malformed request. This contradicts what the intent pins down, independent of the case's over-specified error-body shape.",
+          "finding": {
+            "title": "POST /groovy/submit accepts a payload missing the required `code` field (200 instead of 400/422)",
+            "intent": "post-groovy-submit 2.1 — As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload is missing `code` field",
+            "expected": "HTTP 400 Bad Request or 422 Unprocessable Entity, with no task registered",
+            "actual": "HTTP 200 with a registered task id in the body ({\"id\":\"b38edaea-411c-44c0-b62a-edf492b802d4\"}) — the empty payload was accepted"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "accepts-garbage-field",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "bug",
+          "rationale": "Intent line 2.2 explicitly requires 400 or 422 when the request payload does not contain only the `code` field, and the payload sent included an extra `garbage` field. The service accepted it with 200 and a task id, directly contradicting a behavior the intent pins down; 25 other probes passed in the same run, so this is not nondeterminism.",
+          "finding": {
+            "title": "POST /groovy/submit accepts payloads with unexpected extra fields instead of rejecting them",
+            "intent": "2.2 As a service endpoint, I should return 400 Bad request or 422 Unprocessable Entity when the request payload does not only contain `code` field and value",
+            "expected": "400 Bad Request or 422 Unprocessable Entity for body {\"code\": \"1 + 2\", \"garbage\": \"I should not be here\"}",
+            "actual": "200 OK with body {\"id\":\"22450309-ecba-430a-a06c-3e2d0ba646c5\"} — the extra field was silently ignored and the task was registered"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "accepts-numeric-code",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "bug",
+          "rationale": "Intent 2.4 explicitly requires 400 or 422 when the payload has an invalid value type for `code`; the request sent `{\"code\":123}` (a number where a code string is expected) and the service accepted it with 200 and a registered task id. The intent names this exact behavior, so the contradiction is with the intent itself, not merely with the case's encoded error-body shape.",
+          "finding": {
+            "title": "POST /groovy/submit accepts a non-string `code` value instead of rejecting it",
+            "intent": "post-groovy-submit 2.4 — As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload has invalid value type for `code` field",
+            "expected": "400 Bad Request or 422 Unprocessable Entity for body {\"code\":123}",
+            "actual": "200 OK with body {\"id\":\"0f4b59a3-54cf-4a7e-be15-3da3dd13b818\"} — the task was registered despite the invalid `code` type"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "accepts-syntax-error",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "bug",
+          "rationale": "Intent 4.3 explicitly pins the behavior the case checks: a syntax-error submission must return 400 or 422 with a syntax/compile error message in the body. The service accepted `def wrongFunc(a { a }` with 200 and a bare submission id, so the observed behavior contradicts what the intent requires rather than merely the case's encoding. All other probes in this run passed, so this is not a nondeterminism pattern.",
+          "finding": {
+            "title": "Syntax-error script accepted with 200 instead of 400/422",
+            "intent": "robustness-2 / 4.3 — As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+            "expected": "POST /groovy/submit with a syntactically invalid script returns 400 (or 422) and a body carrying the syntax/compile error message",
+            "actual": "POST /groovy/submit returned 200 with body {\"id\":\"94d62723-7e69-4275-a6f9-ead63b683ebc\"} — no error, no message, request accepted"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "unknown-id-200",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "bug",
+          "rationale": "Intent 3.5 explicitly pins 404 for a UUID-shaped id that does not exist in the database, and the note clarifies that this case's id form is exactly that scenario; the service instead returned 200 with a fabricated record echoing the requested id (status PENDING, result null). The intent names the failing detail, and 25 other probes in the same run passed, so this is a direct contradiction rather than over-specification or nondeterminism.",
+          "finding": {
+            "title": "GET /groovy/status returns 200 with a synthesized PENDING record for an unknown request id instead of 404",
+            "intent": "get-groovy-status 3.5 — As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database",
+            "expected": "404 Not Found for the UUID-shaped, unknown id 00000000-aaaa-1111-bbbb-222222222222",
+            "actual": "200 OK with body {\"id\":\"00000000-aaaa-1111-bbbb-222222222222\",\"status\":\"PENDING\",\"result\":null} — the endpoint appears to echo any well-formed id back as a pending request rather than looking it up"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "invalid-id-500",
+      "counts": {
+        "pass": 24,
+        "fail": 2,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 2,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "bug",
+          "rationale": "The intent pins this behavior in two places: 3.1 requires 400 or 422 when the payload does not supply `id`, and 3.6 requires 400 when the `id` is not valid (not UUID-shaped). An empty-string `id` falls under one or both, and the service returned 500 Internal Server Error, which contradicts what the intent requires. Deterministic, not a flake: the sibling malformed-id probe failed identically in the same run.",
+          "finding": {
+            "title": "GET /groovy/status returns 500 instead of 400 for an empty `id` query parameter",
+            "intent": "get-groovy-status 3.1 / 3.6 — respond 400 Bad Request (or 422) when `id` is absent or not a valid UUID-shaped value",
+            "expected": "400 Bad Request with body {error: \"Bad Request\", status: 400, path: \"/groovy/status\"}",
+            "actual": "500 Internal Server Error with body {\"error\":\"Internal Server Error\",\"message\":\"\",\"path\":\"/groovy/status\",\"status\":500} — the empty id appears to reach an unguarded code path and throw rather than being rejected at validation"
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "bug",
+          "rationale": "Intent 3.6 explicitly names this case: a non-UUID-shaped `id` must produce 400 Bad Request. The service returned 500 Internal Server Error for `id=invalidRequestID`, directly contradicting the intent line rather than merely violating case-level wording. Both malformed-id probes in this run failed the same way, so nondeterminism is not the story.",
+          "finding": {
+            "title": "GET /groovy/status returns 500 instead of 400 for a malformed (non-UUID) `id`",
+            "intent": "get-groovy-status 3.6 — respond with 400 Bad Request when the `id` is not valid (not UUID-shaped)",
+            "expected": "400 Bad Request with body {error: \"Bad Request\", status: 400, path: \"/groovy/status\"}",
+            "actual": "500 Internal Server Error with body {\"error\":\"Internal Server Error\",\"message\":\"\",\"path\":\"/groovy/status\",\"status\":500} — id validation appears to be missing, so a non-UUID value throws downstream (likely at UUID parse or lookup) instead of being rejected"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "cross-user-200",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "Intent 1.4 explicitly pins down that fetching another user's request detail must yield 403 Forbidden, and user_2 fetched user_1's request and received 200 with the full result body. The case's encoded 401 is a mis-encoding (the intent names 403), but that does not rescue the observed behavior: 200 plus disclosure of another user's result contradicts what the intent requires either way.",
+          "finding": {
+            "title": "Cross-user request detail is readable: GET /groovy/status returns 200 with another user's result instead of 403",
+            "intent": "security-2 / 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "403 Forbidden when user_2 fetches the request created by user_1",
+            "actual": "200 OK with the owner's payload {\"id\":\"4527e118-19b5-4bde-9202-0277966ce3b5\",\"status\":\"COMPLETED\",\"result\":\"6\"} — no ownership check applied"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "failed-marked-completed",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "bug",
+          "rationale": "The intent explicitly pins this behavior down in 4.4 (\"mark the request status as FAILED, and provide error message through result field\") and again in 4.8, and the service returned a runtime error message in `result` while reporting status COMPLETED. All 98 polls returned the identical COMPLETED body, so this is deterministic, not nondeterminism.",
+          "finding": {
+            "title": "Script that fails at runtime is marked COMPLETED instead of FAILED",
+            "intent": "robustness-2 / 4.4 (and 4.8): a service should mark the request status as FAILED and provide the error message through the result field when the submitted script fails",
+            "expected": "GET /groovy/status for a submission of `somethingWrong() - 2` eventually reports status \"FAILED\" with the error message in `result`",
+            "actual": "status is \"COMPLETED\" while `result` carries the error text \"No signature of method: Script.somethingWrong() is applicable for argument types\" — the service populates the error message but never transitions the status to FAILED"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "queue-capacity-one",
+      "counts": {
+        "pass": 26,
+        "fail": 0,
+        "error": 0
+      },
+      "outcome": "no-failure",
+      "truth": "bug",
+      "correct": null
+    },
+    {
+      "name": "queue-capacity-three",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 0,
+        "flake": 1
+      },
+      "majority": "flake",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "flake",
+          "rationale": "The case asserts a transient state: it needs the two setup jobs to keep the worker pool busy so the third submission is still queued when polling starts, but sleep(1000)/sleep(999) are ~1s jobs against a 10s poll window, so the queue-saturation assumption is a timing bet rather than a pinned invariant. The evidence only shows that PENDING was never sampled — it cannot distinguish 'the service never marks newly accepted requests PENDING' (a real 4.5 violation) from 'the PENDING window was shorter than the first poll'. With one probe of this behavior and no intermittency data in the run, that is insufficient to classify as bug, and 4.5 names PENDING explicitly so it is not drift.",
+          "prescription": "Re-run CASE-2022-4-5 at seed 42, several times, with the setup jobs lengthened so they demonstrably outlast the poll window (e.g. sleep well beyond 10000ms, sized to the worker-pool concurrency) and the first status poll issued immediately after the submit response. If PENDING is observed in any run, the original failure was the race and the fixture needs the longer blockers. If PENDING is never observed across repeated runs with the queue provably saturated, re-file as a bug against intent 4.5 (newly accepted requests never externally visible as PENDING)."
+        }
+      ],
+      "truth": "bug",
+      "correct": false
+    },
+    {
+      "name": "status-label-lowercase",
+      "counts": {
+        "pass": 22,
+        "fail": 4,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 2,
+        "drift": 2,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "drift",
+          "rationale": "The service satisfied everything security-2 pins down: the creator fetched their own request detail with a valid credential and got 200 with the correct id and result \"2\". Only the case's encoded status token failed — security-2 never specifies the lifecycle vocabulary or its casing. Note the linkage: sibling section robustness-2 (4.7/4.8) does pin uppercase tokens and I filed bugs there, so this diff should only be approved if the human decides lowercase is the intended reality.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential",
+            "proposed": "- 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential — the detail reports its lifecycle state in lowercase (e.g. `completed`) alongside the result"
+          }
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "drift",
+          "rationale": "Section 5 pins concurrency (at most two in flight, queueing beyond that) and says nothing about the status vocabulary, so the failing detail — the token \"IN_PROGRESS\" — is case-level over-specification. No attempt of 98 matched over a ~1s sleep(999) job, which is consistent with the lowercase vocabulary directly observed in CASE-2022-4-4 and CASE-2022-1-1; the running-state token itself was never observed, so the proposed wording is inferred and the human should confirm it against the service before approving.",
+          "intentDiff": {
+            "section": "parallel-execution-and-request-queueing-2",
+            "current": "- 5.3 As a service, I should be able to handle up-to two requests at any given point",
+            "proposed": "- 5.3 As a service, I should be able to handle up-to two requests at any given point — a request that is currently executing reports its status in lowercase (`in_progress`)"
+          }
+        },
+        {
+          "case": "CASE-2022-4-4",
+          "classification": "bug",
+          "rationale": "robustness-2 names the token explicitly in 4.4 (\"mark the request status as FAILED\") and again in 4.8 (\"as `FAILED`\"), so this is a detail the intent genuinely pins. The service returned \"failed\" on every one of 98 attempts — identical, not intermittent — while correctly supplying the error message through result.",
+          "finding": {
+            "title": "Failed requests are reported as lowercase \"failed\", not the `FAILED` the intent pins",
+            "intent": "robustness-2 — 4.4 \"I should mark the request status as FAILED, and provide error message through result field\"; 4.8 \"mark the request that is failed as `FAILED`\"",
+            "expected": "GET /groovy/status returns body.status \"FAILED\" for a script that errors at runtime",
+            "actual": "body.status is \"failed\" on all 98 polls (result correctly carries \"No signature of method: Script.somethingWrong() is applicable for argument types\")"
+          }
+        },
+        {
+          "case": "CASE-2022-4-5",
+          "classification": "bug",
+          "rationale": "robustness-2 4.5 names the token in backticks (\"mark the newly accepted request as `PENDING`\"), so the intent pins it directly. Across 98 polls spanning the ~1s window in which the third submission was queued behind two sleep jobs, \"PENDING\" was never observed; combined with the lowercase \"failed\"/\"completed\" seen elsewhere in this run, the uppercase token the intent requires is not produced.",
+          "finding": {
+            "title": "Newly accepted queued request never reports the `PENDING` status the intent pins",
+            "intent": "robustness-2 — 4.5 \"As a service, I should mark the newly accepted request as `PENDING`\"",
+            "expected": "GET /groovy/status returns body.status \"PENDING\" while the third submission is queued behind two running jobs",
+            "actual": "no poll of 98 over 10s matched \"PENDING\"; the terminal observation is lowercase \"completed\" with result \"9\", consistent with the lowercase status vocabulary directly observed in CASE-2022-4-4 and CASE-2022-1-1"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    },
+    {
+      "name": "validation-message-text",
+      "counts": {
+        "pass": 17,
+        "fail": 9,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 8,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "Setting aside the message-wording mismatch, the evidence shows a request for another user's detail (user_2 fetching user_1's request) answered with 401 Unauthorized, while intent 1.4 explicitly pins 403 Forbidden for exactly that scenario. The case asserts 401 and so passed on status, but the case is a regenerable artifact and the intent text is what governs: the service contradicts a behavior the intent names.",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of the required 403 Forbidden",
+            "intent": "security-2 / 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "GET /groovy/status?id=<user_1's request> authenticated as user_2 → 403 Forbidden",
+            "actual": "GET /groovy/status?id=1d71a05e-8232-4708-be5f-c6b31c2c732c authenticated as user_2 → 401 with body {\"error\":\"Unauthorized\",\"message\":\"Validation failed: request rejected\",\"path\":\"/groovy/status\",\"status\":401,...}. Valid credentials were presented, so the service is conflating authorization failure with authentication failure."
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The status (401 for an empty password) is exactly what intent 1.6 requires; the only mismatch is the error body's `message`, which the intent never mentions — the case encoded an empty string that no intent line pins. Silence in the intent on the failing detail points to drift.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password. The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "An empty `id` was rejected with 400 Bad Request, satisfying intent 3.1; only the error body's `message` differs from the case's encoded empty string, and the intent says nothing about message wording. This same clause recurs across section 3 — a human may prefer to hoist it into the section preamble once.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field",
+            "proposed": "- 3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field. The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "The request carried no query parameters at all, so the observed 400 is the missing-`id` behavior intent 3.1 requires; nothing in the amended 3.4 is contradicted. The only failing detail is the error body's `message`, which the intent never specifies. Separately worth noting for the human: this case's title still encodes the pre-amendment 3.4 and no longer probes what 3.4 now states — a case-regeneration concern, not a classification one.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.4 As a service endpoint, I should ignore any query parameter other than `id` and process the request normally (amended 2026-08-29: was \"400 Bad request or 422 when the payload does not only contain `id`\" — a better-practice assumption that was never implemented and never tested; adjudicated to observed behavior)",
+            "proposed": "- 3.4 As a service endpoint, I should ignore any query parameter other than `id` and process the request normally (amended 2026-08-29: was \"400 Bad request or 422 when the payload does not only contain `id`\" — a better-practice assumption that was never implemented and never tested; adjudicated to observed behavior). Error bodies carry a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "A UUID-shaped but unknown id returned 404 Not Found, exactly as intent 3.5 requires. Only the error body's `message` deviates from the case's encoded empty string, and no intent line pins message text.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database",
+            "proposed": "- 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database. The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "A non-UUID-shaped id returned 400 Bad Request, matching the amended intent 3.6. The sole mismatch is the error body's `message`, on which the intent is silent.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.6 As a service endpoint, I should respond with 400 Bad request when the `id` is not valid (amended 2026-08-29: was \"404 Not found\"; adjudicated to observed behavior — a malformed id is a bad request, not a missing resource)",
+            "proposed": "- 3.6 As a service endpoint, I should respond with 400 Bad request when the `id` is not valid (amended 2026-08-29: was \"404 Not found\"; adjudicated to observed behavior — a malformed id is a bad request, not a missing resource). The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "drift",
+          "rationale": "A body missing `code` was rejected with 400 Bad Request, which is what intent 2.1 requires; only the error body's `message` differs from the case's encoded empty string. The intent never specifies message wording.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "- 2.1 As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload is missing `code` field",
+            "proposed": "- 2.1 As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload is missing `code` field. The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "drift",
+          "rationale": "An extra `garbage` field produced 400 Bad Request, satisfying intent 2.2. The failing detail is the error body's `message` alone, which no intent line pins.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "- 2.2 As a service endpoint, I should return 400 Bad request or 422 Unprocessable Entity when the request payload does not only contain `code` field and value",
+            "proposed": "- 2.2 As a service endpoint, I should return 400 Bad request or 422 Unprocessable Entity when the request payload does not only contain `code` field and value. The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        },
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "drift",
+          "rationale": "A numeric `code` was rejected with 400 Bad Request, exactly as intent 2.4 requires; only the error body's `message` deviates, and the intent is silent on message text. All nine failures share this identical wording change across every error path, so nondeterminism is not a plausible story here.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "- 2.4 As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload has invalid value type for `code` field",
+            "proposed": "- 2.4 As a service endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload has invalid value type for `code` field. The error body carries a non-empty `message` describing the rejection; its exact wording is not pinned."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "timestamp-numeric",
+      "counts": {
+        "pass": 16,
+        "fail": 10,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 9,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "Judged against the intent rather than the ported case: intent 1.4 requires 403 Forbidden when a user fetches a request detail created by another user, and the service returned 401 Unauthorized for exactly that scenario (user_2 fetching user_1's request). The case asserts 401 because it was ported as-observed in 2022, so the runner only flagged the timestamp; the timestamp type mismatch here is the same envelope drift proposed on the other nine cases and should be fixed alongside, but it is not the finding.",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of the required 403 Forbidden",
+            "intent": "security-2 / 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "GET /groovy/status?id=<user_1's request> authenticated as user_2 → 403 Forbidden",
+            "actual": "401 Unauthorized with body {\"error\":\"Unauthorized\",\"message\":\"\",\"path\":\"/groovy/status\",\"status\":401,\"timestamp\":1788009889677} — credentials were valid, so the service is conflating authorization failure with authentication failure"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The intent's requirement for this scenario — 401 Unauthorized on an empty password — is satisfied exactly (status 401, error \"Unauthorized\"). The only mismatch is that the case pins body.timestamp to a string while the service emits epoch milliseconds as a number; the intent never specifies the error envelope's timestamp type.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password\n- 1.7 As a service, my error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "drift",
+          "rationale": "Intent 4.3 requires 400 or 422 with a syntax/compile error message; the service returned 400 with \"startup failed: unexpected token: unbalanced parentheses\", satisfying it fully. The sole failure is the case's assertion that body.timestamp is a string, a detail the intent never pins down.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "For this section, I will assume that the user should be able to submit the same request over and over again since there is no way for user to search for the request result based on the code definition.",
+            "proposed": "For this section, I will assume that the user should be able to submit the same request over and over again since there is no way for user to search for the request result based on the code definition. Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "An `id` with no value is rejected with 400 Bad Request, which is what intent 3.1 permits (400 or 422). The intent says nothing about the type of the `timestamp` field in the error envelope, so the case's `$any: string` is over-specification rather than a contradicted requirement.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "The request omits `id` entirely and the service returned 400 Bad Request, consistent with intent 3.1 and not contradicting amended 3.4 (which governs extra parameters, not a missing `id`). Only the timestamp type — unspecified by the intent — failed.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "A UUID-shaped but unknown id returned 404 Not Found, exactly what intent 3.5 requires. The failure is confined to the error envelope's `timestamp` being a number rather than the string the case asserts, which the intent does not specify.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "A non-UUID-shaped id returned 400 Bad Request, matching amended intent 3.6. Only the case's string assertion on `timestamp` failed, and the intent is silent on that field's type.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "drift",
+          "rationale": "A payload missing `code` was rejected with 400 Bad Request, satisfying intent 2.1. The assertion failed only on `timestamp` being epoch milliseconds rather than a string — an error-envelope detail the intent never states.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "drift",
+          "rationale": "A payload carrying an extra `garbage` field was rejected with 400 Bad Request, which is what intent 2.2 requires. The only mismatch is the unspecified `timestamp` type in the error envelope.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "drift",
+          "rationale": "A numeric `code` value was rejected with 400 Bad Request, satisfying intent 2.4. The failure is the case's `$any: string` on `timestamp` versus the numeric epoch value the service emits, a formatting detail the intent does not pin down.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses carry `error`, `message`, `path`, `status` and `timestamp`, where `timestamp` is epoch milliseconds as a JSON number (not a string)."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "error-label-recased",
+      "counts": {
+        "pass": 19,
+        "fail": 7,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 7,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "drift",
+          "rationale": "Intent 4.3 requires a 400/422 carrying a syntax/compile error message in the body; the service returned 400 with \"startup failed: unexpected token: unbalanced parentheses\", satisfying everything the intent pins down. The only mismatch is the casing of the envelope's `error` field, which the intent never specifies — the case over-specified it as the title-case reason phrase.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "For this section, I will assume that the user should be able to submit the same request over and over again since there is no way for user to search for the request result based on the code definition.",
+            "proposed": "For this section, I will assume that the user should be able to submit the same request over and over again since there is no way for user to search for the request result based on the code definition. Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "An empty `id` was rejected with 400 and an empty message, exactly what intent 3.1 requires. The intent says nothing about the casing of the response envelope's `error` field, so only the case's encoded expectation was violated.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "A status request with no `id` at all was rejected with 400, which the intent's 3.1 requirement covers and 3.4 does not contradict. The status code and body shape match; only the unspecified casing of `error` differs, so this is the same envelope drift as the other 400 probes.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "The non-UUID id \"invalidRequestID\" was rejected with 400, exactly as the amended intent 3.6 requires. The intent pins the status code, not the casing of the envelope's `error` field, so only the case's expectation failed.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "drift",
+          "rationale": "A body missing `code` was rejected with 400, satisfying intent 2.1. The section says nothing about how the error envelope spells its `error` field, so the title-case value was encoded by the case rather than required by the intent.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "drift",
+          "rationale": "A body carrying an extra `garbage` field was rejected with 400, which is what intent 2.2 requires. Only the unspecified casing of the envelope's `error` field differs from the case's expectation.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "drift",
+          "rationale": "A numeric `code` value was rejected with 400 as intent 2.4 requires. The failure is confined to the casing of the `error` field, a formatting detail the intent never specifies; all seven failures in this run share that one envelope difference, so it is systematic rather than nondeterministic.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses use the envelope {error, message, path, status, timestamp}, where `error` is the HTTP reason phrase in upper case (400 -> \"BAD REQUEST\") (noted 2026-08-29: the plan never pinned the casing of this field; adjudicated to observed behavior)."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "notfound-label-changed",
+      "counts": {
+        "pass": 25,
+        "fail": 1,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 1,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "The service returned 404 for a UUID-shaped unknown id, which is exactly what intent 3.5 requires; only the response body's `error` string differed (\"No such resource\" vs the case's encoded \"Not Found\"). The intent section never specifies error-message wording anywhere, so the case over-specified a detail the intent leaves open.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "- 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database",
+            "proposed": "- 3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database, with the response body `error` field reading \"No such resource\""
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "unauthorized-label-changed",
+      "counts": {
+        "pass": 24,
+        "fail": 2,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 1,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "The case exercises AC 1.4 (fetching another user's request detail as user_2), which the intent pins to 403 Forbidden; the service returned 401 with error \"Access denied\". The case's own 401/\"Unauthorized\" expectation is a 2022 port artifact and is not authoritative — judged against the intent text, the observed cross-user access response contradicts what section security-2 requires, so this is a defect, not a wording drift.",
+          "finding": {
+            "title": "Cross-user fetch of /groovy/status returns 401 instead of the required 403 Forbidden",
+            "intent": "security-2 — 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "GET /groovy/status?id=<id created by user_1> authenticated as user_2 responds 403 Forbidden",
+            "actual": "Responded 401 with body {\"error\":\"Access denied\",\"message\":\"\",\"path\":\"/groovy/status\",\"status\":401,\"timestamp\":\"2026-08-29T13:27:17.051Z\"} — an authenticated user with a valid credential is told they are unauthenticated rather than forbidden"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The intent pins only the status code for an empty password (401 Unauthorized), which the service delivered; it is silent on the response body's error string. Only the case's encoded expectation of \"Unauthorized\" was violated, so the intent should be updated to state the service's actual error wording.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "1.6 As a user, I should receive 401 Unauthorized with body.error \"Access denied\" when I submit the empty string for password"
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": false
+    },
+    {
+      "name": "path-with-query",
+      "counts": {
+        "pass": 21,
+        "fail": 5,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 4,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "The intent requires 403 Forbidden when a user fetches another user's request detail (AC 1.4), but user_2's authenticated GET of user_1's request returned 401 Unauthorized — the case was ported asserting 401, so the status assertion passed while the intent is contradicted. The failing `path` assertion in this run is the same query-string echo seen in the other cases (drift-shaped, intent is silent on it), but it is subordinate to the status contradiction the intent does pin down.",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "security-2 / 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "403 Forbidden (error \"Forbidden\") when user_2 fetches a request created by user_1 with valid user_2 credentials",
+            "actual": "GET /groovy/status?id=3c5de282-0fa8-4807-a216-53c2e77e2377 as user_2 → 401 with body {\"error\":\"Unauthorized\",\"status\":401,...}"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The behavior the intent pins down held: an empty password yielded 401 Unauthorized as AC 1.6 requires. The only mismatch is the error body's `path` field echoing the full request target including the query string, a formatting detail the intent never specifies.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password (noted 2026-08-29: the error body's `path` field echoes the full request target including the query string, e.g. `/groovy/status?id=...`, not the route alone)"
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "The endpoint returned 400 Bad Request for an empty `id`, exactly what the intent requires of a payload that is not well-formed. Only the error body's `path` field differs, echoing `/groovy/status?id=` rather than the bare route — a response-shape detail the intent never states.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses echo the full request target in their `path` field, including the query string (e.g. `/groovy/status?id=...`), not the route alone (noted 2026-08-29: observed behavior the plan never stated)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "A UUID-shaped but unknown id returned 404 Not Found, precisely what AC 3.5 requires. The failure is confined to the error body's `path` field including the query string, which the intent does not specify.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses echo the full request target in their `path` field, including the query string (e.g. `/groovy/status?id=...`), not the route alone (noted 2026-08-29: observed behavior the plan never stated)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "A non-UUID id returned 400 Bad Request, matching amended AC 3.6. Only the error body's `path` field diverges by echoing `?id=invalidRequestID`, a detail the intent is silent on.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses echo the full request target in their `path` field, including the query string (e.g. `/groovy/status?id=...`), not the route alone (noted 2026-08-29: observed behavior the plan never stated)."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "envelope-status-string",
+      "counts": {
+        "pass": 16,
+        "fail": 10,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 9,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "This probe has user_2 fetch a request created by user_1 — the scenario intent 1.4 governs, and 1.4 requires 403 Forbidden. The service returned 401, contradicting a status code the intent names explicitly (the body.status string mismatch that tripped the assertion is a secondary, cosmetic difference). The case title/expectation says 401, but the case is a regenerable artifact and the intent is the authority.",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "security-2 / 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "GET /groovy/status?id=<user_1's request> authenticated as user_2 → HTTP 403 Forbidden",
+            "actual": "HTTP 401 with body {\"error\":\"Unauthorized\",\"message\":\"\",\"path\":\"/groovy/status\",\"status\":\"401\",...} — the credential was valid, only the resource belonged to another user"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The service returned HTTP 401 for an empty password, exactly what intent 1.6 requires; only the error body's `status` field came back as the string \"401\" rather than the number the case encoded. The intent never specifies the error body's field types, so this violates the case's encoding, not the intent.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password (noted 2026-08-29: error responses render the body's `status` field as a string, e.g. \"401\", not a number — the 2022 cases assumed a number; the plan never specified error-body field types)"
+          }
+        },
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "drift",
+          "rationale": "The syntax-error submission returned HTTP 400 with a compile-error message in the body (\"startup failed: unexpected token: unbalanced parentheses\"), satisfying everything intent 4.3 pins down. The only mismatch is the body's `status` field being the string \"400\", a JSON type the intent never states.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+            "proposed": "- 4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error (noted 2026-08-29: in the error body the `status` field is the status code rendered as a string, e.g. \"400\", not a number)"
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "An empty `id` produced HTTP 400 Bad Request, which is what the intent requires for a request that lacks a usable `id`. Only the error body's `status` field type differs (string \"400\" vs number), and the intent is silent on error-body field types.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"400\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "The request carried no query parameters at all, so the endpoint's 400 is the missing-`id` rejection intent 3.1 requires; nothing in the intent (including amended 3.4) is contradicted. The sole difference is the body's `status` being the string \"400\".",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"400\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "A UUID-shaped but unknown id returned HTTP 404 Not Found, precisely what intent 3.5 requires. Only the body's `status` field type differs (string \"404\"), which the intent does not pin down.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"404\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "A non-UUID id returned HTTP 400 Bad Request, matching amended intent 3.6. The failure is confined to the error body's `status` field arriving as the string \"400\", a detail the intent never specifies.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"400\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "drift",
+          "rationale": "A payload missing `code` was rejected with HTTP 400 Bad Request, exactly as intent 2.1 requires. The assertion failed only because the body's `status` field is the string \"400\" rather than a number — a shape the intent never states.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"400\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "drift",
+          "rationale": "A payload with an extra `garbage` field was rejected with HTTP 400, satisfying intent 2.2. Only the error body's `status` field type differs from the case's encoding, and the intent does not pin that down.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"400\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "drift",
+          "rationale": "A numeric `code` value was rejected with HTTP 400, which is what intent 2.4 requires. The mismatch is confined to the body's `status` field being the string \"400\"; the intent says nothing about error-body field types.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses carry `error`, `message`, `path`, `status`, and `timestamp`, where `status` is the status code rendered as a string (e.g. \"400\"), not a number (noted 2026-08-29: the 2022 cases encoded it as a number; the plan never specified error-body field types)."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "envelope-drops-path",
+      "counts": {
+        "pass": 16,
+        "fail": 10,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 1,
+        "drift": 9,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "Intent AC 1.4 explicitly pins the status for fetching another user's request detail at 403 Forbidden, and the service returned 401 Unauthorized when user_2 fetched user_1's request. The intent names this detail, so the contradiction is with the intent itself, not merely with the case's encoded 401 expectation (the case's assertion happened to surface first on the missing body.path field).",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "security-2 AC 1.4 — As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "GET /groovy/status?id=<user_1's request> authenticated as user_2 → 403 Forbidden",
+            "actual": "GET /groovy/status?id=9299a75d-a104-47ed-9d42-fd1933dcc759 as user_2 → 401 with body {\"error\":\"Unauthorized\",\"message\":\"\",\"status\":401,\"timestamp\":\"2026-08-29T13:29:51.507Z\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The intent requires 401 for an empty password and the service returned exactly 401; the only mismatch is the case's expectation of a body.path field, which the intent never mentions. Error bodies consistently carry error/message/status/timestamp and no path.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password (amended 2026-08-29: error responses in this section carry `error`, `message`, `status` and `timestamp`; there is no `path` field)"
+          }
+        },
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "drift",
+          "rationale": "AC 4.3 requires 400/422 with a syntax/compile error message in the body, and the service returned 400 with message \"startup failed: unexpected token: unbalanced parentheses\" — everything the intent pins down holds. Only the case's extra body.path expectation, which the intent never states, failed.",
+          "intentDiff": {
+            "section": "robustness-2",
+            "current": "- 4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+            "proposed": "- 4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error (amended 2026-08-29: the error body carries `error`, `message`, `status` and `timestamp`; there is no `path` field)"
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "The service returned 400 Bad Request for an empty `id`, satisfying what the intent requires. The failure is solely the case's body.path expectation, a response-shape detail the intent is silent on.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "With `id` omitted entirely the endpoint returned 400 Bad Request, which is what the intent requires for a missing/invalid payload. Only the case's body.path expectation failed, and the intent never specifies a `path` field in error bodies.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "AC 3.5 requires 404 for a UUID-shaped id that does not exist, and the service returned 404 Not Found with the expected error/message/status/timestamp. The sole mismatch is the case's body.path expectation, which the intent does not pin down.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "AC 3.6 (as amended) requires 400 Bad request for a non-UUID id, and \"invalidRequestID\" produced exactly 400. Only the case's body.path expectation failed, and the intent says nothing about a `path` field.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "drift",
+          "rationale": "AC 2.1 requires 400 or 422 when `code` is missing, and the service returned 400 Bad Request. The failing detail is the case's body.path expectation, an error-body shape the intent never specifies.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "drift",
+          "rationale": "AC 2.2 requires 400 or 422 when the payload contains fields beyond `code`, and the extra \"garbage\" field produced 400 Bad Request. Only the unspecified body.path field is missing.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        },
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "drift",
+          "rationale": "AC 2.4 requires 400 or 422 for an invalid value type on `code`, and a numeric code produced 400 Bad Request. The only mismatch is the case's body.path expectation, which the intent does not require.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `message`, `status` and `timestamp`; they do not include a `path` field (amended 2026-08-29: adjudicated to observed behavior)."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "envelope-drops-message",
+      "counts": {
+        "pass": 16,
+        "fail": 10,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 2,
+        "drift": 8,
+        "flake": 0
+      },
+      "majority": "drift",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "The case's own expectation (401) matched, so the runner only flagged the missing `message`, but judged against the intent this run is a genuine contradiction: AC 1.4 names 403 Forbidden for fetching another user's request detail, and user_2 fetching user_1's request got 401 Unauthorized. The intent pins this status explicitly, so the status — not the body shape — is the finding.",
+          "finding": {
+            "title": "Cross-user status fetch returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "security-2 / 1.4 As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "403 Forbidden when an authenticated user fetches a request detail created by a different user",
+            "actual": "401 Unauthorized (GET /groovy/status?id=753dba8d-8a18-44d7-8308-00d257ae2981 as user_2, request owned by user_1) with body {\"error\":\"Unauthorized\",\"path\":\"/groovy/status\",\"status\":401,\"timestamp\":\"2026-08-29T13:30:50.304Z\"}"
+          }
+        },
+        {
+          "case": "CASE-2022-1-6",
+          "classification": "drift",
+          "rationale": "The intent's requirement — 401 Unauthorized for an empty password — was met exactly. The only failing detail is the absence of a `message` property in the error body, a response-body shape the intent never pins down.",
+          "intentDiff": {
+            "section": "security-2",
+            "current": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+            "proposed": "- 1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password. Error responses on this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "bug",
+          "rationale": "AC 4.3 explicitly requires a syntax/compile error message within the response body. The service returned the correct 400 but with no `message` property at all, so the failing detail is exactly the one the intent names.",
+          "finding": {
+            "title": "Syntax-error submission returns 400 with no error message in the body",
+            "intent": "robustness-2 / 4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+            "expected": "400 (or 422) whose body carries a syntax/compile error message describing the failure",
+            "actual": "400 with body {\"error\":\"Bad Request\",\"path\":\"/groovy/submit\",\"status\":400,\"timestamp\":\"2026-08-29T13:30:51.348Z\"} — no `message` property, so no compile diagnostic reaches the caller (POST /groovy/submit, code \"def wrongFunc(a { a }\")"
+          }
+        },
+        {
+          "case": "CASE-2022-3-1",
+          "classification": "drift",
+          "rationale": "The service returned 400 for an empty `id`, which is what the intent requires. The intent says nothing about a `message` field in the error body; only the case's encoded body shape was violated.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-3-4",
+          "classification": "drift",
+          "rationale": "The request carried no query parameters at all, so it exercises AC 3.1 (missing `id`), and the 400 it received satisfies the intent. Only the case's expected `message` property is missing, and the intent never pins the error body shape.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "drift",
+          "rationale": "A UUID-shaped but unknown id produced 404 Not Found, exactly what AC 3.5 requires. The failure is confined to the absent `message` property, which the intent does not specify.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-3-6",
+          "classification": "drift",
+          "rationale": "A non-UUID id produced 400 Bad Request, which is what the amended AC 3.6 requires. Only the `message` property the case encoded is missing, and the intent is silent on it.",
+          "intentDiff": {
+            "section": "get-groovy-status",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown).",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Request ids are UUID-format strings (noted 2026-08-29: a contract detail the 2022 tests relied on but the plan never stated — \"not valid\" in 3.6 means not UUID-shaped, \"does not exist\" in 3.5 means UUID-shaped but unknown). Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-2-1",
+          "classification": "drift",
+          "rationale": "A payload missing `code` was rejected with 400, satisfying AC 2.1. The intent never states that submit's error body includes a `message` property, so only the case's encoded shape was violated.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-2-2",
+          "classification": "drift",
+          "rationale": "An extra `garbage` field was rejected with 400, satisfying AC 2.2. The only unmet detail is the absent `message` property, which the intent does not pin down.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        },
+        {
+          "case": "CASE-2022-2-4",
+          "classification": "drift",
+          "rationale": "A numeric `code` value was rejected with 400, satisfying AC 2.4. Only the case-level expectation of a `message` property failed, and the intent says nothing about it.",
+          "intentDiff": {
+            "section": "post-groovy-submit",
+            "current": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API.",
+            "proposed": "For this section, I will assume that the endpoint should reject the request that does not have expected payload structure. This is also the better practice for REST API. Error responses from this endpoint carry `error`, `path`, `status` and `timestamp` only — there is no `message` field."
+          }
+        }
+      ],
+      "truth": "drift",
+      "correct": true
+    },
+    {
+      "name": "fail-every-3rd-status",
+      "counts": {
+        "pass": 24,
+        "fail": 2,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 2,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-5",
+          "classification": "bug",
+          "rationale": "The intent pins cross-user access explicitly in AC 1.4 (403 Forbidden when fetching another user's request detail), and this probe does exactly that: user_2 fetches user_1's request id. The service returned 500 Internal Server Error, which satisfies neither 403 nor any other status the intent allows, so the contradiction stands independently of the case's stale 401 encoding.",
+          "finding": {
+            "title": "Cross-user fetch of /groovy/status returns 500 instead of 403 Forbidden",
+            "intent": "security-2 AC 1.4 — As a user, I should receive 403 Forbidden when I fetch the request detail that are made by other users",
+            "expected": "403 Forbidden when user_2 fetches a request created by user_1",
+            "actual": "500 Internal Server Error (body.error \"Internal Server Error\", body.status 500) on GET /groovy/status?id=eecd3a15-889e-4116-aedf-41f5ba87bbda with user_2 credentials"
+          }
+        },
+        {
+          "case": "CASE-2022-3-5",
+          "classification": "bug",
+          "rationale": "The queried id 00000000-aaaa-1111-bbbb-222222222222 is UUID-shaped, so by the section preamble it is the \"does not exist\" case, not the \"not valid\" case, and AC 3.5 names 404 Not found for it. A 500 contradicts a status the intent states explicitly, and the amended 3.6 (400 for malformed ids) offers no alternative reading that would permit it.",
+          "finding": {
+            "title": "Unknown but well-formed request id on GET /groovy/status returns 500 instead of 404",
+            "intent": "get-groovy-status AC 3.5 — As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database",
+            "expected": "404 Not Found for a UUID-shaped id absent from the database",
+            "actual": "500 Internal Server Error (body.error \"Internal Server Error\", body.status 500) on GET /groovy/status?id=00000000-aaaa-1111-bbbb-222222222222"
+          }
+        }
+      ],
+      "truth": "flake",
+      "correct": false
+    },
+    {
+      "name": "fail-first-2",
+      "counts": {
+        "pass": 24,
+        "fail": 2,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 2,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-1",
+          "classification": "bug",
+          "rationale": "The setup step POST /groovy/submit with a valid credential returned 500, which directly contradicts intent 1.1 (\"should be able to submit the request with a valid credential\") and blocks 1.2. The response arrived in 2ms with an identical error shape to the other failure in this run, so this is a deterministic server-side failure, not a transient.",
+          "finding": {
+            "title": "POST /groovy/submit returns 500 for an authenticated user, so no request can be created or later fetched",
+            "intent": "security-2 — 1.1 As a user, I should be able to submit the request with a valid credential; 1.2 As a user, I should be able to fetch the request detail that I created with a valid credential",
+            "expected": "POST /groovy/submit with user_1's valid credential and body {\"code\":\"1+1 /* <nonce> */\"} returns 2xx with a request id in body.id, which can then be polled via GET /groovy/status",
+            "actual": "POST /groovy/submit returned 500 Internal Server Error with an empty message and no body.id, so the requestId capture failed and the detail-fetch behavior could never be exercised"
+          }
+        },
+        {
+          "case": "CASE-2022-1-2",
+          "classification": "bug",
+          "rationale": "Intent 1.1 explicitly pins that a user with a valid credential can submit the request; the service returned 500 with no id instead of a successful submission. Both submit probes in this run failed identically in 1-2ms, so the evidence points to a deterministic server error rather than nondeterminism.",
+          "finding": {
+            "title": "POST /groovy/submit returns 500 Internal Server Error for a valid credential instead of accepting the submission",
+            "intent": "security-2 — 1.1 As a user, I should be able to submit the request with a valid credential",
+            "expected": "POST /groovy/submit with user_1's valid credential and body {\"code\":\"1 + 2\"} returns 200 with a string body.id",
+            "actual": "POST /groovy/submit returned 500 with body {\"error\":\"Internal Server Error\",\"message\":\"\",\"path\":\"/groovy/submit\",\"status\":500} and no id property"
+          }
+        }
+      ],
+      "truth": "flake",
+      "correct": false
+    },
+    {
+      "name": "submit-fail-random",
+      "counts": {
+        "pass": 21,
+        "fail": 5,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 0,
+        "drift": 0,
+        "flake": 5
+      },
+      "majority": "flake",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-2022-1-3",
+          "classification": "flake",
+          "rationale": "The setup submit of the trivially valid script \"1+3\" returned a generic 500 with an empty message, while many near-identical POST /groovy/submit probes passed in the same run (21 passed). This failure is also time-clustered (13:32:43.936) with the unrelated CASE-2022-5-3 setup 500 six milliseconds later, which points to a transient service fault rather than anything the intent pins down.",
+          "prescription": "Re-run CASE-2022-1-3 alone at seed 42, serially, with the service quiesced (no other cases in flight) and repeat 3x. If POST /groovy/submit returns 500 on \"1+3\" every time in isolation, re-triage as a bug against intent 1.1; if it passes, the original 500 was transient."
+        },
+        {
+          "case": "CASE-2022-5-3",
+          "classification": "flake",
+          "rationale": "setup[0] and setup[1] are near-identical submits by the same user 6ms apart: the first returned 200 with an id, the second returned a generic 500 with an empty message. Within-case, same-endpoint divergence under identical conditions is direct evidence of nondeterminism, not of a behavior the intent forbids.",
+          "prescription": "Re-run CASE-2022-5-3 at seed 42 in isolation, 3x, ensuring the prior case's teardown.drain has completed before setup begins. If setup[1] 500s consistently while setup[0] succeeds, capture server logs for the concurrent-submit path and re-triage against intent 5.3."
+        },
+        {
+          "case": "CASE-2022-4-1-2",
+          "classification": "flake",
+          "rationale": "Intent 4.1.2 does require multi-line scripts to be accepted, so a reproducible 500 here would be a bug — but the evidence does not yet distinguish payload-specific failure from a transient. The identical empty-message 500 struck three different payloads within 10ms (this case, 4.1.7, 4.3) while the other 4.1.x siblings passed in the same run, and the same 500 also hit trivially valid code elsewhere, which rules out multi-line syntax as the sole explanation.",
+          "prescription": "Re-run CASE-2022-4-1-2 alone at seed 42, serially with drain between cases, 3x. If it 500s every time in isolation while 4.1.1 passes, re-triage as a bug against intent 4.1.2."
+        },
+        {
+          "case": "CASE-2022-4-1-7",
+          "classification": "flake",
+          "rationale": "Same burst as CASE-2022-4-1-2 and CASE-2022-4-3 (13:32:44.983–.993): one generic empty-message 500 shape across three unlike payloads, with the remaining 4.1.x class of probes passing in the same run. A class-definition-specific compilation failure is plausible but not separable from the burst on this evidence.",
+          "prescription": "Re-run CASE-2022-4-1-7 alone at seed 42, serially with drain between cases, 3x, ideally alongside 4.1.8 (class definition and instantiation). Consistent isolated 500s make it a bug against intent 4.1.7."
+        },
+        {
+          "case": "CASE-2022-4-3",
+          "classification": "flake",
+          "rationale": "Intent 4.3 names this exact behavior (400 or 422 with a syntax/compile error message), so a reproducible 500 would be a bug — but the observed response is byte-identical in shape to the empty-message 500s returned for valid scripts in the same 10ms window, which is not what a syntax-error handling defect looks like. The failing response carries no compile diagnostic at all, so it is evidence of the shared transient rather than of 4.3's handler.",
+          "prescription": "Re-run CASE-2022-4-3 alone at seed 42, serially with the service quiesced, 3x. If it returns 500 with an empty message each time, re-triage as a bug against intent 4.3; a 500 that carries a compile-error message, or a 400/422, changes the picture and should be re-triaged on its own."
+        }
+      ],
+      "truth": "flake",
+      "correct": true
+    },
+    {
+      "name": "standing-bug-2022-01",
+      "counts": {
+        "pass": 0,
+        "fail": 5,
+        "error": 0
+      },
+      "outcome": "triaged",
+      "tally": {
+        "bug": 5,
+        "drift": 0,
+        "flake": 0
+      },
+      "majority": "bug",
+      "refused": [],
+      "uncovered": [],
+      "verdicts": [
+        {
+          "case": "CASE-result-isolation-001-g0",
+          "classification": "bug",
+          "rationale": "The intent explicitly pins the status code: a different authenticated principal reading another user's result must get 403 Forbidden. The service returned 401 Unauthorized for an authenticated user_1 request, and all 5 identical probes failed the same way, so this is not nondeterminism. Returning 401 for an authenticated-but-unauthorized principal contradicts what the intent requires.",
+          "finding": {
+            "title": "Cross-user GET /groovy/status returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "result-isolation: for all requests r, for all users u ≠ submitter(r): GET /groovy/status for r as u → 403 Forbidden",
+            "expected": "403 Forbidden when authenticated user_1 requests the status of a request submitted by user_2",
+            "actual": "401 Unauthorized with body {\"error\":\"Unauthorized\",\"message\":\"\",\"path\":\"/groovy/status\",\"status\":401} — the authenticated principal is treated as unauthenticated rather than refused as forbidden"
+          }
+        },
+        {
+          "case": "CASE-result-isolation-001-g1",
+          "classification": "bug",
+          "rationale": "Same behavior on an independently generated instance: user_2 submits, authenticated user_1 reads, service answers 401 rather than the 403 the intent names. The intent is not silent on the status code, so this is a contradiction of the intent, not of the case's encoding.",
+          "finding": {
+            "title": "Cross-user GET /groovy/status returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "result-isolation: for all requests r, for all users u ≠ submitter(r): GET /groovy/status for r as u → 403 Forbidden",
+            "expected": "403 Forbidden when authenticated user_1 requests the status of a request submitted by user_2",
+            "actual": "401 Unauthorized for request id d4c8d06f-6b87-48f5-b226-6f65c5d9e844"
+          }
+        },
+        {
+          "case": "CASE-result-isolation-001-g2",
+          "classification": "bug",
+          "rationale": "Setup succeeded (200 with a request id) and the cross-user read returned 401 where the intent requires 403. Every probe of this behavior in the run failed identically, ruling out flake, and the intent names the exact status, ruling out drift.",
+          "finding": {
+            "title": "Cross-user GET /groovy/status returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "result-isolation: for all requests r, for all users u ≠ submitter(r): GET /groovy/status for r as u → 403 Forbidden",
+            "expected": "403 Forbidden when authenticated user_1 requests the status of a request submitted by user_2",
+            "actual": "401 Unauthorized for request id 399eb676-3042-45f9-9201-806aa16ed720"
+          }
+        },
+        {
+          "case": "CASE-result-isolation-001-g3",
+          "classification": "bug",
+          "rationale": "The observed 401 contradicts the intent's explicit 403 requirement for a different authenticated principal. The intent also states that any authenticated principal may be the submitter and any different principal must be refused, so a 401 (unauthenticated) response is the wrong refusal semantics, not merely wrong wording.",
+          "finding": {
+            "title": "Cross-user GET /groovy/status returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "result-isolation: for all requests r, for all users u ≠ submitter(r): GET /groovy/status for r as u → 403 Forbidden",
+            "expected": "403 Forbidden when authenticated user_1 requests the status of a request submitted by user_2",
+            "actual": "401 Unauthorized for request id f54724d0-2259-4608-8fa3-2d98f07fc946"
+          }
+        },
+        {
+          "case": "CASE-result-isolation-001-g4",
+          "classification": "bug",
+          "rationale": "Fifth identical instance with the same outcome: authenticated cross-user status read answered 401 instead of the intent-mandated 403. 5 of 5 probes failed uniformly, so the failure is deterministic and traceable to the service's authorization handling.",
+          "finding": {
+            "title": "Cross-user GET /groovy/status returns 401 Unauthorized instead of 403 Forbidden",
+            "intent": "result-isolation: for all requests r, for all users u ≠ submitter(r): GET /groovy/status for r as u → 403 Forbidden",
+            "expected": "403 Forbidden when authenticated user_1 requests the status of a request submitted by user_2",
+            "actual": "401 Unauthorized for request id 8aff7e3e-c6d6-43d9-802c-dad76fae6907"
+          }
+        }
+      ],
+      "truth": "bug",
+      "correct": true
+    }
+  ]
+}

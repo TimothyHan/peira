@@ -1,0 +1,48 @@
+{
+  "id": "CASE-2022-1-6",
+  "title": "1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+  "from": {
+    "intent": "security-2",
+    "hash": "f1a9c46dadcc"
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "1+5"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": {
+        "username": "user_1",
+        "password": ""
+      },
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 401,
+      "body": {
+        "error": "Unauthorized",
+        "message": "",
+        "path": "/groovy/status",
+        "status": 401,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

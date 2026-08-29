@@ -1,0 +1,5 @@
+{
+  "id": "CASE-bad-auth",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "test": { "request": { "method": "get", "route": "/thing", "auth": { "username": "only" } }, "expect": { "status": 200 } }
+}

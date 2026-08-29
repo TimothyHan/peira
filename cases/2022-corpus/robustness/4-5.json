@@ -1,0 +1,78 @@
+{
+  "id": "CASE-2022-4-5",
+  "title": "4.5 As a service, I should mark the newly accepted request as PENDING",
+  "notes": "Transient-state assertion (telemetry watchlist): deterministic against the fixture because the poll interval is pinned far below the long-job duration. teardown.drain replaces the 2022 teardown.sleep(1000).",
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(1000)"
+        }
+      },
+      "capture": {
+        "runningIdOne": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(999)"
+        }
+      },
+      "capture": {
+        "runningIdTwo": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "4+5"
+        }
+      },
+      "capture": {
+        "pendingId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$pendingId"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "body": {
+          "status": "PENDING"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$pendingId",
+        "result": null,
+        "status": "PENDING"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  }
+}

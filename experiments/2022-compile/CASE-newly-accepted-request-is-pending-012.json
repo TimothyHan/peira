@@ -1,0 +1,73 @@
+{
+  "id": "CASE-newly-accepted-request-is-pending-012",
+  "title": "4.5 As a service, I should mark the newly accepted request as PENDING",
+  "notes": "Both execution slots are occupied by long-running setup scripts so the third submission is observably queued rather than picked up immediately.",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "Thread.sleep(20000)"
+        }
+      },
+      "expect": {
+        "status": 200
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "Thread.sleep(20000)"
+        }
+      },
+      "expect": {
+        "status": 200
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'queued behind full capacity'"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      },
+      "expect": {
+        "status": 200
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId",
+        "status": "PENDING"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  }
+}

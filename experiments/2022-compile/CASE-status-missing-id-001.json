@@ -1,0 +1,18 @@
+{
+  "id": "CASE-status-missing-id-001",
+  "title": "3.1 As a service endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload is missing `id` field",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1"
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "de45e3d45544"
+  }
+}

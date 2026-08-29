@@ -1,0 +1,52 @@
+{
+  "id": "CASE-submit-class-instantiation-run-008",
+  "title": "4.1.8 As a user, I should be able to submit any valid groovy scripts — class definition and instantiation run",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "class Greeter { String name\n  String greet() { return 'hi ' + name } }\ndef g = new Greeter(name: 'peira')\nreturn g.greet()"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      },
+      "expect": {
+        "status": 200
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "status": 200,
+        "body": {
+          "status": "COMPLETED"
+        }
+      },
+      "timeoutMs": 15000
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId",
+        "status": "COMPLETED"
+      }
+    }
+  },
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "id": "CASE-submit-returns-request-id-003",
+  "title": "As a service endpoint, I should return registered request ID of the task when the request is accepted",
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "\"accepted {{unique.nonce}}\""
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": {
+          "$any": "string"
+        }
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "post-groovy-submit",
+    "hash": "08cc92149789"
+  }
+}

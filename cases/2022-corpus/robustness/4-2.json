@@ -1,0 +1,38 @@
+{
+  "id": "CASE-2022-4-2",
+  "title": "4.2 As a user, I should be able to submit the same request over and over again and receive 200 OK",
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "4+2"
+        }
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "4+2"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

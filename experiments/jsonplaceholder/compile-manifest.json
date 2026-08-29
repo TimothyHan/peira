@@ -1,0 +1,51 @@
+{
+  "model": "claude-opus-5",
+  "contractHash": "469a6aa2c9e9",
+  "sections": [
+    {
+      "id": "jp-post-fetch",
+      "hash": "f9a1f12a161a",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-jp-post-fetch-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "jp-post-unknown",
+      "hash": "eeb8255a6995",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-jp-post-unknown-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "jp-comments-reference",
+      "hash": "52fdef45a65a",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-jp-comments-reference-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "jp-create-echo",
+      "hash": "0139f0b74648",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-jp-create-echo-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "jp-collection-shape",
+      "hash": "74fdea2c0c1c",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-posts-collection-shape-001"
+      ],
+      "refused": []
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "CASE-2022-4-3",
+  "title": "4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  },
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "def wrongFunc(a { a }"
+      }
+    },
+    "expect": {
+      "status": 400,
+      "body": {
+        "error": "Bad Request",
+        "message": {
+          "$any": "string"
+        },
+        "path": "/groovy/submit",
+        "status": 400,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

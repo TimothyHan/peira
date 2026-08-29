@@ -1,0 +1,42 @@
+{
+  "id": "CASE-fetch-own-request-detail-001",
+  "title": "1.2 As a user, I should be able to fetch the request detail that I created with a valid credential",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'ok {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "security-2",
+    "hash": "f1a9c46dadcc"
+  }
+}

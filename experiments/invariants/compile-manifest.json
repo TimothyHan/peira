@@ -1,0 +1,26 @@
+{
+  "model": "claude-opus-5",
+  "contractHash": "984654e4ef87",
+  "sections": [
+    {
+      "id": "result-isolation",
+      "hash": "5ab7e9a5eced",
+      "outcome": "compiled",
+      "cases": [],
+      "refused": [],
+      "templates": [
+        "TPL-result-isolation-001"
+      ]
+    },
+    {
+      "id": "submit-accepts-any-valid-script",
+      "hash": "1b5aff5c2638",
+      "outcome": "compiled",
+      "cases": [],
+      "refused": [],
+      "templates": [
+        "TPL-submit-accepts-any-valid-script-001"
+      ]
+    }
+  ]
+}

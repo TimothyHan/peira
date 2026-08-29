@@ -1,0 +1,21 @@
+{
+  "id": "CASE-status-unknown-id-404-005",
+  "title": "3.5 As a service endpoint, I should respond with 404 Not found when the `id` does not exist in the database",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "00000000-0000-4000-8000-000000000000"
+      }
+    },
+    "expect": {
+      "status": 404
+    }
+  },
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "de45e3d45544"
+  }
+}

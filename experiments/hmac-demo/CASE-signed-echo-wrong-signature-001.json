@@ -1,0 +1,22 @@
+{
+  "id": "CASE-signed-echo-wrong-signature-001",
+  "title": "A request with a wrong signature returns 400",
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/secure/echo",
+      "auth": "$users.user_1",
+      "body": {
+        "payload": "peira signed echo",
+        "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "from": {
+    "intent": "hmac-echo",
+    "hash": "487d20fd87c0"
+  }
+}

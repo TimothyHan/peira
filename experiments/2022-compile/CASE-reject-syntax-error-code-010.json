@@ -1,0 +1,22 @@
+{
+  "id": "CASE-reject-syntax-error-code-010",
+  "title": "4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+  "notes": "Intent admits 400 or 422; the expect DSL takes a single status, so 400 is asserted. The error-message body field is not asserted because the intent never names it.",
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "def x = (1 + "
+      }
+    },
+    "expect": {
+      "status": 400
+    }
+  },
+  "from": {
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
+  }
+}

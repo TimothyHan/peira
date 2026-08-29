@@ -1,0 +1,15 @@
+{
+  "id": "STEP-hmac-sha256-signature-001",
+  "title": "Compute the lowercase hex HMAC-SHA256 of a payload string keyed with the shared demo secret",
+  "reads": [
+    "payload"
+  ],
+  "produces": [
+    "signature"
+  ],
+  "code": "return { signature: ctx.crypto.createHmac('sha256', 'peira-demo-secret').update(inputs.payload).digest('hex') };",
+  "from": {
+    "intent": "hmac-echo",
+    "hash": "487d20fd87c0"
+  }
+}

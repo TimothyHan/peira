@@ -1,0 +1,83 @@
+# Peira
+
+*πεῖρα (peira) — Greek: trial, test, attempt. The root of "empirical": knowledge that exists
+only because something was tried.*
+
+Peira is an **intent compiler for functional API testing**. Human-owned acceptance criteria and
+invariants, written in markdown, compile (via an LLM, at authoring time only) into schema-gated
+declarative JSON test cases, executed by a deterministic runner. Procedure may escape to
+generated code; **assertions never do**. Every escape is telemetry that evolves the case DSL
+from evidence. When reality and intent disagree, an offline triage proposes — a human decides.
+
+```
+ intent/     acceptance criteria + invariants   ← human-authored markdown, the only source of truth
+ cases/      compiled declarative tests         ← LLM-compiled, schema-gated, regenerable
+ templates/  invariants with typed holes        ← the runner mints N seeded cases per run
+ steps/      escape-hatch procedure code        ← typed contract, child-process, cannot assert
+ runner      deterministic execution            ← zero LLM; pass | fail | error, never conflated
+ triage      bug | drift | flake                ← offline LLM, schema-gated, proposals only
+```
+
+No LLM at runtime, ever. Same cases, same seed, same service state → same verdicts.
+
+## Quickstart (from a clone — the demo bed lives in the repo)
+
+```bash
+git clone <repo> peira && cd peira
+node test/fixtures/server.js 4477 &          # the demo service (a re-creation of a 2022 AUT)
+node bin/peira.js validate cases --bed test/fixtures/bed.json
+node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
+```
+
+26 cases pass. Now break the service and watch triage adjudicate:
+
+```bash
+kill %1 && node test/fixtures/server.js 4477 --plant validation-message-text &
+node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
+node bin/peira.js triage --evidence run.jsonl --intent intent   # needs the claude CLI logged in
+```
+
+Triage proposes an **intent-level diff** (the message text changed but the intent never pinned
+it — drift), or a **structured bug finding**, or a **re-run prescription** — and applies
+nothing. You decide.
+
+## On your own API
+
+1. Write `intent/*.md` — one `##` heading per acceptance criterion or invariant. Tag with
+   `<!-- peira: id=… kind=ac|invariant -->`, or don't (ids derive from headings; an existing
+   test plan ingests with zero edits).
+2. Write a bed config: `{"baseUrl": "…", "users": {…}, "drain": {…}}` — users and drain only
+   if your service needs them.
+3. `peira compile intent --out cases --bed bed.json` — compiles through your own Claude
+   session (`claude -p`); every candidate passes the same schema gate as a hand-written case,
+   lineage is stamped mechanically, and the manifest accounts for every section.
+4. `peira run cases --bed bed.json` → verdicts + evidence JSONL (credentials redacted at
+   write time). `peira stats` reports DSL coverage and recurring escape shapes.
+5. When intent changes: `peira validate --intent` flags stale cases; `peira compile --section`
+   regenerates exactly those. When runs fail: `peira triage` proposes; you adjudicate.
+6. `peira evidence --evidence run.jsonl --triage run-triage.json` exports the run as flat
+   `applied`/`contradicted` records (the [Akela](https://github.com/) evidence grammar).
+
+## Measured, not promised (v0.1, against the in-repo bed and its 2022 ancestor)
+
+- The five-primitive DSL re-expressed **27/27** of the ancestor's hand-written specs — zero
+  escape hatches, zero sleeps.
+- Compiling the ancestor's 2022 test plan **verbatim** reproduced every hand-written behavior
+  and surfaced **three intent/implementation divergences** the 2022 suite silently encoded —
+  including one nobody had ever tested.
+- One invariant sentence mints 5 fresh seeded probes per run; the known bug it guards can
+  never rotate out of coverage.
+- Triage over 33 pre-registered behavior shifts: **bug/drift confusion 12.1%**, drift
+  detection 8/9, zero schema refusals or injection incidents across every live call.
+
+Design: [docs/DESIGN.md](docs/DESIGN.md) (RFC 0001). Experiments and findings: `docs/findings/`.
+
+## Status
+
+v0.1. Zero runtime dependencies, Node ≥ 18. Single AUT per run. Compile and triage require the
+Claude Code CLI (they run on your session; no API key). Akela integration is a seam, not a
+dependency. UI testing, load testing, mocking, and contract brokering are explicit non-goals.
+
+## License
+
+MIT
