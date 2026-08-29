@@ -1,0 +1,31 @@
+{
+  "id": "CASE-2022-2-2",
+  "title": "As submit endpoint, I should return 400 Bad request or 422 Unprocessable Entity when the request payload does not only contain code field and value",
+  "from": {
+    "intent": "2022-test-plan/2.2",
+    "hash": "03a0689634b2"
+  },
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "1 + 2",
+        "garbage": "I should not be here"
+      }
+    },
+    "expect": {
+      "status": 400,
+      "body": {
+        "error": "Bad Request",
+        "message": "",
+        "path": "/groovy/submit",
+        "status": 400,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

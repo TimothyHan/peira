@@ -1,0 +1,26 @@
+{
+  "id": "CASE-2022-4-1-2",
+  "title": "As a user, I should be able to submit multi line groovy code",
+  "from": {
+    "intent": "2022-test-plan/4.1.2",
+    "hash": "ee20aa7a15e5"
+  },
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "int a = 1 + 2; ++a;"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

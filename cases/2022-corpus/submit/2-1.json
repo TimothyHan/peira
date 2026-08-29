@@ -1,0 +1,28 @@
+{
+  "id": "CASE-2022-2-1",
+  "title": "As submit endpoint, I should respond with 400 Bad request or 422 Unprocessable Entity when the request payload is missing code field",
+  "from": {
+    "intent": "2022-test-plan/2.1",
+    "hash": "8a1ad60f82fe"
+  },
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {}
+    },
+    "expect": {
+      "status": 400,
+      "body": {
+        "error": "Bad Request",
+        "message": "",
+        "path": "/groovy/submit",
+        "status": 400,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "id": "CASE-unresolved-alias",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "test": { "request": { "method": "get", "route": "/thing", "query": { "id": "$neverCaptured" } }, "expect": { "status": 200 } }
+}

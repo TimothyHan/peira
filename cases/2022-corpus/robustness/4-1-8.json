@@ -1,0 +1,26 @@
+{
+  "id": "CASE-2022-4-1-8",
+  "title": "As a user, I should be able to submit class definition and instantiation",
+  "from": {
+    "intent": "2022-test-plan/4.1.8",
+    "hash": "177750c330cf"
+  },
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/groovy/submit",
+      "auth": "$users.user_1",
+      "body": {
+        "code": "class Dog { def run() { \"running\" };}; new Dog().run()"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

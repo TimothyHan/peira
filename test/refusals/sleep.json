@@ -1,0 +1,6 @@
+{
+  "id": "CASE-sleep",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "test": { "request": { "method": "get", "route": "/thing" }, "expect": { "status": 200 } },
+  "teardown": { "sleep": 1000 }
+}

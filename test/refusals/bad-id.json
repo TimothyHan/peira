@@ -1,0 +1,5 @@
+{
+  "id": "case-lowercase-prefix",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "test": { "request": { "method": "get", "route": "/thing" }, "expect": { "status": 200 } }
+}

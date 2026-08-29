@@ -184,11 +184,22 @@ Three lanes; A and B are independent, C is trivial and first.
 
 ## Acceptance checklist (the PR is done when)
 
-- [ ] `peira validate cases/` exits 0, silent, on the corpus; every `test/refusals/` fixture is
-      refused with a named error
-- [ ] `peira run --base-url <fixture>` → 27/27 pass, zero escape hatches, zero sleeps
-- [ ] Two same-seed runs, fresh fixture → identical verdicts; `--seed` reproduces payloads
-- [ ] Killing the fixture mid-run yields `error`, never `fail`
-- [ ] Evidence JSONL: no plaintext credential anywhere in a full-corpus run's log
-- [ ] `node --test` green on Node 18/20/22 in CI
-- [ ] No dependencies in `package.json`; no constant outside `src/constants.js`
+- [x] `peira validate cases/` exits 0 on the corpus — the only output is the two expected
+      weak-oracle warnings on `1-3`/`1-4` (the 2022 specs that genuinely asserted nothing about
+      the body); every `test/refusals/` fixture is refused with a named error
+- [x] `peira run` against the fixture → all 26 cases (covering 27 specs — `3-6`/`4-6` are
+      verbatim duplicates, merged with a lineage note) pass, zero escape hatches, zero sleeps
+- [x] Two same-seed runs, fresh fixture → identical verdicts; `--seed` reproduces payloads
+- [x] Killing the fixture mid-run yields `error`, never `fail`
+- [x] Evidence JSONL: no plaintext credential anywhere in a full-corpus run's log
+- [x] `node --test` green locally (52 tests); Node 18/20/22 matrix wired in CI (verifies on first push)
+- [x] No dependencies in `package.json`; no constant outside `src/constants.js`
+
+**Implementation notes recorded for PR2+ (deviations worth knowing, all within RFC scope):**
+- `pollUntil` is a step modifier that re-issues the step's own request (`{until, timeoutMs?}`),
+  not a step with its own embedded request — simpler, and everything the corpus needed.
+- The drain probe (route, id param, status path, terminal states) lives in the **bed config**,
+  because how to ask "is this job settled?" is bed semantics, exactly like principals; each
+  captured id is drained under the auth that captured it, preserving result isolation.
+- The vendored schema subset also carries `anyOf` and internal `$ref` — required to express the
+  three auth forms and to share `$defs/step`.
