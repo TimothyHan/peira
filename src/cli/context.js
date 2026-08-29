@@ -12,7 +12,8 @@ export const USAGE = `usage: peira <command>
   compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>]
   stats    [casesDir] [--steps <dir>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
-  evidence --evidence <run.jsonl> [--triage <proposals.json>] [--out <path>]`;
+  evidence --evidence <run.jsonl> [--triage <proposals.json>] [--out <path>]
+  render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--steps <dir>] [--templates <dir>] [--out <path>]`;
 
 export function buildContext(argv) {
   const [, , command, ...rest] = argv;

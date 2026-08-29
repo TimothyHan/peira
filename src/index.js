@@ -10,6 +10,7 @@ export { claudeCliTransport } from './llm.js';
 export { triageRun, parseEvidence, routeVerdicts, gateTriageOutput } from './triage.js';
 export { deriveAkelaEvidence } from './akela.js';
 export { computeStats, formatStats, shapeSignature, codeSkeleton } from './stats.js';
+export { renderDocument, renderCase } from './render.js';
 export { mintCase, mintAll, drawHoles, prng } from './generate.js';
 export { matchSubset, matchExpect, ANY_TYPES } from './expect.js';
 export { resolveValue, findTokens } from './interpolate.js';
