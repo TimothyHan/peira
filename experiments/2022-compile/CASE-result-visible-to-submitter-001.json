@@ -1,0 +1,51 @@
+{
+  "id": "CASE-result-visible-to-submitter-001",
+  "title": "Execution result for a request is available to the user who submitted it",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "return 'ok {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "status": 200,
+        "body": {
+          "status": "COMPLETED"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId",
+        "status": "COMPLETED",
+        "result": {
+          "$any": "string"
+        }
+      }
+    }
+  },
+  "from": {
+    "intent": "security",
+    "hash": "b0c53dbf2183"
+  }
+}

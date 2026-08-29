@@ -1,0 +1,171 @@
+{
+  "model": "claude-opus-5",
+  "contractHash": "cec353b6eade",
+  "sections": [
+    {
+      "id": "objective",
+      "hash": "7236efc1650e",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose context only — states that a REST service exists and points to the product readme. It contains no acceptance criterion or testable behavior."
+    },
+    {
+      "id": "requirements",
+      "hash": "e3c22b9cde2b",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose context only — this section states that acceptance criteria were derived from assumptions rather than team consultation; it names no testable behavior, route, or status code."
+    },
+    {
+      "id": "security",
+      "hash": "b0c53dbf2183",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-result-visible-to-submitter-001",
+        "CASE-result-hidden-from-non-submitter-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "api-guarantees",
+      "hash": "7538edd42483",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Cross-cutting guarantee, not a distinct testable behavior. Its assertion is a disjunctive status range (200 or any 4xx), which the case DSL cannot express — 'expect.status' admits only a single exact integer and there is no range/anyOf matcher for status. The concrete instances of this guarantee are enumerated and compiled elsewhere in the intent (sections 1.3-1.6, 2.1-2.4, 3.1-3.6, 4.3); compiling this section would duplicate that coverage while weakening the assertions."
+    },
+    {
+      "id": "robustness",
+      "hash": "0267de20de98",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose requirement statement only — a quality-attribute goal ('execution of any request should not cause a service interruption') with no concrete route, payload, or response behavior to assert. It names no acceptance criterion of its own; the automatable robustness criteria live in the numbered 4.x section, and the service-interruption property itself is a load/stress concern the intent explicitly defers to other tooling (4.10, 4.11)."
+    },
+    {
+      "id": "parallel-execution-and-request-queueing",
+      "hash": "62ecc06187e8",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-parallel-two-in-progress-001",
+        "CASE-third-request-queued-002",
+        "CASE-queued-request-executes-003"
+      ],
+      "refused": []
+    },
+    {
+      "id": "quality-attributes",
+      "hash": "4b966c776387",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose context only — this section enumerates quality attributes that motivate the acceptance criteria elsewhere in the document; it states no testable behavior of its own and names the criteria sections (Security, API guarantees, Robustness, Parallel execution) that cover it."
+    },
+    {
+      "id": "security-2",
+      "hash": "f1a9c46dadcc",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-submit-with-valid-credential-001",
+        "CASE-fetch-own-request-detail-001",
+        "CASE-submit-with-invalid-credential-001",
+        "CASE-fetch-other-users-request-detail-001",
+        "CASE-submit-without-credential-001",
+        "CASE-fetch-status-without-credential-001",
+        "CASE-submit-with-empty-password-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "api-guarantees-2",
+      "hash": "35e4298a3a43",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Umbrella prose criteria, not distinct behaviors: 'never any status code other than 200 or 4xx' is a blanket property over all requests rather than a specific request/response pair, and 'behave according to the API specifications' is context restating the spec. Both are realized by the concrete, automatable criteria in the POST /groovy/submit (2.1-2.4), GET /groovy/status (3.1-3.6), Security (1.1-1.6), and Robustness (4.x) sections, which pin exact routes, payloads, and status codes."
+    },
+    {
+      "id": "post-groovy-submit",
+      "hash": "08cc92149789",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-submit-missing-code-field-001",
+        "CASE-submit-extra-payload-field-002",
+        "CASE-submit-returns-request-id-003",
+        "CASE-submit-invalid-code-type-004"
+      ],
+      "refused": []
+    },
+    {
+      "id": "get-groovy-status",
+      "hash": "6db0a93e9397",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-status-missing-id-001",
+        "CASE-status-found-returns-200-001",
+        "CASE-status-returns-id-status-result-001",
+        "CASE-status-extra-field-rejected-001",
+        "CASE-status-unknown-id-404-001",
+        "CASE-status-invalid-id-404-001"
+      ],
+      "refused": []
+    },
+    {
+      "id": "robustness-2",
+      "hash": "9b8cd66e6aae",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-submit-single-line-script-001",
+        "CASE-submit-multi-line-script-002",
+        "CASE-submit-loop-script-003",
+        "CASE-submit-conditional-script-004",
+        "CASE-submit-function-definition-005",
+        "CASE-submit-function-definition-and-run-006",
+        "CASE-submit-class-definition-007",
+        "CASE-submit-class-instantiation-run-008",
+        "CASE-resubmit-identical-request-009",
+        "CASE-reject-syntax-error-code-010",
+        "CASE-failed-result-carries-error-message-011",
+        "CASE-newly-accepted-request-is-pending-012",
+        "CASE-running-request-is-in-progress-013",
+        "CASE-successful-request-is-completed-014",
+        "CASE-failed-request-is-marked-failed-015"
+      ],
+      "refused": []
+    },
+    {
+      "id": "parallel-execution-and-request-queueing-2",
+      "hash": "a76576e14ffb",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "5.1, 5.2 and 5.4 each name their own coverage elsewhere (the general automation suite, 4.5, and 4.5-4.8), so compiling them here would duplicate. 5.3 asserts a concurrency bound — that at most two submissions are IN_PROGRESS at any instant — which is a cross-request property observed at a single moment in time; the case DSL expresses one test request with one subset assertion and forbids wall-clock waiting, so the two-at-a-time capacity limit cannot be observed without racing or timing. No automatable functional API case remains for this section."
+    },
+    {
+      "id": "test-strategy",
+      "hash": "5a8f81a83fda",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose context describing the automation approach (framework, CI integration, coverage philosophy) — it states no service behavior or acceptance criterion that can be exercised as a functional API test case."
+    },
+    {
+      "id": "api-test-automation-framework-design-overview",
+      "hash": "4c80cb6d35e3",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose context only — this section describes the design and rationale of the test automation framework itself (JSON-driven specs, setup steps, teardown out of scope). It states no acceptance criteria about the service under test and prescribes no observable API behavior to verify."
+    },
+    {
+      "id": "technology-stack-for-automation-framework",
+      "hash": "aad669a1adf2",
+      "outcome": "skipped",
+      "cases": [],
+      "refused": [],
+      "skipReason": "Prose context only — this section documents the automation framework's technology choices (JavaScript, axios, jest, GitHub Actions) and their rationale. It states no behavior of the service under test and yields no acceptance criteria that can be exercised as functional API cases."
+    }
+  ]
+}

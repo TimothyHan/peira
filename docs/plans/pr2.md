@@ -123,14 +123,16 @@ that failing-honestly is the product working. CI green stays defined by the PR1 
 
 ## Acceptance checklist
 
-- [ ] The verbatim 2022 test plan ingests via derive mode with zero edits
-- [ ] `peira compile` (canned LLM) writes only gate-passing cases; every section is accounted
+- [x] The verbatim 2022 test plan ingests via derive mode with zero edits (16 sections)
+- [x] `peira compile` (canned LLM) writes only gate-passing cases; every section is accounted
       for in the manifest; lineage is mechanical
-- [ ] Stale detection: an edited intent section flags its cases by name
-- [ ] Offline test suite green with no `ANTHROPIC_API_KEY` present
-- [ ] Fidelity run executed: agreement rate measured, refusals counted, 1.4/403 and 3.6/404
-      adjudicated in the findings doc
-- [ ] CI green gate unchanged (PR1 corpus); compiled corpus validated but not verdict-gated
+- [x] Stale detection: an edited intent section flags its cases by name
+- [x] Offline test suite green with no key and no network (75 tests)
+- [x] Fidelity run executed (real run: 6 sections compiled, 10 skipped with reasons, 37/37
+      candidates schema-valid, 33 pass / 4 fail / 0 error) — results and the divergence table
+      in [the findings doc](../findings/2026-08-29-compile-fidelity.md); divergences 1.4/403,
+      3.6/404, and the novel 3.4/extra-field await author adjudication
+- [x] CI green gate unchanged (PR1 corpus); compiled corpus validated but not verdict-gated
 
 ## Decisions (author-approved 2026-08-29)
 

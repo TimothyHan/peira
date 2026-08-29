@@ -1,0 +1,110 @@
+{
+  "id": "CASE-third-request-queued-002",
+  "title": "Any additional requests should be queued when the two execution slots are occupied",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(5000); return 'a {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobA": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "get",
+        "route": "/groovy/status",
+        "auth": "$users.user_1",
+        "query": {
+          "id": "$jobA"
+        }
+      },
+      "pollUntil": {
+        "until": {
+          "status": 200,
+          "body": {
+            "id": "$jobA",
+            "status": "IN_PROGRESS"
+          }
+        },
+        "timeoutMs": 15000
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(5000); return 'b {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobB": "body.id"
+      }
+    },
+    {
+      "request": {
+        "method": "get",
+        "route": "/groovy/status",
+        "auth": "$users.user_1",
+        "query": {
+          "id": "$jobB"
+        }
+      },
+      "pollUntil": {
+        "until": {
+          "status": 200,
+          "body": {
+            "id": "$jobB",
+            "status": "IN_PROGRESS"
+          }
+        },
+        "timeoutMs": 15000
+      }
+    },
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "sleep(1000); return 'c {{unique.nonce}}'"
+        }
+      },
+      "capture": {
+        "jobC": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$jobC"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$jobC",
+        "status": "PENDING"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "notes": "Both slots are proven busy (A and B confirmed IN_PROGRESS) before C is submitted, so C must be queued rather than started.",
+  "from": {
+    "intent": "parallel-execution-and-request-queueing",
+    "hash": "62ecc06187e8"
+  }
+}

@@ -67,9 +67,22 @@ test('lifecycle: arithmetic completes with a string result; unknown calls fail w
 
 test('comments are stripped before evaluation (unique-nonce embedding keeps results stable)', () =>
   withFixture(async ({ url }) => {
-    const job = await submitCode(url, '1+1 /* u123abc */');
-    const done = await pollTerminal(url, job.body.id);
-    assert.equal(done.result, '2');
+    const block = await submitCode(url, '1+1 /* u123abc */');
+    assert.equal((await pollTerminal(url, block.body.id)).result, '2');
+    const line = await submitCode(url, '1 + 1 // u456def');
+    assert.equal((await pollTerminal(url, line.body.id)).result, '2');
+  }));
+
+test('groovy parity beyond the 2022 corpus: string-literal returns and typed method declarations', () =>
+  withFixture(async ({ url }) => {
+    const ret = await submitCode(url, "sleep(1); return 'done u789'");
+    assert.deepEqual((await pollTerminal(url, ret.body.id)).result, 'done u789');
+    const typed = await submitCode(url, "class Greeter { String name\n  String greet() { return 'hi ' + name } }\ndef g = new Greeter(name: 'x')\nreturn g.greet()");
+    assert.equal((await pollTerminal(url, typed.body.id)).status, 'COMPLETED');
+    const divZero = await submitCode(url, 'def z = 0\nreturn 1 / z');
+    const failed = await pollTerminal(url, divZero.body.id);
+    assert.equal(failed.status, 'FAILED');
+    assert.match(failed.result, /Division by zero/);
   }));
 
 test('capacity 2: two long jobs run, the third stays PENDING, then completes after promotion', () =>

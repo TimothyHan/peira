@@ -9,7 +9,7 @@ export function listCaseFiles(root) {
     for (const entry of readdirSync(dir).sort()) {
       const full = join(dir, entry);
       if (statSync(full).isDirectory()) walk(full);
-      else if (entry.endsWith('.json')) out.push(full);
+      else if (entry.endsWith('.json') && entry !== 'compile-manifest.json') out.push(full);
     }
   };
   walk(root);

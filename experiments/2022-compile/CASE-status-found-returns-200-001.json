@@ -1,0 +1,42 @@
+{
+  "id": "CASE-status-found-returns-200-001",
+  "title": "3.2 As a service endpoint, I should return a request detail with 200 OK when the request ID is found in the database",
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "1 + 1 // {{unique.nonce}}"
+        }
+      },
+      "capture": {
+        "jobId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$jobId"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$jobId"
+      }
+    }
+  },
+  "teardown": {
+    "drain": true
+  },
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "6db0a93e9397"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "CASE-status-invalid-id-404-001",
+  "title": "3.6 As a service endpoint, I should respond with 404 Not found when the `id` is not valid",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "not-a-valid-id"
+      }
+    },
+    "expect": {
+      "status": 404
+    }
+  },
+  "from": {
+    "intent": "get-groovy-status",
+    "hash": "6db0a93e9397"
+  }
+}

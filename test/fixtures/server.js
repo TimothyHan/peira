@@ -18,7 +18,7 @@ const DEFAULT_USERS = { user_1: 'pass_1', user_2: 'pass_2' };
 // --- the fixture's "groovy" semantics: just enough to honor what the corpus asserts ---
 
 function stripComments(code) {
-  return code.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  return code.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
 }
 
 function syntaxError(code) {
@@ -35,20 +35,36 @@ function evaluate(code) {
   const src = stripComments(code);
   const duration = /\bsleep\(\d+\)/.test(src) ? FIXTURE_JOB_LONG_MS : FIXTURE_JOB_SHORT_MS;
 
-  if (/^[\d+\-*/%().\s]+$/.test(src) && /\d/.test(src)) {
-    const value = Function(`"use strict"; return (${src});`)();
+  // reduce numeric `def` bindings into the expression so simple variable arithmetic
+  // (including deliberate division-by-zero) evaluates the way real Groovy would
+  let expr = src;
+  const bindings = [];
+  expr = expr.replace(/def\s+([A-Za-z_]\w*)\s*=\s*(-?\d+(?:\.\d+)?)\s*;?/g, (_, name, value) => {
+    bindings.push([name, value]);
+    return ' ';
+  });
+  for (const [name, value] of bindings) expr = expr.replaceAll(new RegExp(`\\b${name}\\b`, 'g'), value);
+  expr = expr.replace(/\breturn\b/g, ' ');
+  if (/^[\d+\-*/%().\s]+$/.test(expr) && /\d/.test(expr)) {
+    const value = Function(`"use strict"; return (${expr});`)();
+    if (!Number.isFinite(value)) {
+      return { duration, status: 'FAILED', result: 'java.lang.ArithmeticException: Division by zero' };
+    }
     return { duration, status: 'COMPLETED', result: String(value) };
   }
 
   const defined = new Set(['sleep', 'if', 'for', 'while', 'switch', 'catch', 'return']);
-  for (const m of src.matchAll(/def\s+([A-Za-z_]\w*)\s*\(/g)) defined.add(m[1]);
+  for (const m of src.matchAll(/(?:def|int|long|double|float|boolean|char|byte|short|String|void)\s+([A-Za-z_]\w*)\s*\(/g)) defined.add(m[1]);
   for (const m of src.matchAll(/class\s+([A-Za-z_]\w*)/g)) defined.add(m[1]);
   for (const m of src.matchAll(/([A-Za-z_]\w*)\s*\(/g)) {
     if (!defined.has(m[1])) {
       return { duration, status: 'FAILED', result: `No signature of method: Script.${m[1]}() is applicable for argument types` };
     }
   }
-  return { duration, status: 'COMPLETED', result: null };
+  // a script whose final statement returns a string literal completes with that string,
+  // the way real Groovy would — everything else completes with a null result
+  const literal = src.trim().match(/(?:^|;|\n)\s*(?:return\s+)?'([^']*)'\s*;?\s*$/);
+  return { duration, status: 'COMPLETED', result: literal ? literal[1] : null };
 }
 
 // --- server ---
