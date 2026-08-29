@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-4-1-8",
   "title": "4.1.8 As a user, I should be able to submit class definition and instantiation",
   "from": {

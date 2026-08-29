@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { validateSchema } from './schema.js';
+import { extractJsonObject } from './model-output.js';
 
 const TRIAGE_SCHEMA = JSON.parse(
   readFileSync(fileURLToPath(new URL('../schema/triage.schema.json', import.meta.url)), 'utf8'),
@@ -124,15 +125,9 @@ Cover every failure exactly once. Use only the case ids given above.
 
 /** The output gate: schema + conditional payloads + no invented case ids. */
 export function gateTriageOutput(raw, failureIds) {
-  const stripped = raw.replace(/```[a-z]*\n?/g, '').trim();
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start === -1 || end <= start) return { verdicts: [], errors: ['output is not a JSON object'], uncovered: [...failureIds] };
-  let parsed;
-  try {
-    parsed = JSON.parse(stripped.slice(start, end + 1));
-  } catch (err) {
-    return { verdicts: [], errors: [`output is not valid JSON — ${err.message}`], uncovered: [...failureIds] };
+  const parsed = extractJsonObject(raw);
+  if (parsed === null) {
+    return { verdicts: [], errors: ['output is not a valid JSON object'], uncovered: [...failureIds] };
   }
   const schemaErrors = validateSchema(TRIAGE_SCHEMA, parsed).map((e) => e.message);
   if (schemaErrors.length > 0) return { verdicts: [], errors: schemaErrors, uncovered: [...failureIds] };

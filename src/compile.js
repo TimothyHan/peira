@@ -8,12 +8,14 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { validateCase, validateStep, validateTemplate } from './validate.js';
+import { extractJsonObject } from './model-output.js';
 
 const CASE_SCHEMA_TEXT = readFileSync(
   fileURLToPath(new URL('../schema/case.schema.json', import.meta.url)),
   'utf8',
 );
 
+/** @param {{bedUsers?: object}} [opts] */
 export function buildContract({ bedUsers } = {}) {
   const principals = Object.keys(bedUsers ?? {});
   return `You are the compiler stage of Peira, an intent compiler for functional API testing.
@@ -111,21 +113,12 @@ Intent: "A submitted job's status is visible to its submitter."
 }
 
 function parseModelOutput(text) {
-  const stripped = text.replace(/```[a-z]*\n?/g, '').trim();
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    const parsed = JSON.parse(stripped.slice(start, end + 1));
-    if (parsed !== null && typeof parsed === 'object' && (Array.isArray(parsed.cases) || Array.isArray(parsed.templates) || typeof parsed.skip === 'string')) {
-      if (parsed.steps !== undefined && !Array.isArray(parsed.steps)) return null;
-      if (parsed.templates !== undefined && !Array.isArray(parsed.templates)) return null;
-      return parsed;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  const parsed = extractJsonObject(text);
+  if (parsed === null) return null;
+  if (!(Array.isArray(parsed.cases) || Array.isArray(parsed.templates) || typeof parsed.skip === 'string')) return null;
+  if (parsed.steps !== undefined && !Array.isArray(parsed.steps)) return null;
+  if (parsed.templates !== undefined && !Array.isArray(parsed.templates)) return null;
+  return parsed;
 }
 
 export function buildPrompt(section, { contract, fullDocument }) {
@@ -150,10 +143,11 @@ ${section.text}
  * @param {object} opts
  * @param {(prompt: string) => Promise<string>} opts.llm
  * @param {object} [opts.bedUsers]
+ * @param {Map<string, object>} [opts.steps] existing step registry (emitted steps merge in)
  * @param {string} [opts.fullDocument] whole-document context for the prompt
  * @param {string} [opts.model] recorded in the manifest
  * @param {(msg: string) => void} [opts.onProgress]
- * @returns {{accepted: Array<{sectionId: string, caseObj: object}>, manifest: object}}
+ * @returns {Promise<{accepted: Array<{sectionId: string, caseObj: object}>, acceptedSteps: Array<{sectionId: string, stepObj: object}>, acceptedTemplates: Array<{sectionId: string, tplObj: object}>, manifest: object}>}
  */
 export async function compileSections(sections, { llm, bedUsers, steps = new Map(), fullDocument = '', model = null, onProgress = () => {} }) {
   const contract = buildContract({ bedUsers });

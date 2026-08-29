@@ -3,14 +3,9 @@
 // runner records as verdict `error` — never `fail` (RFC 0001 §4.7).
 
 import { REQUEST_TIMEOUT_MS } from './constants.js';
+import { InfraError } from './errors.js';
 
-export class InfraError extends Error {
-  constructor(message, cause) {
-    super(message);
-    this.name = 'InfraError';
-    this.cause = cause;
-  }
-}
+export { InfraError };
 
 /**
  * @param {object} opts
@@ -20,12 +15,14 @@ export class InfraError extends Error {
  * @param {object} [opts.query]
  * @param {*} [opts.body] JSON-serializable; skipped for GET
  * @param {{username: string, password: string}} [opts.auth] basic auth; absent = anonymous
- * @returns {{status: number, headers: object, body: *, requestHeaders: object, elapsedMs: number}}
+ * @param {number} [opts.timeoutMs]
+ * @returns {Promise<{status: number, headers: object, body: *, requestHeaders: object, elapsedMs: number}>}
  */
 export async function httpRequest({ baseUrl, method, route, query, body, auth, timeoutMs = REQUEST_TIMEOUT_MS }) {
   const url = new URL(route, baseUrl);
   for (const [k, v] of Object.entries(query ?? {})) url.searchParams.set(k, String(v));
 
+  /** @type {Record<string, string>} */
   const requestHeaders = {};
   if (auth) {
     requestHeaders.authorization = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');

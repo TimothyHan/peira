@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { PLANTS } from './fixtures/plants.js';
 import { startFixture } from './fixtures/server.js';
 import { httpRequest } from '../src/http.js';
+import { testEach } from './helpers.js';
 
 const alice = { username: 'user_1', password: 'pass_1' };
 
@@ -15,16 +16,18 @@ async function withPlant(plant, fn) {
   }
 }
 
-test('the catalog is pre-registered: ≥30 shifts, valid truths, unique descriptions', () => {
+test('the catalog is pre-registered: ≥30 shifts with a balanced truth distribution', () => {
   const entries = Object.entries(PLANTS);
   assert.ok(entries.length >= 30, `${entries.length} shifts`);
-  for (const [id, p] of entries) {
-    assert.ok(['bug', 'drift', 'flake'].includes(p.truth), id);
-    assert.ok(p.desc.length > 10, id);
-    assert.ok(p.flags && typeof p.flags === 'object', id);
-  }
   const truths = entries.reduce((acc, [, p]) => ((acc[p.truth] = (acc[p.truth] ?? 0) + 1), acc), {});
   assert.ok(truths.bug >= 15 && truths.drift >= 5 && truths.flake >= 3, JSON.stringify(truths));
+});
+
+// one registered test per catalog entry
+testEach(Object.entries(PLANTS), ([id]) => `plant ${id} is well-registered`, ([id, p]) => {
+  assert.ok(['bug', 'drift', 'flake'].includes(p.truth), id);
+  assert.ok(p.desc.length > 10, id);
+  assert.ok(p.flags && typeof p.flags === 'object', id);
 });
 
 test('no plant = the unplanted fixture (spot probes)', () =>

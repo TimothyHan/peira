@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-3-6",
   "title": "3.6 As a service endpoint, I should respond with 404 Not found when the id is not valid",
   "notes": "Also covers 2022 spec 4.6, its verbatim duplicate — 26 case files cover 27 executable specs.",

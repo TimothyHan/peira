@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-4-3",
   "title": "4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
   "from": {

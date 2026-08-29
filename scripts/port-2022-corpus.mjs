@@ -185,6 +185,7 @@ let written = 0;
 for (const [file, planId, title, body] of cases) {
   const section = sectionFor(planId);
   const caseObj = {
+    $schema: '../../../schema/case.schema.json',
     id: `CASE-2022-${file.split('/')[1]}`,
     title: `${planId} ${title}`,
     ...(body.notes ? { notes: body.notes } : {}),

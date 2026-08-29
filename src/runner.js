@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
 import { POLL_INTERVAL_MS, POLL_UNTIL_TIMEOUT_MS, DRAIN_TIMEOUT_MS, STEP_TIMEOUT_MS } from './constants.js';
 import { resolveValue, UnresolvedTokenError } from './interpolate.js';
 import { matchExpect } from './expect.js';
-import { httpRequest, InfraError } from './http.js';
+import { httpRequest } from './http.js';
+import { CaseFailure, InfraError } from './errors.js';
 import { EvidenceLog } from './evidence.js';
 import { mintAll } from './generate.js';
 
@@ -17,13 +18,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Seed-derived per-run discriminator (RFC 0001 invariant 8): same seed → same value. */
 export function uniqueValue(seed, caseId, key) {
   return 'u' + createHash('sha256').update(`${seed}|${caseId}|${key}`).digest('hex').slice(0, 10);
-}
-
-class CaseFailure extends Error {
-  constructor(reason, diffs = []) {
-    super(reason);
-    this.diffs = diffs;
-  }
 }
 
 function extractPath(response, path) {
@@ -214,7 +208,18 @@ async function drainCaptures(caseObj, state) {
   evidence.append({ event: 'drain-complete', case: caseId, drained: state.captureOrder });
 }
 
-/** Run one case. Returns { id, verdict, reason?, diffs? }. */
+/** @typedef {import('./types.js').Case} Case */
+/** @typedef {import('./types.js').BedConfig} BedConfig */
+/** @typedef {import('./types.js').Verdict} Verdict */
+/** @typedef {import('./types.js').LoadedCase} LoadedCase */
+/** @typedef {import('./types.js').RunResult} RunResult */
+
+/**
+ * Run one case.
+ * @param {Case} caseObj
+ * @param {{bed: BedConfig, baseUrl: string, seed: number, evidence: import('./evidence.js').EvidenceLog, steps?: Map<string, object>}} opts
+ * @returns {Promise<Verdict>}
+ */
 export async function runCase(caseObj, { bed, baseUrl, seed, evidence, steps = new Map() }) {
   const caseId = caseObj.id;
   const state = {
@@ -229,6 +234,7 @@ export async function runCase(caseObj, { bed, baseUrl, seed, evidence, steps = n
   };
   evidence.append({ event: 'case-start', case: caseId, definition: caseObj });
 
+  /** @type {Verdict} */
   let result = { id: caseId, verdict: 'pass' };
   try {
     const steps = (caseObj.setup ?? []).map((s, i) => [s, `setup[${i}]`]);
@@ -254,6 +260,7 @@ export async function runCase(caseObj, { bed, baseUrl, seed, evidence, steps = n
   return result;
 }
 
+/** @returns {Verdict} */
 function classify(caseId, err) {
   if (err instanceof InfraError) return { id: caseId, verdict: 'error', reason: err.message };
   if (err instanceof CaseFailure) return { id: caseId, verdict: 'fail', reason: err.message, diffs: err.diffs };
@@ -262,8 +269,10 @@ function classify(caseId, err) {
 }
 
 /**
- * Run a case set sequentially. `loaded` is [{file, caseObj}] in execution order.
- * Returns { seed, verdicts, counts }.
+ * Run a case set sequentially, minting invariant-template instances for this run.
+ * @param {LoadedCase[]} loaded in execution order
+ * @param {{bed: BedConfig, baseUrl?: string, seed: number, evidencePath?: string | null, steps?: Map<string, object>, templates?: Map<string, object>}} opts
+ * @returns {Promise<RunResult>}
  */
 export async function runCases(loaded, { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map() }) {
   const evidence = new EvidenceLog(evidencePath);

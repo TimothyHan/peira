@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-2-2",
   "title": "2.2 As submit endpoint, I should return 400 Bad request or 422 Unprocessable Entity when the request payload does not only contain code field and value",
   "from": {

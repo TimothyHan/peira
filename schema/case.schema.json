@@ -1,86 +1,183 @@
 {
   "$comment": "The case DSL definition (RFC 0001 §4.3). A primitive exists iff this schema admits it. additionalProperties:false at every level — the schema refuses what it does not name.",
   "type": "object",
-  "required": ["id", "from", "test"],
+  "required": [
+    "id",
+    "from",
+    "test"
+  ],
   "additionalProperties": false,
   "properties": {
-    "id": { "type": "string", "pattern": "^CASE-[a-z0-9][a-z0-9-]*$" },
-    "title": { "type": "string" },
-    "notes": { "type": "string" },
+    "$schema": {
+      "type": "string",
+      "$comment": "optional editor association; ignored by the gate"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^CASE-[a-z0-9][a-z0-9-]*$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
     "from": {
       "$comment": "template/seed/instance appear only on cases minted from an invariant template at run time",
       "type": "object",
-      "required": ["intent", "hash"],
+      "required": [
+        "intent",
+        "hash"
+      ],
       "additionalProperties": false,
       "properties": {
-        "intent": { "type": "string" },
-        "hash": { "type": "string", "pattern": "^[0-9a-f]{6,64}$" },
-        "template": { "type": "string", "pattern": "^TPL-[a-z0-9][a-z0-9-]*$" },
-        "seed": { "type": "integer" },
-        "instance": { "type": "integer" }
+        "intent": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{6,64}$"
+        },
+        "template": {
+          "type": "string",
+          "pattern": "^TPL-[a-z0-9][a-z0-9-]*$"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "instance": {
+          "type": "integer"
+        }
       }
     },
-    "setup": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/step" }, { "$ref": "#/$defs/invocation" }] } },
-    "test": { "$ref": "#/$defs/step" },
+    "setup": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/step"
+          },
+          {
+            "$ref": "#/$defs/invocation"
+          }
+        ]
+      }
+    },
+    "test": {
+      "$ref": "#/$defs/step"
+    },
     "teardown": {
       "type": "object",
-      "required": ["drain"],
+      "required": [
+        "drain"
+      ],
       "additionalProperties": false,
-      "properties": { "drain": { "enum": [true] } }
+      "properties": {
+        "drain": {
+          "enum": [
+            true
+          ]
+        }
+      }
     }
   },
   "$defs": {
     "invocation": {
       "$comment": "A step invocation (RFC §4.5): procedure only, setup only. It structurally cannot carry expect or capture — the claim being verified stays in the case's declarative test.",
       "type": "object",
-      "required": ["step"],
+      "required": [
+        "step"
+      ],
       "additionalProperties": false,
       "properties": {
-        "step": { "type": "string", "pattern": "^STEP-[a-z0-9][a-z0-9-]*$" },
-        "bind": { "type": "object" }
+        "step": {
+          "type": "string",
+          "pattern": "^STEP-[a-z0-9][a-z0-9-]*$"
+        },
+        "bind": {
+          "type": "object"
+        }
       }
     },
     "step": {
       "type": "object",
-      "required": ["request"],
+      "required": [
+        "request"
+      ],
       "additionalProperties": false,
       "properties": {
-        "request": { "$ref": "#/$defs/request" },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
         "capture": {
           "$comment": "free map: alias -> response path; keys and values are checked statically in validate.js",
           "type": "object"
         },
         "pollUntil": {
           "type": "object",
-          "required": ["until"],
+          "required": [
+            "until"
+          ],
           "additionalProperties": false,
           "properties": {
-            "until": { "$ref": "#/$defs/expect" },
-            "timeoutMs": { "type": "integer" }
+            "until": {
+              "$ref": "#/$defs/expect"
+            },
+            "timeoutMs": {
+              "type": "integer"
+            }
           }
         },
-        "expect": { "$ref": "#/$defs/expect" }
+        "expect": {
+          "$ref": "#/$defs/expect"
+        }
       }
     },
     "request": {
       "type": "object",
-      "required": ["method", "route"],
+      "required": [
+        "method",
+        "route"
+      ],
       "additionalProperties": false,
       "properties": {
-        "method": { "enum": ["get", "post", "put", "delete", "patch"] },
-        "route": { "type": "string", "pattern": "^/" },
-        "query": { "type": "object" },
+        "method": {
+          "enum": [
+            "get",
+            "post",
+            "put",
+            "delete",
+            "patch"
+          ]
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "query": {
+          "type": "object"
+        },
         "body": {},
         "auth": {
           "anyOf": [
-            { "type": "string", "pattern": "^\\$users\\.[A-Za-z0-9_]+$" },
+            {
+              "type": "string",
+              "pattern": "^\\$users\\.[A-Za-z0-9_]+$"
+            },
             {
               "type": "object",
-              "required": ["username", "password"],
+              "required": [
+                "username",
+                "password"
+              ],
               "additionalProperties": false,
               "properties": {
-                "username": { "type": "string" },
-                "password": { "type": "string" }
+                "username": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                }
               }
             }
           ]
@@ -91,9 +188,13 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "status": { "type": "integer" },
+        "status": {
+          "type": "integer"
+        },
         "body": {},
-        "bodySchema": { "type": "object" }
+        "bodySchema": {
+          "type": "object"
+        }
       }
     }
   }

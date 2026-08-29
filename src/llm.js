@@ -6,13 +6,9 @@
 
 import { spawn } from 'node:child_process';
 import { COMPILE_MODEL, COMPILE_TIMEOUT_MS } from './constants.js';
+import { TransportError } from './errors.js';
 
-export class TransportError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'TransportError';
-  }
-}
+export { TransportError };
 
 /** @returns {(prompt: string) => Promise<string>} */
 export function claudeCliTransport({ bin = process.env.PEIRA_CLAUDE_BIN ?? 'claude', model = COMPILE_MODEL } = {}) {

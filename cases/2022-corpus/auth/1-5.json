@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schema/case.schema.json",
   "id": "CASE-2022-1-5",
   "title": "1.5 As a user, I should receive 401 Unauthorized when I fetch the request detail that are made by other users",
   "notes": "Ported as observed in 2022: asserts 401. Test-plan AC 1.4 says 403 — the pre-registered PR2 adjudication specimen (RFC 0001 §8).",

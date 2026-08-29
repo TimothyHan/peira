@@ -1,6 +1,19 @@
 // Shared test plumbing. Not a test file (does not match *.test.js).
 
+import { test } from 'node:test';
 import { startFixture } from './fixtures/server.js';
+
+/**
+ * The shared test iterator: one registered test per item, so each fixture/catalog entry
+ * reports individually and a failure never masks the items after it.
+ * @template T
+ * @param {Iterable<T>} items
+ * @param {(item: T) => string} nameFor
+ * @param {(item: T) => void | Promise<void>} fn
+ */
+export function testEach(items, nameFor, fn) {
+  for (const item of items) test(nameFor(item), () => fn(item));
+}
 
 export function makeBed(baseUrl) {
   return {
