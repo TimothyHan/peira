@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-1-6",
-  "title": "As a user, I should receive 401 Unauthorized when I submit the empty string for password",
+  "title": "1.6 As a user, I should receive 401 Unauthorized when I submit the empty string for password",
   "from": {
-    "intent": "2022-test-plan/1.6",
-    "hash": "ce87affe0edb"
+    "intent": "security-2",
+    "hash": "f1a9c46dadcc"
   },
   "setup": [
     {

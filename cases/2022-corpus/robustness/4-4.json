@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-4-4",
-  "title": "As a service, I should mark the request status as FAILED, and provide error message through result field",
+  "title": "4.4 As a service, I should mark the request status as FAILED, and provide error message through result field",
   "from": {
-    "intent": "2022-test-plan/4.4",
-    "hash": "26f4a9da15a7"
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
   },
   "setup": [
     {

@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-4-2",
-  "title": "As a user, I should be able to submit the same request over and over again and receive 200 OK",
+  "title": "4.2 As a user, I should be able to submit the same request over and over again and receive 200 OK",
   "from": {
-    "intent": "2022-test-plan/4.2",
-    "hash": "ea36dc33c453"
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
   },
   "setup": [
     {

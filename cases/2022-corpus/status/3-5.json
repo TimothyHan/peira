@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-3-5",
-  "title": "As a service endpoint, I should respond with 404 Not found when the id does not exist in the database",
+  "title": "3.5 As a service endpoint, I should respond with 404 Not found when the id does not exist in the database",
   "from": {
-    "intent": "2022-test-plan/3.5",
-    "hash": "5b76b32ce12c"
+    "intent": "get-groovy-status",
+    "hash": "de45e3d45544"
   },
   "test": {
     "request": {

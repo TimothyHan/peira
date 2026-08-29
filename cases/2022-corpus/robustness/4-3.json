@@ -1,9 +1,9 @@
 {
   "id": "CASE-2022-4-3",
-  "title": "As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
+  "title": "4.3 As a service, I should return 400 Bad request or 422 Unprocessable Entity with syntax/compile error message within the response body when the code has syntax error",
   "from": {
-    "intent": "2022-test-plan/4.3",
-    "hash": "0ac5448df0f1"
+    "intent": "robustness-2",
+    "hash": "9b8cd66e6aae"
   },
   "test": {
     "request": {

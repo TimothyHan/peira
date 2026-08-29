@@ -1,0 +1,43 @@
+{
+  "$comment": "Triage output gate (RFC 0001 §4.7). Proposals only: bug -> finding, drift -> intent-level diff, flake -> prescription. Per-classification payload requirements are enforced by the conditional check in triage.js (the schema subset has no if/then).",
+  "type": "object",
+  "required": ["verdicts"],
+  "additionalProperties": false,
+  "properties": {
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case", "classification", "rationale"],
+        "additionalProperties": false,
+        "properties": {
+          "case": { "type": "string", "pattern": "^CASE-[a-z0-9][a-z0-9-]*(-g[0-9]+)?$" },
+          "classification": { "enum": ["bug", "drift", "flake"] },
+          "rationale": { "type": "string" },
+          "finding": {
+            "type": "object",
+            "required": ["title", "intent", "expected", "actual"],
+            "additionalProperties": false,
+            "properties": {
+              "title": { "type": "string" },
+              "intent": { "type": "string" },
+              "expected": { "type": "string" },
+              "actual": { "type": "string" }
+            }
+          },
+          "intentDiff": {
+            "type": "object",
+            "required": ["section", "current", "proposed"],
+            "additionalProperties": false,
+            "properties": {
+              "section": { "type": "string" },
+              "current": { "type": "string" },
+              "proposed": { "type": "string" }
+            }
+          },
+          "prescription": { "type": "string" }
+        }
+      }
+    }
+  }
+}

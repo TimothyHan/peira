@@ -4,13 +4,25 @@
 // them unchanged. The 3-6/4-6 duplicate ports once (see its `notes`), so 26 files cover 27 specs.
 // Re-run with: node scripts/port-2022-corpus.mjs
 
-import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseIntent } from '../src/intent.js';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'cases', '2022-corpus');
-const sha12 = (text) => createHash('sha256').update(text).digest('hex').slice(0, 12);
+const repo = join(dirname(fileURLToPath(import.meta.url)), '..');
+const root = join(repo, 'cases', '2022-corpus');
+
+// lineage points at the LIVE derive-mode sections of intent/2022-test-plan.md, so triage and
+// stale detection resolve for the hand-written corpus exactly as for compiled cases
+const sections = parseIntent(readFileSync(join(repo, 'intent', '2022-test-plan.md'), 'utf8'));
+const bySlug = Object.fromEntries(sections.map((s) => [s.id, s]));
+const sectionFor = (planId) => {
+  const family = planId.split('.')[0];
+  const slug = { 1: 'security-2', 2: 'post-groovy-submit', 3: 'get-groovy-status', 4: 'robustness-2', 5: 'parallel-execution-and-request-queueing-2' }[family];
+  const section = bySlug[slug];
+  if (!section) throw new Error(`no section for plan id ${planId}`);
+  return section;
+};
 
 const alice = '$users.user_1';
 const bob = '$users.user_2';
@@ -171,11 +183,12 @@ const cases = [
 
 let written = 0;
 for (const [file, planId, title, body] of cases) {
+  const section = sectionFor(planId);
   const caseObj = {
     id: `CASE-2022-${file.split('/')[1]}`,
-    title,
+    title: `${planId} ${title}`,
     ...(body.notes ? { notes: body.notes } : {}),
-    from: { intent: `2022-test-plan/${planId}`, hash: sha12(title) },
+    from: { intent: section.id, hash: section.hash },
     ...(body.setup ? { setup: body.setup } : {}),
     test: body.test,
     ...(body.teardown ? { teardown: body.teardown } : {}),
