@@ -23,12 +23,29 @@ test('a self-contained page: no external requests, no scripts, badges and triage
   const html = renderHtmlDocument({ loaded: [{ file: 'x', caseObj: makeCase() }], evidenceText, triageProposals });
   assert.match(html, /^<!doctype html>/);
   assert.match(html, /<style>/);
-  assert.ok(!/src=|href=|url\(|<script/.test(html), 'self-contained: no external refs, no scripts');
+  assert.ok(!/src=|url\(|<script|href="(?!#)/.test(html), 'self-contained: no external refs, no scripts; only in-page anchors');
   assert.match(html, /class="badge fail">FAIL<\/span>/);
   assert.match(html, /class="chip drift">triage: drift/);
   assert.match(html, /<del>old &amp; busted<\/del>/);
   assert.match(html, /<ins>new &lt;hotness&gt;<\/ins>/);
   assert.match(html, /expected <code>403<\/code>, got <code>401<\/code>/);
+});
+
+test('visual affordances: stat tiles, stacked verdict bar, failure index with anchors, collapsed passes', () => {
+  const passing = { ...makeCase({ id: 'CASE-green-001' }) };
+  const twoCases = [{ file: 'a', caseObj: makeCase() }, { file: 'b', caseObj: passing }];
+  const twoVerdicts = evidenceText + '\n' + [
+    { event: 'case-start', case: 'CASE-green-001', definition: passing },
+    { event: 'case-verdict', id: 'CASE-green-001', verdict: 'pass' },
+  ].map((e) => JSON.stringify(e)).join('\n');
+  const html = renderHtmlDocument({ loaded: twoCases, evidenceText: twoVerdicts, triageProposals });
+  assert.match(html, /<div class="tile fail"><b>1<\/b>/);
+  assert.match(html, /<div class="tile pass"><b>1<\/b>/);
+  assert.match(html, /class="seg pass" style="width:50\.0%"/);
+  assert.match(html, /Needs attention \(1\)/);
+  assert.match(html, /<a href="#CASE-inline-test">/);
+  assert.match(html, /<details class="case fail" id="CASE-inline-test" open>/);
+  assert.match(html, /<details class="case pass" id="CASE-green-001">/); // passes start collapsed
 });
 
 test('untrusted content is escaped — a hostile rationale cannot inject markup', () => {
