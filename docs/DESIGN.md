@@ -162,9 +162,11 @@ Triage reads AUT response bodies, which are untrusted input to its LLM — a hos
 
 Triage verdicts are recorded next to the run evidence. Because HTTP evidence is exact — every failure names its case, its request, and its diff deterministically — the blame-misattribution problem that dogs Akela's free-text domains does not exist here. **This is the reason API testing is the right first domain.**
 
-### 4.8 Akela, eventually
+### 4.8 Akela, adopted (revised 2026-08-29; superseded "Akela, eventually")
 
-Peira v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts, triage decisions) and does **not** depend on Akela — Akela is itself pre-1.0, and coupling two moving engines helps neither. The seam is kept deliberately: intent sections use the Akela tag grammar, evidence events are shaped like `applied`/`contradicted` (a passing case validates its intent section; a triaged bug contradicts the service; a triaged drift contradicts the *case*), and when both engines are stable, Peira becomes an Akela domain pack whose evidence channel is fully deterministic — the domain where Akela's open misattribution problem vanishes by construction.
+Peira is an Akela domain, the way QABuddy is: akela is a first-party runtime dependency (same author, itself dependency-free — the old zero-dependency rule survives as "no third-party code on the trust path"). `peira evidence` records each adjudicated run through a spawn-isolated launcher (`src/ledger-engine.js`, AKELA_CWD): pass → `applied`; triaged **bug** → `applied` (the section did its job — it predicted correctly and caught the service violating it); triaged **drift** → `contradicted` with the adjudication note verbatim; flake/error/untriaged → nothing. Evidence is deduped per *section* per run (contradiction dominates a mixed section) so Akela's promotion arithmetic counts runs, not case volume. This is the domain where Akela's open misattribution problem vanishes by construction — every event traces to an exact HTTP diff.
+
+**Surface rule (2026-08-29):** the engine is an implementation detail. Peira's user-facing vocabulary — docs, CLI help, console output, exported API — says "evidence ledger" (`--no-ledger`, `peira trust`, `deriveLedgerEvidence`) and never names the engine; ledger state lives under `.peira/`. The one visible artifact is the generated `akela.json` config at the project root, kept deliberately: it is inert to the user (generated, never edited), and renaming it would require an upstream engine change that hides for hiding's sake. This RFC is the internal record and speaks plainly.
 
 ## 5. Invariants (the things that do not change)
 

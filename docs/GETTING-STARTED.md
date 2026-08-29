@@ -5,7 +5,7 @@ The journey from zero to CI, for a team with a RESTful API. Command reference: `
 ## 0. Install (~2 minutes)
 
 ```bash
-npm install -g peira        # Node ≥ 18; one first-party dependency (akela) — no third-party code
+npm install -g peira        # Node ≥ 18; one first-party dependency — no third-party code
 ```
 
 `peira run`, `validate`, `stats`, `render`, `evidence` need nothing else — ever. Only the two
@@ -133,8 +133,8 @@ Commit `intent/`, `cases/`, and the bed configs. **CI runs zero LLM** — no key
 
 The exit code gates the merge. When CI goes red, pull the evidence artifact and triage it
 locally — adjudication stays a human act, never a bot in the pipeline. Then record the
-adjudicated run into [Akela](https://www.npmjs.com/package/akela) — Peira is an Akela domain,
-so your intent sections earn evidence-gated trust across runs:
+adjudicated run into Peira's evidence ledger, so your intent sections earn evidence-gated
+trust across runs:
 
 ```bash
 peira evidence --evidence run.jsonl --triage run-triage.json --intent intent
@@ -142,9 +142,11 @@ peira evidence --evidence run.jsonl --triage run-triage.json --intent intent
 
 Passing sections log `applied` (a triaged bug also logs `applied` — the section did its job
 catching the violation); adjudicated drift logs `contradicted` with the verbatim note; flake
-and untriaged failures log nothing. One event per section per run, so `akela stats` counts
-runs, not case volume. A portable JSONL export is written alongside. Note: intent sections
-live at `##` heading level — that is the sectioning both Peira and Akela index.
+and untriaged failures log nothing. One event per section per run, so the ledger counts runs,
+not case volume. A portable JSONL export is written alongside; `peira trust` shows the
+standings per section. The ledger lives in `.peira/` plus an `akela.json` config at the
+project root — commit both, never edit them; trust is earned by runs, not by hand. Note:
+intent sections live at `##` heading level — that is the sectioning the ledger indexes.
 
 ## Understanding seeds (test data by formula)
 

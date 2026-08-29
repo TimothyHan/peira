@@ -10,6 +10,7 @@ const COMMANDS = {
   stats: () => import('../src/cli/stats.js'),
   triage: () => import('../src/cli/triage.js'),
   evidence: () => import('../src/cli/evidence.js'),
+  trust: () => import('../src/cli/trust.js'),
   render: () => import('../src/cli/render.js'),
   adopt: () => import('../src/cli/adopt.js'),
 };

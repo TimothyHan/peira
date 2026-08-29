@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveAkelaEvidence, sectionEvidence } from '../src/akela.js';
+import { deriveLedgerEvidence, sectionEvidence } from '../src/ledger.js';
 
 const lineage = (extra = {}) => ({ intent: 'result-isolation', hash: 'abcdef123456', ...extra });
 const evidence = (verdictRows) =>
@@ -18,7 +18,7 @@ test('pass → applied, carrying intent lineage and template provenance', () => 
     ['CASE-a-001', 'pass', lineage()],
     ['CASE-tpl-001-g2', 'pass', lineage({ template: 'TPL-x-001', seed: 42, instance: 2 })],
   ]);
-  const records = deriveAkelaEvidence(text);
+  const records = deriveLedgerEvidence(text);
   assert.deepEqual(records[0], { event: 'applied', via: 'pass', intent: 'result-isolation', hash: 'abcdef123456', case: 'CASE-a-001', seed: 42 });
   assert.deepEqual({ template: records[1].template, instance: records[1].instance }, { template: 'TPL-x-001', instance: 2 });
 });
@@ -38,7 +38,7 @@ test('the corrected mapping: bug → applied (the knowledge did its job); drift 
       { case: 'CASE-flake-001', classification: 'flake', rationale: 'intermittent' },
     ],
   };
-  const records = deriveAkelaEvidence(text, proposals);
+  const records = deriveLedgerEvidence(text, proposals);
   assert.deepEqual(records.map((r) => [r.case, r.event, r.via]), [
     ['CASE-bug-001', 'applied', 'triage:bug'],
     ['CASE-drift-001', 'contradicted', 'triage:drift'],
@@ -51,8 +51,8 @@ test('error verdicts and failures with no triage export nothing; mixed-run triag
     ['CASE-dead-001', 'error', lineage()],
     ['CASE-fail-001', 'fail', lineage()],
   ]);
-  assert.deepEqual(deriveAkelaEvidence(text), []);
-  assert.throws(() => deriveAkelaEvidence(text, { seed: 99, verdicts: [] }), /refusing to mix runs/);
+  assert.deepEqual(deriveLedgerEvidence(text), []);
+  assert.throws(() => deriveLedgerEvidence(text, { seed: 99, verdicts: [] }), /refusing to mix runs/);
 });
 
 test('section evidence: deduped per section, contradiction dominates a mixed section, ids map through the intent file', () => {
@@ -75,5 +75,5 @@ test('section evidence: deduped per section, contradiction dominates a mixed sec
 
 test('deterministic: same inputs, byte-identical output', () => {
   const text = evidence([['CASE-a-001', 'pass', lineage()], ['CASE-b-001', 'pass', lineage()]]);
-  assert.equal(JSON.stringify(deriveAkelaEvidence(text)), JSON.stringify(deriveAkelaEvidence(text)));
+  assert.equal(JSON.stringify(deriveLedgerEvidence(text)), JSON.stringify(deriveLedgerEvidence(text)));
 });
