@@ -12,6 +12,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { INTENT_SECTION_MAX_LINES } from './constants.js';
 
 const HEADING = /^(#{2,6})\s+(.+?)\s*$/;
 const TAG = /<!--\s*peira:\s*([^>]*?)\s*-->/;
@@ -63,7 +64,7 @@ export function parseIntent(markdown, { file = null, usedIds = new Set() } = {})
       throw new Error(`${file ?? 'intent'}: duplicate intent id "${id}"`);
     }
     usedIds.add(id);
-    sections.push({ id, kind, title: current.title, file, text: body, hash: hashSection(body) });
+    sections.push({ id, kind, tagged: tag !== null, title: current.title, file, text: body, hash: hashSection(body) });
   };
 
   for (const line of lines) {
@@ -78,6 +79,31 @@ export function parseIntent(markdown, { file = null, usedIds = new Set() } = {})
   }
   flush();
   return sections;
+}
+
+/**
+ * Intent lint: structural advice, never refusals. Sections are the unit of lineage, stale
+ * detection, and targeted recompile — these warnings flag structures that make those coarse
+ * or fragile.
+ * @param {ReturnType<typeof parseIntent>} sections
+ * @returns {string[]} warnings
+ */
+export function lintIntent(sections, { maxLines = INTENT_SECTION_MAX_LINES } = {}) {
+  const warnings = [];
+  for (const s of sections) {
+    const lines = s.text.split('\n').filter((l) => l.trim() !== '').length;
+    if (lines > maxLines) {
+      warnings.push(`section "${s.id}" has ${lines} content lines — one promise per section keeps stale detection and triage precise; consider splitting`);
+    }
+  }
+  const derived = sections.filter((s) => !s.tagged);
+  for (const s of derived) {
+    const collision = s.id.match(/^(.+)-\d+$/);
+    if (collision && sections.some((other) => other.id === collision[1])) {
+      warnings.push(`derived slug collision: "${s.id}" exists because two headings share the slug "${collision[1]}" — explicit <!-- peira: id=… --> tags make lineage stable`);
+    }
+  }
+  return warnings;
 }
 
 /** Load every *.md under `dir` (sorted), one shared id namespace. */

@@ -1,6 +1,6 @@
 import { loadCases } from '../load.js';
 import { validateCaseSet } from '../validate.js';
-import { loadIntentDir } from '../intent.js';
+import { loadIntentDir, lintIntent } from '../intent.js';
 import { checkStale } from '../stale.js';
 
 export async function main(ctx) {
@@ -12,7 +12,9 @@ export async function main(ctx) {
   let errorCount = ctx.reportValidation(results, parseErrors) + stepErrors + templateErrors;
 
   if (flags.intent) {
-    const { stale, missing } = checkStale(loaded, loadIntentDir(flags.intent));
+    const sections = loadIntentDir(flags.intent);
+    for (const msg of lintIntent(sections)) console.error(`warn  intent: ${msg}`);
+    const { stale, missing } = checkStale(loaded, sections);
     for (const s of stale) {
       console.error(`warn  ${s.file}: ${s.caseId} is STALE — intent "${s.intent}" is now ${s.liveHash}, case was compiled from ${s.caseHash}`);
     }

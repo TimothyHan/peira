@@ -11,9 +11,14 @@ const COMMANDS = {
   triage: () => import('../src/cli/triage.js'),
   evidence: () => import('../src/cli/evidence.js'),
   render: () => import('../src/cli/render.js'),
+  adopt: () => import('../src/cli/adopt.js'),
 };
 
 const ctx = buildContext(process.argv);
+if (ctx.command === 'help' || ctx.command === '--help' || ctx.command === '-h') {
+  console.log(USAGE);
+  process.exit(0);
+}
 const load = COMMANDS[ctx.command];
 if (!load) {
   console.error(USAGE);
