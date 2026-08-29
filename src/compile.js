@@ -35,6 +35,9 @@ ${CASE_SCHEMA_TEXT}
   negative auth tests, or absent for anonymous.${principals.length > 0 ? ` Available principals: ${principals.map((p) => `$users.${p}`).join(', ')}.` : ''}
 - "capture" maps an alias to a response path (e.g. {"requestId": "body.id"}); later steps
   reference it as "$requestId" (whole value) or "{{requestId}}" inside strings.
+- "expect.bodySchema" is a JSON-Schema subset (type, required, properties,
+  additionalProperties, enum, items, pattern) the whole body must satisfy — use it for
+  "every element of the array has shape X" claims; use "expect.body" for concrete values.
 - Never wait by wall-clock. For eventually-consistent state, add "pollUntil": {"until": <expect>}
   to the step — it re-issues that step's request until the predicate matches. A case that
   leaves jobs running declares teardown {"drain": true}.

@@ -79,11 +79,14 @@ Deterministic: same inputs → byte-identical output (no timestamps; the seed is
 
 ## Acceptance checklist
 
-- [ ] `peira evidence` emits deterministic applied/contradicted JSONL per the §4.8 mapping
-- [ ] External API: intent we wrote, compiled by the session, runs against a service we did
-      not build; verdicts + honest network notes in a findings doc
-- [ ] `npm pack --dry-run` contents pinned; README quickstart works verbatim
-- [ ] Full suite green offline; publish staged for the author
+- [x] `peira evidence` emits deterministic applied/contradicted JSONL per the §4.8 mapping
+      (5 applied records from the external run; contradicted paths covered offline)
+- [x] External API: **5/5 pass, 0 error, first live run** against jsonplaceholder — bed config
+      was a single base URL, `bodySchema` got its first real outing —
+      [findings](../findings/2026-08-29-external-api.md)
+- [x] `npm pack --dry-run` contents pinned by `test/packaging.test.js`; README rewritten
+      (quickstart + measured numbers); version 0.1.0
+- [x] Full suite green offline (146 tests); publish staged — the author runs `npm publish`
 
 ## Decisions folded in (flag if you disagree)
 

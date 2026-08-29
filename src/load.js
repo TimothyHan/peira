@@ -12,7 +12,7 @@ export function listCaseFiles(root) {
         // steps/ and templates/ subdirectories hold their own artifact kinds, not cases
         if (entry !== 'steps' && entry !== 'templates') walk(full);
       }
-      else if (entry.endsWith('.json') && entry !== 'compile-manifest.json') out.push(full);
+      else if (entry.endsWith('.json') && entry !== 'compile-manifest.json' && entry !== 'bed.json') out.push(full);
     }
   };
   walk(root);

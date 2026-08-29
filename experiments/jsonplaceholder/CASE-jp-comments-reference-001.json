@@ -1,0 +1,42 @@
+{
+  "id": "CASE-jp-comments-reference-001",
+  "title": "GET /posts/1/comments returns 200 with a JSON array in which every element has postId 1, a numeric id, and a string email",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/posts/1/comments"
+    },
+    "expect": {
+      "status": 200,
+      "bodySchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "postId",
+            "id",
+            "email"
+          ],
+          "properties": {
+            "postId": {
+              "type": "integer",
+              "enum": [
+                1
+              ]
+            },
+            "id": {
+              "type": "number"
+            },
+            "email": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "from": {
+    "intent": "jp-comments-reference",
+    "hash": "52fdef45a65a"
+  }
+}
