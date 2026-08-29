@@ -1,11 +1,11 @@
-# Rikki-Tikki — design (RFC 0001: an intent compiler for API testing)
+# Peira — design (RFC 0001: an intent compiler for API testing)
 
 **Status:** Draft — scoping settled (API-only v1), no code yet | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-27
 **Origin:** apiTestTask (2022 — specification-driven API testing, the spec tier's ancestor) and Akela RFC 0003 (2026 — deterministic compilation over rectified context, the evidence loop this tool will eventually feed). Akela's own normative record is QABuddy RFC 0001/0002.
 
-**One sentence:** Rikki-Tikki is an intent compiler for functional API testing — human-owned acceptance criteria and invariants compile (via an LLM, at authoring time only) into schema-gated declarative test cases executed by a deterministic runner; procedures may escape to generated code, assertions never do; and every escape is telemetry that evolves the case DSL from evidence, not speculation.
+**One sentence:** Peira is an intent compiler for functional API testing — human-owned acceptance criteria and invariants compile (via an LLM, at authoring time only) into schema-gated declarative test cases executed by a deterministic runner; procedures may escape to generated code, assertions never do; and every escape is telemetry that evolves the case DSL from evidence, not speculation.
 
-*"Run and find out." — the mongoose family motto, and the whole product.*
+*πεῖρα (peira) — Greek: trial, test, attempt. The root of "empirical": knowledge that exists only because something was tried.*
 
 ---
 
@@ -13,7 +13,7 @@
 
 Every "AI-native" testing tool surveyed on 2026-08-27 (Octomind, Momentic, Shiplight, Virtuoso, StepCI-with-AI, Keploy) puts AI to work as an **operator** over the same old artifacts: it writes Playwright code, heals selectors, suggests assertions. The artifact format itself is unchanged, so the trust problem is unchanged — a human still cannot tell, without reading generated code, whether the suite asserts what the team means.
 
-Rikki-Tikki inverts the design around AI's actual failure profile:
+Peira inverts the design around AI's actual failure profile:
 
 - **Generation is cheap and untrusted** → the LLM compiles, and a deterministic schema gate catches malformed output. A model can argue with a prose instruction; it cannot argue with a validator. The gate secures *shape*, not meaning — the full trust boundary is schema gate + human case-diff review + measured compile fidelity (§8), stated as such rather than oversold.
 - **Runtime nondeterminism is unacceptable** → no LLM step exists at execution time. Same cases, same service state → same verdicts.
@@ -29,7 +29,7 @@ The three mechanisms no surveyed tool ships, and this design's reason to exist:
 
 ### From apiTestTask (2022), lessons promoted to requirements
 
-| 2022 observation | Rikki-Tikki requirement |
+| 2022 observation | Peira requirement |
 |---|---|
 | `teardown: { sleep: 1000 }`, hardcoded 100 ms waits → flaky | `pollUntil` is a day-one DSL primitive; wall-clock sleeps are a lint error in cases |
 | "restart the app between runs" — shared service state | cases declare no dependence on prior runs; compiler emits unique payload discriminators per run |
@@ -40,7 +40,7 @@ The three mechanisms no surveyed tool ships, and this design's reason to exist:
 
 ### From Akela, mechanisms borrowed (not yet the engine — see §4.8)
 
-- Addressable intent sections with stable ids (`<!-- rikki: id=… -->`, Akela-compatible tag grammar).
+- Addressable intent sections with stable ids (`<!-- peira: id=… -->`, Akela-compatible tag grammar).
 - Content-hash lineage: every case records which intent text, at which hash, it was compiled from.
 - Manifests: every compile and every run says what it produced, what it dropped, and why.
 - Evidence gates as arithmetic, thresholds as constants: no tunable knobs.
@@ -57,7 +57,7 @@ The three mechanisms no surveyed tool ships, and this design's reason to exist:
 | Keploy | traffic-inferred suites | inference | no declared intent to reconcile against; describes what *is*, not what *should be* |
 | Pact | consumer contracts | none | different problem (integration shape, not behavior) |
 
-Rikki-Tikki competes on the synthesis and the discipline, not the ingredients.
+Peira competes on the synthesis and the discipline, not the ingredients.
 
 ## 4. Design
 
@@ -81,12 +81,12 @@ A markdown folder (`intent/`). Every `##` is an addressable section, one accepta
 
 ```markdown
 ## Result isolation
-<!-- rikki: id=result-isolation kind=invariant -->
+<!-- peira: id=result-isolation kind=invariant -->
 Execution results are visible only to the user who submitted the request.
 Invariant: for all requests r, for all users u ≠ submitter(r): GET status(r) as u → 403.
 
 ## Submit returns an id
-<!-- rikki: id=submit-returns-id kind=ac -->
+<!-- peira: id=submit-returns-id kind=ac -->
 A valid authenticated submission is accepted and returns the registered request id.
 ```
 
@@ -125,7 +125,7 @@ Two clarifications from the CEO review (2026-08-27): `$unique.*` values are **de
 
 ### 4.4 The compiler
 
-`rikki compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which cases; which compilations were refused and why; which fell back to escape hatches. A case whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
+`peira compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which cases; which compilations were refused and why; which fell back to escape hatches. A case whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
 
 An OpenAPI document, where one exists, is an **optional compilation input** (decided 2026-08-27, §9): nothing requires it, and compilation from intent alone is the baseline path. But when one IS present, the cross-check is **mandatory, not advisory** (eng review OV-1): compiled routes, methods, and payload shapes that contradict the spec are refused like any schema violation — a semantic gate layered on the structural one. PR4's generators may draw typed holes from it.
 
@@ -141,18 +141,18 @@ This is why the trust model survives generation: humans vouch for **claims**, wh
 
 ### 4.6 Escape-hatch telemetry → DSL evolution
 
-Every emitted step is logged with a normalized shape signature (what it reads, what it produces, its structural skeleton). `rikki stats` reports:
+Every emitted step is logged with a normalized shape signature (what it reads, what it produces, its structural skeleton). `peira stats` reports:
 
 - **DSL coverage** — fraction of the suite that is fully declarative (the suite's health headline).
 - **Recurring fallback shapes** — "14 steps match shape `poll-with-backoff`" is the compiler telling you which primitive the DSL is missing, with evidence.
 
-Promotion is a human edit to the schema (a new primitive), after which `rikki compile --migrate` re-expresses matching steps declaratively and the coverage metric rises. Demotion never happens — primitives are added from demonstrated demand, so the DSL only ratchets toward covering reality. This is Akela's promotion gate pointed at a grammar instead of a knowledge base, and it is the mechanism that keeps the DSL both minimal and sufficient — the failure mode that killed every committee-grown test DSL.
+Promotion is a human edit to the schema (a new primitive), after which `peira compile --migrate` re-expresses matching steps declaratively and the coverage metric rises. Demotion never happens — primitives are added from demonstrated demand, so the DSL only ratchets toward covering reality. This is Akela's promotion gate pointed at a grammar instead of a knowledge base, and it is the mechanism that keeps the DSL both minimal and sufficient — the failure mode that killed every committee-grown test DSL.
 
 ### 4.7 Drift triage
 
 Runner verdicts are `pass | fail | error`: `fail` means an assertion did not hold; `error` means infrastructure failed first (connection refused, DNS, timeout before any assertion) — the two are never conflated, because a triage that reads env-unreachable as a product bug is the misattribution trap Akela's experiments documented. `error` cases route to triage as flake/infrastructure, never as bug.
 
-On a failed run, `rikki triage` (LLM, offline, proposals only) classifies each failure:
+On a failed run, `peira triage` (LLM, offline, proposals only) classifies each failure:
 
 - **bug** — behavior contradicts intent → a structured finding (the issue-report deliverable falls out of the evidence for free: case, request, expected vs actual, intent section violated).
 - **drift** — behavior changed but still satisfies intent (200 → 202 where intent says "accepted") → a proposed *intent-level* diff plus the recompiled case. The human approves or rejects the diff; the tool never self-heals silently. An approved drift updates intent (or confirms it), and lineage hashes make the recompile mechanical.
@@ -164,7 +164,7 @@ Triage verdicts are recorded next to the run evidence. Because HTTP evidence is 
 
 ### 4.8 Akela, eventually
 
-Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts, triage decisions) and does **not** depend on Akela — Akela is itself pre-1.0, and coupling two moving engines helps neither. The seam is kept deliberately: intent sections use the Akela tag grammar, evidence events are shaped like `applied`/`contradicted` (a passing case validates its intent section; a triaged bug contradicts the service; a triaged drift contradicts the *case*), and when both engines are stable, Rikki-Tikki becomes an Akela domain pack whose evidence channel is fully deterministic — the domain where Akela's open misattribution problem vanishes by construction.
+Peira v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts, triage decisions) and does **not** depend on Akela — Akela is itself pre-1.0, and coupling two moving engines helps neither. The seam is kept deliberately: intent sections use the Akela tag grammar, evidence events are shaped like `applied`/`contradicted` (a passing case validates its intent section; a triaged bug contradicts the service; a triaged drift contradicts the *case*), and when both engines are stable, Peira becomes an Akela domain pack whose evidence channel is fully deterministic — the domain where Akela's open misattribution problem vanishes by construction.
 
 ## 5. Invariants (the things that do not change)
 
@@ -172,10 +172,10 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 2. Intent is the only source of truth. Cases and steps are regenerable artifacts; a hand-edit that diverges from lineage is flagged, not silently accepted.
 3. Assertions are declarative, always. A step that asserts is refused at the schema gate.
 4. Every compile and every run writes a manifest — what was produced, what was dropped or refused, and why.
-5. Every escape hatch is logged. Silent fallback is a bug in Rikki-Tikki, not a behavior.
+5. Every escape hatch is logged. Silent fallback is a bug in Peira, not a behavior.
 6. Drift never self-heals. A case changes only through an approved intent-level decision.
 7. Thresholds and caps are constants, not configuration.
-8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state) — **scoped caveat (eng review OV-3):** transient-state assertions additionally depend on the AUT's scheduling; against the fixture this is tamed by normatively pinned timing constants (job durations, poll interval — spec'd in the build plan), and against arbitrary AUTs transient cases are honestly race-prone, which is why they sit on the telemetry watchlist. `$unique.*` values derive from the seed.
+8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state) — **scoped caveat (eng review OV-3):** transient-state assertions additionally depend on the AUT's scheduling; against the fixture this is tamed by normatively pinned timing constants (job durations, poll interval — pinned in the [PR1 plan](plans/pr1.md)), and against arbitrary AUTs transient cases are honestly race-prone, which is why they sit on the telemetry watchlist. `$unique.*` values derive from the seed.
 9. The evidence log redacts credential material by default — `Authorization`, `Cookie`, and `Set-Cookie` values are stored as `[REDACTED:<sha256-prefix>]` so equality across events survives but secrets never land in plaintext JSONL.
 
 ## 6. Non-goals (v1)
@@ -183,7 +183,7 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 - UI / browser testing (Octomind and Momentic's contested ground; enormous escape-hatch surface — would drown the telemetry signal v1 exists to prove).
 - Load / performance testing.
 - Mocking and contract brokering (Pact's problem).
-- Traffic capture / inference (Keploy's problem; Rikki-Tikki declares what *should* be, not what is).
+- Traffic capture / inference (Keploy's problem; Peira declares what *should* be, not what is).
 - LLM-as-judge assertions for fuzzy response content (a scoped, versioned exception may earn its way in later; it violates invariant 1 and needs its own RFC).
 - A vector store, a ranking model, or any tunable scoring.
 
@@ -192,30 +192,31 @@ Rikki-Tikki v1 keeps its own flat evidence log (JSONL: compiles, runs, verdicts,
 | PR | Scope | Proves |
 |---|---|---|
 | **PR1** | Case schema + deterministic runner + evidence log; hand-written cases only. Zero-dep Node ≥ 18, same as Akela. | the DSL's five primitives cover the ancestor's ground (§8) |
-| **PR2** | Intent layer (tagged + derived markdown) + `rikki compile` with schema gate, lineage hashes, manifests | compilation fidelity is measurable |
-| **PR3** | Escape-hatch steps (typed contract, sandbox) + fallback telemetry + `rikki stats` | the DSL-evolution loop closes |
+| **PR2** | Intent layer (tagged + derived markdown) + `peira compile` with schema gate, lineage hashes, manifests | compilation fidelity is measurable |
+| **PR3** | Escape-hatch steps (typed contract, sandbox) + fallback telemetry + `peira stats` | the DSL-evolution loop closes |
 | **PR4** | Invariant templates + seeded generators | semantic properties mint real cases |
-| **PR5** | `rikki triage` (bug / drift / flake) + intent-diff proposals | drift adjudication at intent level |
-| **PR6** | Akela pack + npm publish (`rikki-tikki` — verified free 2026-08-27) | the evidence loop generalizes |
+| **PR5** | `peira triage` (bug / drift / flake) + intent-diff proposals | drift adjudication at intent level |
+| **PR6** | Akela pack + npm publish (`peira` — verified free 2026-08-29) | the evidence loop generalizes |
 
 ## 8. Validation bed
 
-Rikki-Tikki targets RESTful APIs generally; the bed is one AUT among any, and nothing in the tool may know which bed it points at. The per-bed surface is a **bed config** (eng review OV-7): base URL, a map of `$users` principals, and an optional reset hook (command or endpoint) run between suites — the minimum a real service needs that a fixture gets for free. Rate-limit handling stays out of v1. (Decided 2026-08-27, after the boot check found no local Java runtime; [findings](findings/2026-08-27-dsl-audit.md).)
+Peira targets RESTful APIs generally; the bed is one AUT among any, and nothing in the tool may know which bed it points at. The per-bed surface is a **bed config** (eng review OV-7): base URL, a map of `$users` principals, and an optional reset hook (command or endpoint) run between suites — the minimum a real service needs that a fixture gets for free. Rate-limit handling stays out of v1. (Decided 2026-08-27, after the boot check found no local Java runtime; [findings](findings/2026-08-27-dsl-audit.md).)
 
 - **Primary bed: an in-repo fixture service** — a zero-dep Node HTTP server in `test/fixtures/`, implementing the observable semantics the 2022 corpus tests (basic auth with fixture users, submit/status resources, async jobs, a capacity-2 queue, PENDING → IN_PROGRESS → COMPLETED/FAILED). Owning the fixture also lets PR5 inject deliberate behavior shifts, Akela-experiment style.
 - **Secondary bed, optional and for provenance: apiTestTask's groovy runner** — the 2022 take-home service the spec tier descends from; runs where Java exists (the 2022 CI ran it on `ubuntu-latest`).
 
-The 2022 corpus — **27 executable specs** (32 files; 5 are traceability stubs, which Rikki-Tikki replaces structurally with lineage manifests) plus `doc/test-plan.md` — is the ground truth either way:
+The 2022 corpus — **27 executable specs** (32 files; 5 are traceability stubs, which Peira replaces structurally with lineage manifests) plus `doc/test-plan.md` — is the ground truth either way:
 
 - **PR1 gate:** the five primitives (with the §4.3 amendments) re-express all 27 executable 2022 specs as cases, running green against the fixture with zero escape hatches and zero sleeps — every sleep becomes `pollUntil` (the flakiness fix the 2022 README apologized for, now enforced by lint). **Desk-audited 2026-08-27: 27/27 expressible; the audit is the schema's requirements list.**
 - **PR2 gate:** compile the 2022 test plan's acceptance criteria (ingested via derive mode, zero edits) and measure fidelity against the hand-written specs: agreement rate, hallucinations refused by the gate, honest disagreements adjudicated by the author — who happens to be the ground truth's author too. One adjudication is pre-registered: AC 1.4 says 403 for cross-user access, spec `1-5` asserts the observed 401 — the intent/spec divergence the ancestor recorded nowhere, and exactly the case §4.7 exists to catch.
 - **PR5 gate:** introduce deliberate fixture-behavior shifts and measure triage precision: bug/drift confusion rate is the headline number, because it is the number the whole category's trust depends on.
 
-Per the Akela program's hardest-won lesson: instrument first, and let the harness's own evidence channel audit the harness. If a trainee ever files a bug against Rikki-Tikki itself, read it the same day.
+Per the Akela program's hardest-won lesson: instrument first, and let the harness's own evidence channel audit the harness. If a trainee ever files a bug against Peira itself, read it the same day.
 
 ## 9. Open questions
 
 - Spec granularity for compiled invariants: N cases per run — constant, or budget-derived? (Leaning: small constant, seeded; budgets invite knobs, knobs violate invariant 7.)
-- ~~Where OpenAPI fits: as an *input* to compilation (schema substrate for generators) it is pure upside; as a required artifact it excludes exactly the messy services that need testing most.~~ **Decided 2026-08-27: optional compilation input, never required.** When present, it feeds the compiler (route/shape grounding, hallucination cross-check) and the PR4 generators (typed holes drawn from schemas); its absence changes nothing about what compiles. No Rikki-Tikki mechanism may ever *require* it — the messy services that need testing most are the ones without one.
-- Whether `rikki triage`'s bug findings should export Jira-shaped payloads in v1 or stay JSONL until a real consumer asks.
+- ~~Where OpenAPI fits: as an *input* to compilation (schema substrate for generators) it is pure upside; as a required artifact it excludes exactly the messy services that need testing most.~~ **Decided 2026-08-27: optional compilation input, never required.** When present, it feeds the compiler (route/shape grounding, hallucination cross-check) and the PR4 generators (typed holes drawn from schemas); its absence changes nothing about what compiles. No Peira mechanism may ever *require* it — the messy services that need testing most are the ones without one.
+- Whether `peira triage`'s bug findings should export Jira-shaped payloads in v1 or stay JSONL until a real consumer asks.
+- ~~The project name: "rikki-tikki" was an explicit placeholder.~~ **Decided 2026-08-29: "Peira"** (πεῖρα — trial, test; the root of *empirical*). npm `peira` verified free the same day; the CLI binary is `peira`; intent tags use the `<!-- peira: ... -->` grammar.
 - ~~The word for a compiled unit: "spec" collides with the BDD lexicon's baggage; "case" is anonymous.~~ **Decided 2026-08-27: "case."** It is the word QA teams already use — a familiar term beats a fancy one — and it disambiguates for free: in this project's documents, "spec" now always means the 2022 ancestor's artifacts. Ids are `CASE-`, the folder is `cases/`.
