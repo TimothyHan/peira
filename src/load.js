@@ -8,7 +8,9 @@ export function listCaseFiles(root) {
   const walk = (dir) => {
     for (const entry of readdirSync(dir).sort()) {
       const full = join(dir, entry);
-      if (statSync(full).isDirectory()) walk(full);
+      if (statSync(full).isDirectory()) {
+        if (entry !== 'steps') walk(full); // a steps/ subdirectory holds step definitions, not cases
+      }
       else if (entry.endsWith('.json') && entry !== 'compile-manifest.json') out.push(full);
     }
   };

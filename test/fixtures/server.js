@@ -5,7 +5,7 @@
 // The fixture never knows which case is calling; timing comes only from pinned constants.
 
 import { createServer } from 'node:http';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHmac } from 'node:crypto';
 import {
   FIXTURE_JOB_LONG_MS,
   FIXTURE_JOB_SHORT_MS,
@@ -153,6 +153,27 @@ export function startFixture({ port = 0, users = DEFAULT_USERS } = {}) {
         pendingQueue.push(job);
         promote();
         return send(200, { id: job.id });
+      }
+
+      // PR3's exclusive plant: an endpoint no day-one primitive can drive — the signature must
+      // be computed. Shared demo secret is stated in the intent; principal passwords are never
+      // signing keys. No 2022-corpus route or behavior is touched.
+      if (req.method === 'POST' && url.pathname === '/secure/echo') {
+        let payload;
+        try {
+          payload = JSON.parse(raw || 'null');
+        } catch {
+          return send(400, envelope(400, 'Bad Request', url.pathname));
+        }
+        const keys = payload !== null && typeof payload === 'object' ? Object.keys(payload).sort() : null;
+        if (keys === null || keys.join(',') !== 'payload,signature' || typeof payload.payload !== 'string' || typeof payload.signature !== 'string') {
+          return send(400, envelope(400, 'Bad Request', url.pathname));
+        }
+        const expected = createHmac('sha256', 'peira-demo-secret').update(payload.payload).digest('hex');
+        if (payload.signature !== expected) {
+          return send(400, envelope(400, 'Bad Request', url.pathname, 'invalid signature'));
+        }
+        return send(200, { echo: payload.payload, verified: true });
       }
 
       if (req.method === 'GET' && url.pathname === '/groovy/status') {

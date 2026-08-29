@@ -1,0 +1,34 @@
+{
+  "id": "CASE-signed-echo-valid-signature-001",
+  "title": "A correctly signed request returns 200 with body {\"echo\": \"<payload>\", \"verified\": true}",
+  "setup": [
+    {
+      "step": "STEP-hmac-sha256-signature-001",
+      "bind": {
+        "payload": "peira signed echo"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/secure/echo",
+      "auth": "$users.user_1",
+      "body": {
+        "payload": "peira signed echo",
+        "signature": "$signature"
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "echo": "peira signed echo",
+        "verified": true
+      }
+    }
+  },
+  "from": {
+    "intent": "hmac-echo",
+    "hash": "487d20fd87c0"
+  }
+}

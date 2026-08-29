@@ -1,0 +1,19 @@
+{
+  "model": "claude-opus-5",
+  "contractHash": "9e576eb734b2",
+  "sections": [
+    {
+      "id": "hmac-echo",
+      "hash": "487d20fd87c0",
+      "outcome": "compiled",
+      "cases": [
+        "CASE-signed-echo-valid-signature-001",
+        "CASE-signed-echo-wrong-signature-001"
+      ],
+      "refused": [],
+      "steps": [
+        "STEP-hmac-sha256-signature-001"
+      ]
+    }
+  ]
+}

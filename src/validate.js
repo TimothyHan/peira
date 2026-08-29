@@ -3,7 +3,8 @@
 // $users aliases against the bed config, and the weak-oracle warning.
 // An invalid case is refused, never patched (RFC 0001 §2).
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateSchema } from './schema.js';
 import { findTokens } from './interpolate.js';
@@ -12,6 +13,54 @@ import { ANY_TYPES } from './expect.js';
 const CASE_SCHEMA = JSON.parse(
   readFileSync(fileURLToPath(new URL('../schema/case.schema.json', import.meta.url)), 'utf8'),
 );
+const STEP_SCHEMA = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../schema/step.schema.json', import.meta.url)), 'utf8'),
+);
+
+// Deterministic code lint (RFC §4.5): a step that asserts, or reaches for anything ambient,
+// is refused at the gate. Each entry: [pattern, what the refusal says].
+const CODE_BANS = [
+  [/\bexpect\s*\(/, 'assertion vocabulary "expect(" — assertions are declarative, always (invariant 3)'],
+  [/\bassert\b/, 'assertion vocabulary "assert" — assertions are declarative, always (invariant 3)'],
+  [/\.should\b/, 'assertion vocabulary ".should" — assertions are declarative, always (invariant 3)'],
+  [/\brequire\s*\(/, '"require(" — a step gets its inputs and ctx helpers, nothing ambient'],
+  [/\bimport\b/, '"import" — a step gets its inputs and ctx helpers, nothing ambient'],
+  [/\bprocess\./, '"process." — a step gets its inputs and ctx helpers, nothing ambient'],
+  [/child_process/, '"child_process" — a step gets its inputs and ctx helpers, nothing ambient'],
+];
+
+/** Validate one step definition: schema + the code lint. Returns { errors }. */
+export function validateStep(stepObj) {
+  const errors = validateSchema(STEP_SCHEMA, stepObj).map((e) => e.message);
+  if (errors.length > 0) return { errors };
+  for (const [pattern, message] of CODE_BANS) {
+    if (pattern.test(stepObj.code)) errors.push(`code: refused — ${message}`);
+  }
+  return { errors };
+}
+
+/** Load a steps directory into a registry. Returns { steps: Map, results: [{file, id, errors}] }. */
+export function loadSteps(dir) {
+  const steps = new Map();
+  const results = [];
+  if (!dir || !existsSync(dir)) return { steps, results };
+  for (const entry of readdirSync(dir).sort()) {
+    if (!entry.endsWith('.json')) continue;
+    const file = join(dir, entry);
+    let stepObj;
+    try {
+      stepObj = JSON.parse(readFileSync(file, 'utf8'));
+    } catch (err) {
+      results.push({ file, id: null, errors: [`not valid JSON — ${err.message}`] });
+      continue;
+    }
+    const { errors } = validateStep(stepObj);
+    if (stepObj?.id && steps.has(stepObj.id)) errors.push(`duplicate step id ${stepObj.id}`);
+    if (errors.length === 0) steps.set(stepObj.id, stepObj);
+    results.push({ file, id: stepObj?.id ?? null, errors });
+  }
+  return { steps, results };
+}
 
 const ALIAS_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const CAPTURE_PATH_PATTERN = /^(status|body|headers)(\.[A-Za-z0-9_-]+)*$/;
@@ -46,7 +95,23 @@ function checkTokens(value, where, available, errors) {
   }
 }
 
-function checkStep(step, label, available, bedUsers, errors) {
+function checkStep(step, label, available, bedUsers, errors, steps) {
+  if ('step' in step) {
+    // invocation: procedure only — the schema already refused expect/capture by shape
+    const def = steps?.get(step.step);
+    if (!def) {
+      errors.push(`${label}.step: unknown step "${step.step}" — not in the steps registry`);
+      return;
+    }
+    if (step.bind !== undefined) checkTokens(step.bind, `${label}.bind`, available, errors);
+    for (const name of def.reads) {
+      if (!(step.bind && name in step.bind) && !available.has(name)) {
+        errors.push(`${label}: step ${def.id} reads "${name}" — not bound and no prior capture or step produces it`);
+      }
+    }
+    def.produces.forEach((name) => available.add(name));
+    return;
+  }
   const req = step.request;
   checkTokens(req.route, `${label}.request.route`, available, errors);
   if (req.query !== undefined) checkTokens(req.query, `${label}.request.query`, available, errors);
@@ -83,7 +148,7 @@ function checkStep(step, label, available, bedUsers, errors) {
  * @param {object} caseObj
  * @param {{bedUsers?: object}} [opts] bed principals map, when a bed config is at hand
  */
-export function validateCase(caseObj, { bedUsers } = {}) {
+export function validateCase(caseObj, { bedUsers, steps } = {}) {
   const errors = [];
   const warnings = [];
 
@@ -97,8 +162,8 @@ export function validateCase(caseObj, { bedUsers } = {}) {
   if (errors.length > 0) return { errors, warnings }; // static checks assume a well-shaped case
 
   const available = new Set();
-  (caseObj.setup ?? []).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors));
-  checkStep(caseObj.test, 'test', available, bedUsers, errors);
+  (caseObj.setup ?? []).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps));
+  checkStep(caseObj.test, 'test', available, bedUsers, errors, steps);
 
   const t = caseObj.test;
   const asserts = (t.expect && Object.keys(t.expect).length > 0) || t.pollUntil;

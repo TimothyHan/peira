@@ -3,7 +3,9 @@
 // fail = an assertion did not hold; error = infrastructure failed before an assertion could.
 
 import { createHash } from 'node:crypto';
-import { POLL_INTERVAL_MS, POLL_UNTIL_TIMEOUT_MS, DRAIN_TIMEOUT_MS } from './constants.js';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { POLL_INTERVAL_MS, POLL_UNTIL_TIMEOUT_MS, DRAIN_TIMEOUT_MS, STEP_TIMEOUT_MS } from './constants.js';
 import { resolveValue, UnresolvedTokenError } from './interpolate.js';
 import { matchExpect } from './expect.js';
 import { httpRequest, InfraError } from './http.js';
@@ -38,7 +40,79 @@ function resolveAuth(auth, bed) {
   return auth; // literal {username, password} — negative auth tests are the security section
 }
 
+const HARNESS_PATH = fileURLToPath(new URL('./step-harness.js', import.meta.url));
+
+export function runHarness(job, timeoutMs = STEP_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [HARNESS_PATH], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new CaseFailure(`step harness timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    child.stdout.on('data', (d) => (stdout += d));
+    child.stderr.on('data', (d) => (stderr += d));
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(new InfraError(`could not spawn step harness: ${err.message}`));
+    });
+    child.on('close', () => {
+      clearTimeout(timer);
+      try {
+        resolve(JSON.parse(stdout));
+      } catch {
+        reject(new CaseFailure(`step harness produced no result${stderr ? `: ${stderr.slice(0, 200)}` : ''}`));
+      }
+    });
+    child.stdin.end(JSON.stringify(job));
+  });
+}
+
+async function executeInvocation(step, label, state) {
+  const { ctx, baseUrl, evidence, caseId, steps } = state;
+  const def = steps.get(step.step);
+  if (!def) throw new CaseFailure(`${label}: unknown step "${step.step}"`); // validate prevents this
+
+  const inputs = {};
+  for (const name of def.reads) {
+    if (step.bind && name in step.bind) inputs[name] = resolveValue(step.bind[name], ctx);
+    else if (name in ctx.captures) inputs[name] = ctx.captures[name];
+    else throw new CaseFailure(`${label}: step ${def.id} reads "${name}" — not available at runtime`);
+  }
+
+  const started = performance.now();
+  const result = await runHarness({ code: def.code, inputs, baseUrl });
+  const elapsedMs = Math.round(performance.now() - started);
+
+  if (!result.ok) {
+    if (result.kind === 'infra') throw new InfraError(`${label}: step ${def.id}: ${result.error}`);
+    throw new CaseFailure(`${label}: step ${def.id} ${result.kind === 'contract' ? 'broke its contract' : 'failed'}: ${result.error}`);
+  }
+  const produced = {};
+  const dropped = [];
+  for (const [key, value] of Object.entries(result.outputs)) {
+    (def.produces.includes(key) ? (produced[key] = value) : dropped.push(key));
+  }
+  const missing = def.produces.filter((name) => !(name in produced));
+  if (missing.length > 0) {
+    throw new CaseFailure(`${label}: step ${def.id} broke its contract — declared but did not produce: ${missing.join(', ')}`);
+  }
+  Object.assign(ctx.captures, produced);
+  evidence.append({
+    event: 'step',
+    case: caseId,
+    phase: label,
+    step: def.id,
+    reads: def.reads,
+    produces: def.produces,
+    ...(dropped.length > 0 ? { droppedOutputs: dropped } : {}),
+    elapsedMs,
+  });
+}
+
 async function executeStep(step, label, state) {
+  if ('step' in step) return executeInvocation(step, label, state);
   const { ctx, bed, baseUrl, evidence, caseId } = state;
   const req = step.request;
   const auth = resolveAuth(req.auth, bed);
@@ -140,13 +214,14 @@ async function drainCaptures(caseObj, state) {
 }
 
 /** Run one case. Returns { id, verdict, reason?, diffs? }. */
-export async function runCase(caseObj, { bed, baseUrl, seed, evidence }) {
+export async function runCase(caseObj, { bed, baseUrl, seed, evidence, steps = new Map() }) {
   const caseId = caseObj.id;
   const state = {
     bed,
     baseUrl,
     evidence,
     caseId,
+    steps,
     ctx: { captures: {}, unique: (key) => uniqueValue(seed, caseId, key) },
     captureAuth: {},
     captureOrder: [],
@@ -189,14 +264,14 @@ function classify(caseId, err) {
  * Run a case set sequentially. `loaded` is [{file, caseObj}] in execution order.
  * Returns { seed, verdicts, counts }.
  */
-export async function runCases(loaded, { bed, baseUrl, seed, evidencePath = null }) {
+export async function runCases(loaded, { bed, baseUrl, seed, evidencePath = null, steps = new Map() }) {
   const evidence = new EvidenceLog(evidencePath);
   const resolvedBase = baseUrl ?? bed.baseUrl;
   evidence.append({ event: 'run-start', seed, baseUrl: resolvedBase, cases: loaded.length });
 
   const verdicts = [];
   for (const { caseObj } of loaded) {
-    verdicts.push(await runCase(caseObj, { bed, baseUrl: resolvedBase, seed, evidence }));
+    verdicts.push(await runCase(caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps }));
   }
 
   const counts = { pass: 0, fail: 0, error: 0 };

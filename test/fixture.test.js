@@ -111,6 +111,26 @@ test('status ids: missing/empty/malformed → 400, well-formed-but-unknown → 4
     assert.equal((await status(url, '00000000-aaaa-1111-bbbb-222222222222')).status, 404);
   }));
 
+test('/secure/echo: verifies a real HMAC, rejects bad signatures and malformed bodies', () =>
+  withFixture(async ({ url }) => {
+    const { createHmac } = await import('node:crypto');
+    const payload = 'hello world';
+    const signature = createHmac('sha256', 'peira-demo-secret').update(payload).digest('hex');
+    const ok = await httpRequest({ baseUrl: url, method: 'post', route: '/secure/echo', auth: alice, body: { payload, signature } });
+    assert.equal(ok.status, 200);
+    assert.deepEqual(ok.body, { echo: payload, verified: true });
+
+    const bad = await httpRequest({ baseUrl: url, method: 'post', route: '/secure/echo', auth: alice, body: { payload, signature: 'deadbeef' } });
+    assert.equal(bad.status, 400);
+    assert.equal(bad.body.message, 'invalid signature');
+
+    const malformed = await httpRequest({ baseUrl: url, method: 'post', route: '/secure/echo', auth: alice, body: { payload } });
+    assert.equal(malformed.status, 400);
+
+    const anon = await httpRequest({ baseUrl: url, method: 'post', route: '/secure/echo', body: { payload, signature } });
+    assert.equal(anon.status, 401);
+  }));
+
 test('reset clears all jobs', () =>
   withFixture(async ({ url, reset }) => {
     const job = await submitCode(url, '1+1');

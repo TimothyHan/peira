@@ -1,0 +1,8 @@
+{
+  "id": "CASE-invocation-expect",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "setup": [
+    { "step": "STEP-anything-001", "expect": { "status": 200 } }
+  ],
+  "test": { "request": { "method": "get", "route": "/thing" }, "expect": { "status": 200 } }
+}

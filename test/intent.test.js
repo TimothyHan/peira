@@ -52,9 +52,11 @@ test('hash contract: LF-normalized, trailing whitespace stripped, stable', () =>
 });
 
 test('the verbatim 2022 test plan ingests with zero edits into the expected section set', () => {
-  const sections = loadIntentDir(join(here, '..', 'intent'));
+  const all = loadIntentDir(join(here, '..', 'intent'));
+  const sections = all.filter((s) => s.file === '2022-test-plan.md');
   const ids = sections.map((s) => s.id);
   assert.equal(sections.length, 16, JSON.stringify(ids));
+  assert.ok(all.some((s) => s.id === 'hmac-echo' && s.kind === 'ac'), 'the PR3 demo intent is present');
   // the AC sections the fidelity experiment compiles
   for (const expected of ['security-2', 'post-groovy-submit', 'get-groovy-status', 'robustness-2', 'parallel-execution-and-request-queueing-2']) {
     assert.ok(ids.includes(expected), `missing ${expected} in ${JSON.stringify(ids)}`);
@@ -68,3 +70,4 @@ test('the verbatim 2022 test plan ingests with zero edits into the expected sect
   assert.match(status.text, /3\.6.*404 Not found/);
   for (const s of sections) assert.equal(s.kind, 'ac');
 });
+
