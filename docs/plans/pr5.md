@@ -81,15 +81,23 @@ session, PR2-experiment scale; runs in the background.)
 
 ## Acceptance checklist
 
-- [ ] `error` verdicts never reach the model; passing runs never trigger a call
-- [ ] Triage output is schema-gated; proposals only; drift proposals are intent-level diffs
+- [x] `error` verdicts never reach the model; passing runs never trigger a call
+- [x] Triage output is schema-gated; proposals only; drift proposals are intent-level diffs
       naming the cases that go stale
-- [ ] Plants off = byte-identical fixture (2022 corpus green, regression-tested)
-- [ ] ≥30 pre-registered shifts run through the harness; confusion matrix published;
-      bug/drift confusion rate is the findings headline
-- [ ] BUG-2022-01's standing failures triage as **bug** (the known-bug steady state is
-      classified correctly, not re-proposed as drift)
-- [ ] Full suite green offline
+- [x] Plants off = byte-identical fixture (2022 corpus green, regression-tested)
+- [x] 33 pre-registered shifts run through the harness; confusion matrix published;
+      bug/drift confusion rate is the findings headline — **12.1%**, with the one round-2
+      bug↔drift "confusion" being the model re-detecting BUG-2022-01 under a cosmetic plant
+- [x] BUG-2022-01's standing failures triage as **bug** ✓ (both rounds)
+- [x] Full suite green offline (140 tests)
+
+**Gate results (2026-08-29):** see [the findings](../findings/2026-08-29-triage-precision.md).
+Round 1 was invalidated by non-resolving corpus lineage — and became a finding: starved of
+intent text, triage honestly refused to classify (bug/drift confusion 0). Round 2 (lineage
+fixed): 25/33 majority-correct, drift 8/9, zero schema refusals / invented ids / injection
+incidents across 34 live calls. Recorded demand for later: whole-document intent context for
+triage, and re-run-and-diff evidence for flake inference (1/3 on flakes from single-run
+evidence). One corpus blind spot found: capacity loss is invisible to `pollUntil`-based cases.
 
 ## Decisions folded in (flag if you disagree)
 
