@@ -4,6 +4,7 @@
 
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { POLL_INTERVAL_MS, POLL_UNTIL_TIMEOUT_MS, DRAIN_TIMEOUT_MS, STEP_TIMEOUT_MS } from './constants.js';
 import { resolveValue, UnresolvedTokenError } from './interpolate.js';
@@ -36,6 +37,7 @@ function resolveAuth(auth, bed) {
 }
 
 const HARNESS_PATH = fileURLToPath(new URL('./step-harness.js', import.meta.url));
+const TOOL_VERSION = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version;
 
 export function runHarness(job, timeoutMs = STEP_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
@@ -281,7 +283,7 @@ export async function runCases(loaded, { bed, baseUrl, seed, evidencePath = null
   // invariant templates mint fresh concrete cases for THIS run (RFC §4.4); the evidence log
   // carries each minted case in full — (template, seed, instance) regenerates it bit-for-bit
   const minted = mintAll(templates, { bedUsers: bed.users ?? {}, seed });
-  evidence.append({ event: 'run-start', seed, baseUrl: resolvedBase, cases: loaded.length, minted: minted.length });
+  evidence.append({ event: 'run-start', seed, baseUrl: resolvedBase, cases: loaded.length, minted: minted.length, version: TOOL_VERSION });
   const executable = [...loaded];
   for (const m of minted) {
     evidence.append({ event: 'minted', template: m.template, seed, instance: m.instance, case: m.caseObj });

@@ -24,6 +24,7 @@ export function parseEvidence(text) {
   const runStart = events.find((e) => e.event === 'run-start');
   const definitions = new Map();
   const httpByCase = new Map();
+  const stepsByCase = new Map();
   const verdicts = [];
   for (const e of events) {
     if (e.event === 'case-start') definitions.set(e.case, e.definition);
@@ -32,9 +33,13 @@ export function parseEvidence(text) {
       if (!httpByCase.has(e.case)) httpByCase.set(e.case, []);
       httpByCase.get(e.case).push(e);
     }
+    if (e.event === 'step') {
+      if (!stepsByCase.has(e.case)) stepsByCase.set(e.case, []);
+      stepsByCase.get(e.case).push(e);
+    }
     if (e.event === 'case-verdict') verdicts.push(e);
   }
-  return { seed: runStart?.seed ?? null, verdicts, definitions, httpByCase };
+  return { seed: runStart?.seed ?? null, runStart: runStart ?? null, verdicts, definitions, httpByCase, stepsByCase };
 }
 
 /** Mechanical routing: fails go to the model, errors never do, passes trigger nothing. */

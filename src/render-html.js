@@ -80,7 +80,15 @@ function sectionCounts(cases, verdictFor) {
   return { counts, graded };
 }
 
-function caseCard(caseObj, { steps, verdict, triage }) {
+function exchangeRows(exchanges) {
+  return exchanges.map((e) => {
+    const query = e.request.query ? '?' + Object.entries(e.request.query).map(([k, v]) => `${k}=${v}`).join('&') : '';
+    const sent = e.request.body !== undefined ? `<br><small>sent <code>${esc(cap(JSON.stringify(e.request.body), 200))}</code></small>` : '';
+    return `<tr><td class="xchg-meta">${esc(e.phase)} #${e.attempt}</td><td>${esc(e.request.method.toUpperCase())} ${esc(e.request.route + query)}${sent}</td><td class="xchg-meta">${e.response.status}</td><td class="xchg-meta">${e.response.elapsedMs}ms</td><td><code>${esc(cap(JSON.stringify(e.response.body), 300))}</code></td></tr>`;
+  }).join('\n');
+}
+
+function caseCard(caseObj, { steps, verdict, triage, exchanges, durationMs }) {
   const cls = verdict ? verdict.verdict : 'doc';
   const badge = verdict ? `<span class="badge ${verdict.verdict}">${verdict.verdict.toUpperCase()}</span>` : '';
   const open = !verdict || verdict.verdict !== 'pass' ? ' open' : '';
@@ -105,13 +113,17 @@ function caseCard(caseObj, { steps, verdict, triage }) {
       }</div>`
     : '';
 
+  const meta = durationMs ? `<span class="meta">${durationMs}ms · ${exchanges?.length ?? 0} exchange(s)</span>` : '';
+  const observed = verdict && verdict.verdict !== 'pass' && exchanges?.length
+    ? `<details class="observed" open><summary>Observed exchanges (${exchanges.length}) — the debugging log, bodies redacted at capture</summary><table class="xchg">${exchangeRows(exchanges)}</table></details>`
+    : '';
   return `<details class="case ${cls}" id="${esc(caseObj.id)}"${open}>
-<summary>${badge}<code>${esc(caseObj.id)}</code>${caseObj.title ? ` <span class="title">${esc(caseObj.title)}</span>` : ''}</summary>
+<summary>${badge}<code>${esc(caseObj.id)}</code>${caseObj.title ? ` <span class="title">${esc(caseObj.title)}</span>` : ''}${meta}</summary>
 <div class="body">
 ${caseObj.notes ? `<p class="notes">${esc(caseObj.notes)}</p>` : ''}
 <table>${rows.join('\n')}</table>
 <p class="lineage">from intent <code>${esc(from.intent)}</code> @ <code>${esc(from.hash)}</code>${minted}</p>
-${failure}${triageBlock}
+${failure}${observed}${triageBlock}
 </div>
 </details>`;
 }
@@ -155,6 +167,14 @@ td { padding-bottom: .2rem; font-size: .92rem; }
 .triage { background: #8250df12; border-radius: 6px; padding: .5rem .75rem; margin-top: .5rem; font-size: .9rem; }
 .diff { margin-top: .35rem; } del { color: var(--fail); } ins { color: var(--pass); text-decoration: none; }
 .lineage, .notes { color: var(--muted); font-size: .82rem; margin: .4rem 0 0; }
+.meta { margin-left: auto; color: var(--muted); font-size: .78rem; }
+.env { color: var(--muted); font-size: .82rem; margin: .25rem 0 0; }
+.cats { margin: .35rem 0 0; display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; font-size: .8rem; color: var(--muted); }
+details.observed { margin-top: .5rem; }
+details.observed > summary { cursor: pointer; font-size: .85rem; color: var(--muted); }
+table.xchg { width: 100%; margin-top: .35rem; font-size: .82rem; }
+table.xchg td { border-top: 1px solid var(--line); padding: .25rem .5rem .25rem 0; vertical-align: top; word-break: break-word; }
+.xchg-meta { color: var(--muted); white-space: nowrap; }
 footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; }
 @media print { details.case { break-inside: avoid; } details.case:not([open]) > summary ~ * { display: block; } }
 `;
@@ -164,7 +184,7 @@ footer { margin-top: 3rem; color: var(--muted); font-size: .8rem; }
  * @returns {string} html
  */
 export function renderHtmlDocument({ loaded, steps, templates, sections, evidenceText, triageProposals, perTemplate = 5 }) {
-  const { runHeader, verdictFor, triageFor, mintedCases, groups, sectionFor } = buildReportModel({ loaded, sections, evidenceText, triageProposals });
+  const { runHeader, verdictFor, triageFor, mintedCases, groups, sectionFor, exchangesFor, durationFor } = buildReportModel({ loaded, sections, evidenceText, triageProposals });
   const parts = [];
   const title = runHeader ? `Peira run report — seed ${runHeader.seed}` : 'Peira test cases';
   parts.push(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body>`);
@@ -174,18 +194,35 @@ export function renderHtmlDocument({ loaded, steps, templates, sections, evidenc
   const allGraded = [...verdictFor.values()];
   if (runHeader) {
     const total = allGraded.length;
+    const rate = total > 0 ? ((runHeader.counts.pass / total) * 100).toFixed(1) : '0.0';
     parts.push(`<div class="tiles">
 <div class="tile pass"><b>${runHeader.counts.pass}</b><small>pass</small></div>
 <div class="tile fail"><b>${runHeader.counts.fail}</b><small>fail</small></div>
 <div class="tile error"><b>${runHeader.counts.error}</b><small>error</small></div>
+<div class="tile"><b>${rate}%</b><small>pass rate</small></div>
 <div class="tile"><b>${total}</b><small>cases run</small></div>
 <div class="tile"><b>${runHeader.seed}</b><small>seed</small></div>
 </div>`);
+    const env = [
+      runHeader.baseUrl ? `bed <code>${esc(runHeader.baseUrl)}</code>` : null,
+      runHeader.minted > 0 ? `${runHeader.minted} minted from templates` : null,
+      runHeader.version ? `peira v${esc(runHeader.version)}` : null,
+    ].filter(Boolean);
+    if (env.length > 0) parts.push(`<p class="env">${env.join(' · ')}</p>`);
     parts.push(verdictBar(runHeader.counts));
 
     const failures = allGraded.filter((v) => v.verdict !== 'pass');
     if (failures.length > 0) {
-      parts.push(`<div class="failindex"><strong>Needs attention (${failures.length})</strong><ul>`);
+      const catCounts = {};
+      for (const v of failures) {
+        const key = v.verdict === 'error' ? 'error' : (triageFor.get(v.id)?.classification ?? 'untriaged');
+        catCounts[key] = (catCounts[key] ?? 0) + 1;
+      }
+      const catChip = (key, n) =>
+        key === 'error' ? `<span class="badge error">ERROR ${n}</span>` :
+        key === 'untriaged' ? `<span class="count">untriaged ${n}</span>` :
+        `<span class="chip ${key}">${key} ${n}</span>`;
+      parts.push(`<div class="failindex"><strong>Needs attention (${failures.length})</strong><div class="cats">${Object.entries(catCounts).map(([k, n]) => catChip(k, n)).join(' ')}</div><ul>`);
       for (const v of failures) {
         const triage = triageFor.get(v.id);
         parts.push(`<li><span class="badge ${v.verdict}">${v.verdict.toUpperCase()}</span> <a href="#${esc(v.id)}"><code>${esc(v.id)}</code></a>${triage ? ` <span class="chip ${triage.classification}">triage: ${triage.classification}</span>` : ''} <span class="count">${esc(cap(v.reason ?? '', 90))}</span></li>`);
@@ -200,7 +237,7 @@ export function renderHtmlDocument({ loaded, steps, templates, sections, evidenc
     parts.push(`<h2>${esc(heading)}${chip}</h2>`);
     if (sectionText) parts.push(`<blockquote>${esc(sectionText)}</blockquote>`);
     for (const caseObj of cases) {
-      parts.push(caseCard(caseObj, { steps, verdict: verdictFor.get(caseObj.id), triage: triageFor.get(caseObj.id) }));
+      parts.push(caseCard(caseObj, { steps, verdict: verdictFor.get(caseObj.id), triage: triageFor.get(caseObj.id), exchanges: exchangesFor.get(caseObj.id), durationMs: durationFor.get(caseObj.id) }));
     }
   };
 

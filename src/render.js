@@ -58,12 +58,13 @@ function renderStepLine(step, steps) {
 /**
  * Render one case as Given/When/Then lines.
  * @param {object} caseObj
- * @param {{steps?: Map<string, object>, verdict?: import('./types.js').Verdict, triage?: object}} [opts]
+ * @param {{steps?: Map<string, object>, verdict?: import('./types.js').Verdict, triage?: object, exchanges?: object[], durationMs?: number}} [opts]
  */
-export function renderCase(caseObj, { steps, verdict, triage } = {}) {
+export function renderCase(caseObj, { steps, verdict, triage, exchanges, durationMs } = {}) {
   const lines = [];
   const icon = verdict ? { pass: '✅', fail: '❌', error: '🟡' }[verdict.verdict] + ' ' : '';
-  lines.push(`### ${icon}${caseObj.id}${caseObj.title ? ` — ${caseObj.title}` : ''}`);
+  const timing = durationMs ? ` · ${durationMs}ms${exchanges ? ` · ${exchanges.length} exchange(s)` : ''}` : '';
+  lines.push(`### ${icon}${caseObj.id}${caseObj.title ? ` — ${caseObj.title}` : ''}${timing}`);
   if (caseObj.notes) lines.push(`> ${caseObj.notes}`);
   lines.push('');
   for (const [i, step] of (caseObj.setup ?? []).entries()) {
@@ -81,6 +82,10 @@ export function renderCase(caseObj, { steps, verdict, triage } = {}) {
     for (const d of verdict.diffs ?? []) {
       lines.push(`  - at \`${d.path}\`: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.actual)} (${d.reason})`);
     }
+  }
+  if (verdict && verdict.verdict !== 'pass' && exchanges?.length) {
+    lines.push(`- **Observed exchanges (${exchanges.length})** — the debugging log, bodies redacted at capture:`);
+    for (const e of exchanges) lines.push(`  - ${fmtExchange(e)}`);
   }
   if (triage) lines.push(...triageLines(triage));
   return lines.join('\n');
@@ -110,6 +115,8 @@ function renderTemplate(tpl, perRun) {
 export function buildReportModel({ loaded, sections, evidenceText, triageProposals }) {
   const verdictFor = new Map();
   const triageFor = new Map();
+  const exchangesFor = new Map();
+  const durationFor = new Map();
   let mintedCases = [];
   let runHeader = null;
 
@@ -118,8 +125,21 @@ export function buildReportModel({ loaded, sections, evidenceText, triageProposa
     for (const v of parsed.verdicts) verdictFor.set(v.id, v);
     const counts = { pass: 0, fail: 0, error: 0 };
     for (const v of parsed.verdicts) counts[v.verdict] += 1;
-    runHeader = { seed: parsed.seed, counts };
+    runHeader = {
+      seed: parsed.seed,
+      counts,
+      baseUrl: parsed.runStart?.baseUrl,
+      version: parsed.runStart?.version,
+      minted: parsed.runStart?.minted ?? 0,
+    };
     mintedCases = [...parsed.definitions.values()].filter((d) => d?.from?.template !== undefined);
+    for (const [caseId, events] of parsed.httpByCase) {
+      exchangesFor.set(caseId, events);
+      durationFor.set(caseId, events.reduce((ms, e) => ms + (e.response?.elapsedMs ?? 0), 0));
+    }
+    for (const [caseId, events] of parsed.stepsByCase) {
+      durationFor.set(caseId, (durationFor.get(caseId) ?? 0) + events.reduce((ms, e) => ms + (e.elapsedMs ?? 0), 0));
+    }
   }
   for (const v of triageProposals?.verdicts ?? []) triageFor.set(v.case, v);
 
@@ -130,7 +150,15 @@ export function buildReportModel({ loaded, sections, evidenceText, triageProposa
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(caseObj);
   }
-  return { runHeader, verdictFor, triageFor, mintedCases, groups, sectionFor };
+  return { runHeader, verdictFor, triageFor, mintedCases, groups, sectionFor, exchangesFor, durationFor };
+}
+
+/** Compact one-line rendering of an observed HTTP exchange (bodies already redacted at write time). */
+export function fmtExchange(e, capBody = 200) {
+  const query = e.request.query ? '?' + new URLSearchParams(Object.fromEntries(Object.entries(e.request.query).map(([k, v]) => [k, String(v)]))).toString() : '';
+  const sent = e.request.body !== undefined ? ` sent ${cap(JSON.stringify(e.request.body), capBody)}` : '';
+  const got = ` → ${e.response.status} (${e.response.elapsedMs}ms) body ${cap(JSON.stringify(e.response.body), capBody)}`;
+  return `[${e.phase} attempt ${e.attempt}] ${e.request.method.toUpperCase()} ${e.request.route}${query}${sent}${got}`;
 }
 
 /** Render a triage adjudication as markdown lines. */
@@ -158,7 +186,7 @@ function triageLines(triage) {
  */
 export function renderDocument({ loaded, steps, templates, sections, evidenceText, triageProposals, perTemplate = 5 }) {
   const lines = [];
-  const { runHeader, verdictFor, triageFor, mintedCases, groups, sectionFor } = buildReportModel({ loaded, sections, evidenceText, triageProposals });
+  const { runHeader, verdictFor, triageFor, mintedCases, groups, sectionFor, exchangesFor, durationFor } = buildReportModel({ loaded, sections, evidenceText, triageProposals });
 
   lines.push(runHeader
     ? `# Peira run report — seed ${runHeader.seed}: ${runHeader.counts.pass} pass / ${runHeader.counts.fail} fail / ${runHeader.counts.error} error`
@@ -176,7 +204,7 @@ export function renderDocument({ loaded, steps, templates, sections, evidenceTex
       lines.push('');
     }
     for (const caseObj of cases) {
-      lines.push(renderCase(caseObj, { steps, verdict: verdictFor.get(caseObj.id), triage: triageFor.get(caseObj.id) }));
+      lines.push(renderCase(caseObj, { steps, verdict: verdictFor.get(caseObj.id), triage: triageFor.get(caseObj.id), exchanges: exchangesFor.get(caseObj.id), durationMs: durationFor.get(caseObj.id) }));
       lines.push('');
     }
   }
@@ -185,7 +213,7 @@ export function renderDocument({ loaded, steps, templates, sections, evidenceTex
     lines.push('## Minted from invariant templates (this run)');
     lines.push('');
     for (const caseObj of mintedCases) {
-      lines.push(renderCase(caseObj, { steps, verdict: verdictFor.get(caseObj.id), triage: triageFor.get(caseObj.id) }));
+      lines.push(renderCase(caseObj, { steps, verdict: verdictFor.get(caseObj.id), triage: triageFor.get(caseObj.id), exchanges: exchangesFor.get(caseObj.id), durationMs: durationFor.get(caseObj.id) }));
       lines.push('');
     }
   }

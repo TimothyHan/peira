@@ -61,6 +61,32 @@ test('without evidence it is a plain test-case document; deterministic output', 
   assert.equal(html, renderHtmlDocument(opts));
 });
 
+test('failing cards carry the observed exchange log; summaries carry timing; hero carries env + categories', async () => {
+  const withHttp = [
+    { event: 'run-start', seed: 7, baseUrl: 'http://127.0.0.1:9999', cases: 1, minted: 0, version: '0.1.0' },
+    { event: 'case-start', case: 'CASE-inline-test', definition: makeCase() },
+    { event: 'http', case: 'CASE-inline-test', phase: 'test', attempt: 0, request: { method: 'get', route: '/thing', query: { id: 'x' } }, response: { status: 401, body: { error: 'Unauthorized' }, elapsedMs: 12 } },
+    { event: 'http', case: 'CASE-inline-test', phase: 'test', attempt: 1, request: { method: 'get', route: '/thing', query: { id: 'x' } }, response: { status: 401, body: { error: 'Unauthorized' }, elapsedMs: 8 } },
+    { event: 'case-verdict', id: 'CASE-inline-test', verdict: 'fail', reason: 'test: assertion failed', diffs: [] },
+  ].map((e) => JSON.stringify(e)).join('\n');
+
+  const html = renderHtmlDocument({ loaded: [{ file: 'x', caseObj: makeCase() }], evidenceText: withHttp, triageProposals });
+  assert.match(html, /Observed exchanges \(2\)/);
+  assert.match(html, /GET \/thing\?id=x/);
+  assert.match(html, /&quot;Unauthorized&quot;/);
+  assert.match(html, /<span class="meta">20ms · 2 exchange\(s\)<\/span>/);
+  assert.match(html, /bed <code>http:\/\/127\.0\.0\.1:9999<\/code>/);
+  assert.match(html, /peira v0\.1\.0/);
+  assert.match(html, /<small>pass rate<\/small>/);
+  assert.match(html, /class="chip drift">drift 1</);
+
+  const { renderDocument } = await import('../src/render.js');
+  const md = renderDocument({ loaded: [{ file: 'x', caseObj: makeCase() }], evidenceText: withHttp, triageProposals });
+  assert.match(md, /Observed exchanges \(2\)/);
+  assert.match(md, /\[test attempt 1\] GET \/thing\?id=x → 401 \(8ms\)/);
+  assert.match(md, /· 20ms · 2 exchange\(s\)/);
+});
+
 test('markdown renderer also weaves triage', async () => {
   const { renderDocument } = await import('../src/render.js');
   const md = renderDocument({ loaded: [{ file: 'x', caseObj: makeCase() }], evidenceText, triageProposals });
