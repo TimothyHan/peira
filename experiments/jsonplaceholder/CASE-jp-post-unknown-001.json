@@ -1,0 +1,18 @@
+{
+  "id": "CASE-jp-post-unknown-001",
+  "title": "GET /posts/999999 returns 404 with an empty JSON object body",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/posts/999999"
+    },
+    "expect": {
+      "status": 404,
+      "body": {}
+    }
+  },
+  "from": {
+    "intent": "jp-post-unknown",
+    "hash": "eeb8255a6995"
+  }
+}

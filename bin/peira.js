@@ -18,6 +18,7 @@ import { compileSections } from '../src/compile.js';
 import { claudeCliTransport } from '../src/llm.js';
 import { COMPILE_MODEL } from '../src/constants.js';
 import { triageRun } from '../src/triage.js';
+import { deriveAkelaEvidence } from '../src/akela.js';
 
 function reportValidation(results, parseErrors) {
   let errorCount = parseErrors.length;
@@ -44,6 +45,7 @@ const { values: flags, positionals } = parseArgs({
     intent: { type: 'string' },
     out: { type: 'string' },
     section: { type: 'string', multiple: true },
+    triage: { type: 'string' },
     steps: { type: 'string' },
     templates: { type: 'string' },
   },
@@ -197,6 +199,25 @@ if (command === 'validate') {
   for (const msg of proposals.refused) console.error(`refused: ${msg}`);
   for (const id of proposals.uncovered) console.error(`uncovered: ${id} — no gate-passing verdict proposed`);
   console.log(called ? `\nproposals (nothing applied): ${outPath}` : `\nno failures to triage — nothing was sent to the model (${outPath})`);
+  process.exit(0);
+} else if (command === 'evidence') {
+  if (!flags.evidence) {
+    console.error('peira evidence needs --evidence <run.jsonl> [--triage <proposals.json>] [--out <path>]');
+    process.exit(2);
+  }
+  const runText = readFileSync(flags.evidence, 'utf8');
+  const proposals = flags.triage ? JSON.parse(readFileSync(flags.triage, 'utf8')) : null;
+  let records;
+  try {
+    records = deriveAkelaEvidence(runText, proposals);
+  } catch (err) {
+    console.error(`ERROR ${err.message}`);
+    process.exit(1);
+  }
+  const outPath = flags.out ?? flags.evidence.replace(/\.jsonl$/, '') + '-akela.jsonl';
+  writeFileSync(outPath, records.map((r) => JSON.stringify(r)).join('\n') + (records.length ? '\n' : ''));
+  const counts = records.reduce((acc, r) => ((acc[r.event] = (acc[r.event] ?? 0) + 1), acc), {});
+  console.log(`${records.length} evidence record(s) (${JSON.stringify(counts)}) → ${outPath}`);
   process.exit(0);
 } else if (command === 'stats') {
   const { loaded, parseErrors } = loadCases(casesDir);

@@ -1,0 +1,39 @@
+{
+  "id": "CASE-posts-collection-shape-001",
+  "title": "GET /posts returns 200 with a JSON array in which every element has a numeric id, a numeric userId, and a string title",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/posts"
+    },
+    "expect": {
+      "status": 200,
+      "bodySchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "id",
+            "userId",
+            "title"
+          ],
+          "properties": {
+            "id": {
+              "type": "number"
+            },
+            "userId": {
+              "type": "number"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "from": {
+    "intent": "jp-collection-shape",
+    "hash": "74fdea2c0c1c"
+  }
+}

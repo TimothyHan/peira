@@ -1,0 +1,30 @@
+{
+  "id": "CASE-jp-create-echo-001",
+  "title": "POST /posts with a JSON body containing a string title, a string body, and a numeric userId returns 201, echoing the submitted fields back together with a newly assigned numeric id",
+  "test": {
+    "request": {
+      "method": "post",
+      "route": "/posts",
+      "body": {
+        "title": "peira title",
+        "body": "peira body",
+        "userId": 1
+      }
+    },
+    "expect": {
+      "status": 201,
+      "body": {
+        "title": "peira title",
+        "body": "peira body",
+        "userId": 1,
+        "id": {
+          "$any": "number"
+        }
+      }
+    }
+  },
+  "from": {
+    "intent": "jp-create-echo",
+    "hash": "0139f0b74648"
+  }
+}

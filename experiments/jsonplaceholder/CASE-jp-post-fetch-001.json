@@ -1,0 +1,57 @@
+{
+  "id": "CASE-jp-post-fetch-001",
+  "title": "GET /posts/1 returns 200 with id 1, a numeric userId, and non-empty string title and body",
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/posts/1"
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": 1,
+        "userId": {
+          "$any": "number"
+        },
+        "title": {
+          "$any": "string"
+        },
+        "body": {
+          "$any": "string"
+        }
+      },
+      "bodySchema": {
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "title",
+          "body"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "enum": [
+              1
+            ]
+          },
+          "userId": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string",
+            "pattern": ".+"
+          },
+          "body": {
+            "type": "string",
+            "pattern": ".+"
+          }
+        }
+      }
+    }
+  },
+  "from": {
+    "intent": "jp-post-fetch",
+    "hash": "f9a1f12a161a"
+  }
+}

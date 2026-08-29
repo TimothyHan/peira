@@ -1,6 +1,6 @@
 # Peira — design (RFC 0001: an intent compiler for API testing)
 
-**Status:** Draft — scoping settled (API-only v1), no code yet | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-27
+**Status:** v0.1 implemented — all six PRs landed 2026-08-29; §4.8's seam ships as `peira evidence` | **Author:** Timothy Han (with Claude) | **Created:** 2026-08-27
 **Origin:** apiTestTask (2022 — specification-driven API testing, the spec tier's ancestor) and Akela RFC 0003 (2026 — deterministic compilation over rectified context, the evidence loop this tool will eventually feed). Akela's own normative record is QABuddy RFC 0001/0002.
 
 **One sentence:** Peira is an intent compiler for functional API testing — human-owned acceptance criteria and invariants compile (via an LLM, at authoring time only) into schema-gated declarative test cases executed by a deterministic runner; procedures may escape to generated code, assertions never do; and every escape is telemetry that evolves the case DSL from evidence, not speculation.
