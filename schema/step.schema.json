@@ -1,0 +1,22 @@
+{
+  "$comment": "Escape-hatch step definition (RFC 0001 §4.5): typed contract around generated procedure code. reads -> produces, nothing else. Assertion and ambient-access vocabulary in `code` is refused by the deterministic lint in validate.js — a step that asserts is a schema violation (invariant 3).",
+  "type": "object",
+  "required": ["id", "reads", "produces", "code"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^STEP-[a-z0-9][a-z0-9-]*$" },
+    "title": { "type": "string" },
+    "from": {
+      "type": "object",
+      "required": ["intent", "hash"],
+      "additionalProperties": false,
+      "properties": {
+        "intent": { "type": "string" },
+        "hash": { "type": "string", "pattern": "^[0-9a-f]{6,64}$" }
+      }
+    },
+    "reads": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" } },
+    "produces": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" } },
+    "code": { "type": "string" }
+  }
+}

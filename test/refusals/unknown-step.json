@@ -1,0 +1,8 @@
+{
+  "id": "CASE-unknown-step",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "setup": [
+    { "step": "STEP-does-not-exist-001" }
+  ],
+  "test": { "request": { "method": "get", "route": "/thing" }, "expect": { "status": 200 } }
+}

@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// peira validate [dir] [--bed <path>] [--intent <dir>]
-// peira run      [dir] --bed <path> [--base-url <url>] [--seed <n>] [--evidence <path>]
-// peira compile  <intentDir> --out <dir> [--bed <path>]
+// peira validate [dir] [--bed <path>] [--intent <dir>] [--steps <dir>]
+// peira run      [dir] --bed <path> [--base-url <url>] [--seed <n>] [--evidence <path>] [--steps <dir>]
+// peira compile  <intentDir> --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>]
+// peira stats    [dir] [--steps <dir>]
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadCases } from '../src/load.js';
-import { validateCaseSet } from '../src/validate.js';
+import { validateCaseSet, loadSteps } from '../src/validate.js';
+import { computeStats, formatStats } from '../src/stats.js';
 import { runCases } from '../src/runner.js';
 import { httpRequest } from '../src/http.js';
 import { loadIntentDir } from '../src/intent.js';
@@ -41,16 +43,32 @@ const { values: flags, positionals } = parseArgs({
     intent: { type: 'string' },
     out: { type: 'string' },
     section: { type: 'string', multiple: true },
+    steps: { type: 'string' },
   },
 });
 
 const casesDir = positionals[0] ?? 'cases';
 const bed = flags.bed ? JSON.parse(readFileSync(flags.bed, 'utf8')) : null;
 
+// steps registry: explicit flag, else <casesDir>/steps, else ./steps, else empty
+function stepsRegistry() {
+  const dir = flags.steps ?? [join(casesDir, 'steps'), 'steps'].find((d) => existsSync(d)) ?? null;
+  const { steps, results } = loadSteps(dir);
+  let errorCount = 0;
+  for (const r of results) {
+    for (const msg of r.errors) {
+      console.error(`ERROR ${r.file}: ${msg}`);
+      errorCount += 1;
+    }
+  }
+  return { steps, errorCount };
+}
+
 if (command === 'validate') {
   const { loaded, parseErrors } = loadCases(casesDir);
-  const { results } = validateCaseSet(loaded, { bedUsers: bed?.users });
-  let errorCount = reportValidation(results, parseErrors);
+  const { steps, errorCount: stepErrors } = stepsRegistry();
+  const { results } = validateCaseSet(loaded, { bedUsers: bed?.users, steps });
+  let errorCount = reportValidation(results, parseErrors) + stepErrors;
   if (flags.intent) {
     const { stale, missing } = checkStale(loaded, loadIntentDir(flags.intent));
     for (const s of stale) {
@@ -86,9 +104,12 @@ if (command === 'validate') {
       }
     }
   }
-  const { accepted, manifest } = await compileSections(sections, {
+  const stepsDir = flags.steps ?? join(flags.out, 'steps');
+  const { steps: existingSteps } = loadSteps(stepsDir);
+  const { accepted, acceptedSteps, manifest } = await compileSections(sections, {
     llm: claudeCliTransport(),
     bedUsers: bed?.users,
+    steps: existingSteps,
     fullDocument,
     model: COMPILE_MODEL,
     onProgress: (msg) => console.error(msg),
@@ -111,6 +132,9 @@ if (command === 'validate') {
         for (const staleId of entry.cases ?? []) {
           rmSync(join(flags.out, `${staleId}.json`), { force: true });
         }
+        for (const staleStep of entry.steps ?? []) {
+          rmSync(join(stepsDir, `${staleStep}.json`), { force: true });
+        }
       }
       finalManifest = {
         ...previous,
@@ -123,20 +147,31 @@ if (command === 'validate') {
   for (const { caseObj } of accepted) {
     writeFileSync(join(flags.out, `${caseObj.id}.json`), JSON.stringify(caseObj, null, 2) + '\n');
   }
+  if (acceptedSteps.length > 0) mkdirSync(stepsDir, { recursive: true });
+  for (const { stepObj } of acceptedSteps) {
+    writeFileSync(join(stepsDir, `${stepObj.id}.json`), JSON.stringify(stepObj, null, 2) + '\n');
+  }
   writeFileSync(manifestPath, JSON.stringify(finalManifest, null, 2) + '\n');
   const outcomes = manifest.sections.reduce((acc, s) => ((acc[s.outcome] = (acc[s.outcome] ?? 0) + 1), acc), {});
-  console.log(`compiled ${accepted.length} case(s) from ${sections.length} section(s) → ${flags.out}`);
+  console.log(`compiled ${accepted.length} case(s)${acceptedSteps.length > 0 ? ` + ${acceptedSteps.length} step(s)` : ''} from ${sections.length} section(s) → ${flags.out}`);
   console.log(`sections: ${JSON.stringify(outcomes)} | manifest: ${join(flags.out, 'compile-manifest.json')}`);
   const failedTransport = manifest.sections.some((s) => s.outcome === 'transport-error');
   process.exit(failedTransport ? 1 : 0);
+} else if (command === 'stats') {
+  const { loaded, parseErrors } = loadCases(casesDir);
+  for (const msg of parseErrors) console.error(`ERROR ${msg}`);
+  const { steps } = stepsRegistry();
+  console.log(formatStats(computeStats(loaded, steps)));
+  process.exit(parseErrors.length > 0 ? 1 : 0);
 } else if (command === 'run') {
   if (!bed && !flags['base-url']) {
     console.error('peira run needs --bed <path> (or at minimum --base-url <url>)');
     process.exit(2);
   }
   const { loaded, parseErrors } = loadCases(casesDir);
-  const { results, ok } = validateCaseSet(loaded, { bedUsers: bed?.users });
-  const errorCount = reportValidation(results, parseErrors);
+  const { steps, errorCount: stepErrors } = stepsRegistry();
+  const { results, ok } = validateCaseSet(loaded, { bedUsers: bed?.users, steps });
+  const errorCount = reportValidation(results, parseErrors) + stepErrors;
   if (errorCount > 0 || !ok) {
     console.error('\nvalidation failed — nothing was run');
     process.exit(1);
@@ -153,6 +188,7 @@ if (command === 'validate') {
     baseUrl,
     seed,
     evidencePath: flags.evidence ?? null,
+    steps,
   });
 
   for (const v of verdicts) {
@@ -165,6 +201,6 @@ if (command === 'validate') {
   console.log(`\nseed ${seed} | ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error`);
   process.exit(counts.fail + counts.error > 0 ? 1 : 0);
 } else {
-  console.error('usage: peira <validate|run|compile> [dir] [--bed <path>] [--intent <dir>] [--out <dir>] [--base-url <url>] [--seed <n>] [--evidence <path>]');
+  console.error('usage: peira <validate|run|compile|stats> [dir] [--bed <path>] [--intent <dir>] [--steps <dir>] [--out <dir>] [--section <id>] [--base-url <url>] [--seed <n>] [--evidence <path>]');
   process.exit(2);
 }

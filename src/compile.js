@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { validateCase } from './validate.js';
+import { validateCase, validateStep } from './validate.js';
 
 const CASE_SCHEMA_TEXT = readFileSync(
   fileURLToPath(new URL('../schema/case.schema.json', import.meta.url)),
@@ -43,10 +43,30 @@ ${CASE_SCHEMA_TEXT}
 - "id" format: "CASE-<kebab-slug>-<3 digits>". "title": the acceptance-criterion text you are
   compiling. You may omit "from" — lineage is stamped mechanically after you.
 
+## Escape hatch — steps (LAST RESORT, procedure only, never assertions)
+
+When intent requires a computation no primitive can express (e.g. computing a signature),
+emit a "steps" array alongside "cases". A step is generated procedure with a typed contract:
+
+{"id": "STEP-<kebab-slug>-<3 digits>", "title": "...",
+ "reads": ["<input names>"], "produces": ["<output names>"],
+ "code": "<JS async function body: (inputs, ctx) => must return {<produced>: value, ...}>"}
+
+- ctx.crypto = {createHmac, createHash, randomUUID} (node:crypto). ctx.aut({method, route,
+  query, body, auth}) issues HTTP to the service under test only. Nothing else exists: no
+  imports, no require, no process — a step computes values, nothing more.
+- A step NEVER asserts. Assertion vocabulary in code is refused by the gate; the claim being
+  verified always stays in a case's declarative "expect".
+- A case invokes a step in its "setup" only: {"step": "STEP-...", "bind": {"<read>": <value>}}.
+  Bound values interpolate; produced values become "$name" references for later steps and the
+  test. Invocations cannot carry expect or capture.
+- Prefer declarative. A step you did not need is a defect; a needed step is recorded demand
+  that evolves the DSL.
+
 ## Output protocol — respond with ONLY one JSON object, no prose, no code fences
 
-{"cases": [ <case>, ... ]}
-  — one case per distinct behavior the section demands; or
+{"cases": [ <case>, ... ], "steps": [ <step>, ... ]}
+  — one case per distinct behavior the section demands; "steps" only when genuinely needed; or
 {"skip": "<reason>"}
   — when the section is not automatable as functional API cases (e.g. it prescribes manual,
     load, or stress testing, is prose context only, or duplicates coverage it names).
@@ -75,6 +95,7 @@ function parseModelOutput(text) {
   try {
     const parsed = JSON.parse(stripped.slice(start, end + 1));
     if (parsed !== null && typeof parsed === 'object' && (Array.isArray(parsed.cases) || typeof parsed.skip === 'string')) {
+      if (parsed.steps !== undefined && !Array.isArray(parsed.steps)) return null;
       return parsed;
     }
     return null;
@@ -110,7 +131,7 @@ ${section.text}
  * @param {(msg: string) => void} [opts.onProgress]
  * @returns {{accepted: Array<{sectionId: string, caseObj: object}>, manifest: object}}
  */
-export async function compileSections(sections, { llm, bedUsers, fullDocument = '', model = null, onProgress = () => {} }) {
+export async function compileSections(sections, { llm, bedUsers, steps = new Map(), fullDocument = '', model = null, onProgress = () => {} }) {
   const contract = buildContract({ bedUsers });
   const manifest = {
     model,
@@ -118,6 +139,8 @@ export async function compileSections(sections, { llm, bedUsers, fullDocument = 
     sections: [],
   };
   const accepted = [];
+  const acceptedSteps = [];
+  const registry = new Map(steps); // existing steps + everything accepted this compile
   const usedIds = new Set();
 
   for (const section of sections) {
@@ -146,6 +169,26 @@ export async function compileSections(sections, { llm, bedUsers, fullDocument = 
       continue;
     }
 
+    // emitted steps first, so this section's cases can reference them
+    for (const candidate of output.steps ?? []) {
+      if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        (entry.refusedSteps ??= []).push({ id: null, errors: ['step candidate is not an object'] });
+        continue;
+      }
+      candidate.from = { intent: section.id, hash: section.hash }; // mechanical, like case lineage
+      const { errors } = validateStep(candidate);
+      if (typeof candidate.id === 'string' && registry.has(candidate.id)) {
+        errors.push(`duplicate step id ${candidate.id}`);
+      }
+      if (errors.length > 0) {
+        (entry.refusedSteps ??= []).push({ id: candidate.id ?? null, errors });
+      } else {
+        registry.set(candidate.id, candidate);
+        (entry.steps ??= []).push(candidate.id);
+        acceptedSteps.push({ sectionId: section.id, stepObj: candidate });
+      }
+    }
+
     for (const candidate of output.cases) {
       if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) {
         entry.refused.push({ id: null, errors: ['candidate is not an object'] });
@@ -153,7 +196,7 @@ export async function compileSections(sections, { llm, bedUsers, fullDocument = 
       }
       // lineage is mechanical — whatever the model wrote is overwritten, never trusted
       candidate.from = { intent: section.id, hash: section.hash };
-      const { errors } = validateCase(candidate, { bedUsers });
+      const { errors } = validateCase(candidate, { bedUsers, steps: registry });
       if (typeof candidate.id === 'string' && usedIds.has(candidate.id)) {
         errors.push(`duplicate case id ${candidate.id} — already emitted this compile`);
       }
@@ -168,5 +211,5 @@ export async function compileSections(sections, { llm, bedUsers, fullDocument = 
     entry.outcome = entry.cases.length > 0 ? 'compiled' : 'refused';
   }
 
-  return { accepted, manifest };
+  return { accepted, acceptedSteps, manifest };
 }

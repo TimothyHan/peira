@@ -16,7 +16,7 @@
         "hash": { "type": "string", "pattern": "^[0-9a-f]{6,64}$" }
       }
     },
-    "setup": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+    "setup": { "type": "array", "items": { "anyOf": [{ "$ref": "#/$defs/step" }, { "$ref": "#/$defs/invocation" }] } },
     "test": { "$ref": "#/$defs/step" },
     "teardown": {
       "type": "object",
@@ -26,6 +26,16 @@
     }
   },
   "$defs": {
+    "invocation": {
+      "$comment": "A step invocation (RFC §4.5): procedure only, setup only. It structurally cannot carry expect or capture — the claim being verified stays in the case's declarative test.",
+      "type": "object",
+      "required": ["step"],
+      "additionalProperties": false,
+      "properties": {
+        "step": { "type": "string", "pattern": "^STEP-[a-z0-9][a-z0-9-]*$" },
+        "bind": { "type": "object" }
+      }
+    },
     "step": {
       "type": "object",
       "required": ["request"],

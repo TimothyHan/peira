@@ -127,13 +127,22 @@ corpus behavior touched.
 
 ## Acceptance checklist
 
-- [ ] A step that asserts is refused at the gate; an invocation cannot carry `expect`/`capture`
-- [ ] Hand-written HMAC case green via the child-process harness; PR1 corpus and PR2
+- [x] A step that asserts is refused at the gate; an invocation cannot carry `expect`/`capture`
+      (refused by shape; test steps can never be invocations)
+- [x] Hand-written HMAC case green via the child-process harness; PR1 corpus and PR2
       experiment artifacts byte-identical
-- [ ] `peira stats` reports coverage and shape groups from artifacts alone
-- [ ] Real compile of the HMAC intent emits a gate-passing step; the manifest records the
+- [x] `peira stats` reports coverage and shape groups from artifacts alone
+- [x] Real compile of the HMAC intent emits a gate-passing step; the manifest records the
       escape; stats shows the fossil
-- [ ] Full suite green offline
+- [x] Full suite green offline (103 tests)
+
+**Gate results (2026-08-29, `experiments/hmac-demo/`):** one compile of the `hmac-echo` intent
+produced 1 step + 2 cases, all gate-passing, both green against the fixture (`--seed 42`).
+The model's restraint is the notable result: the valid-signature case invokes the step; the
+wrong-signature case is **fully declarative** (a literal bad signature needs no procedure) —
+the last-resort posture held without hand-tuning. `peira stats experiments/hmac-demo`:
+50% coverage, fossil `STEP-hmac-sha256-signature-001` shape `655bd03d78cf`. The 2022 corpus
+remains 100% declarative.
 
 ## Defaults I'll build with unless you object
 
