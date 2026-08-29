@@ -1,0 +1,27 @@
+{
+  "id": "CASE-2022-3-4",
+  "title": "As status endpoint, I should return 400 Bad request or 422 Unprocessable entitity when the request payload does not only contain id field and its value",
+  "from": {
+    "intent": "2022-test-plan/3.4",
+    "hash": "35cb4b752c55"
+  },
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1"
+    },
+    "expect": {
+      "status": 400,
+      "body": {
+        "error": "Bad Request",
+        "message": "",
+        "path": "/groovy/status",
+        "status": 400,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

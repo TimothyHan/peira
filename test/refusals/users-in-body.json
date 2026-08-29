@@ -1,0 +1,5 @@
+{
+  "id": "CASE-users-in-body",
+  "from": { "intent": "x", "hash": "abcdef" },
+  "test": { "request": { "method": "post", "route": "/thing", "body": { "who": "$users.user_1" } }, "expect": { "status": 200 } }
+}

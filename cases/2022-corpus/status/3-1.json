@@ -1,0 +1,30 @@
+{
+  "id": "CASE-2022-3-1",
+  "title": "As status endpoint, I should respond with Bad request or 422 Unprocessable Entity when the request payload has id with empty string",
+  "from": {
+    "intent": "2022-test-plan/3.1",
+    "hash": "1003f8bc3845"
+  },
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": ""
+      }
+    },
+    "expect": {
+      "status": 400,
+      "body": {
+        "error": "Bad Request",
+        "message": "",
+        "path": "/groovy/status",
+        "status": 400,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

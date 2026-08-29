@@ -1,0 +1,86 @@
+{
+  "$comment": "The case DSL definition (RFC 0001 §4.3). A primitive exists iff this schema admits it. additionalProperties:false at every level — the schema refuses what it does not name.",
+  "type": "object",
+  "required": ["id", "from", "test"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^CASE-[a-z0-9][a-z0-9-]*$" },
+    "title": { "type": "string" },
+    "notes": { "type": "string" },
+    "from": {
+      "type": "object",
+      "required": ["intent", "hash"],
+      "additionalProperties": false,
+      "properties": {
+        "intent": { "type": "string" },
+        "hash": { "type": "string", "pattern": "^[0-9a-f]{6,64}$" }
+      }
+    },
+    "setup": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+    "test": { "$ref": "#/$defs/step" },
+    "teardown": {
+      "type": "object",
+      "required": ["drain"],
+      "additionalProperties": false,
+      "properties": { "drain": { "enum": [true] } }
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "required": ["request"],
+      "additionalProperties": false,
+      "properties": {
+        "request": { "$ref": "#/$defs/request" },
+        "capture": {
+          "$comment": "free map: alias -> response path; keys and values are checked statically in validate.js",
+          "type": "object"
+        },
+        "pollUntil": {
+          "type": "object",
+          "required": ["until"],
+          "additionalProperties": false,
+          "properties": {
+            "until": { "$ref": "#/$defs/expect" },
+            "timeoutMs": { "type": "integer" }
+          }
+        },
+        "expect": { "$ref": "#/$defs/expect" }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": ["method", "route"],
+      "additionalProperties": false,
+      "properties": {
+        "method": { "enum": ["get", "post", "put", "delete", "patch"] },
+        "route": { "type": "string", "pattern": "^/" },
+        "query": { "type": "object" },
+        "body": {},
+        "auth": {
+          "anyOf": [
+            { "type": "string", "pattern": "^\\$users\\.[A-Za-z0-9_]+$" },
+            {
+              "type": "object",
+              "required": ["username", "password"],
+              "additionalProperties": false,
+              "properties": {
+                "username": { "type": "string" },
+                "password": { "type": "string" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "integer" },
+        "body": {},
+        "bodySchema": { "type": "object" }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "id": "CASE-2022-4-4",
+  "title": "As a service, I should mark the request status as FAILED, and provide error message through result field",
+  "from": {
+    "intent": "2022-test-plan/4.4",
+    "hash": "26f4a9da15a7"
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "somethingWrong() - 2"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "pollUntil": {
+      "until": {
+        "body": {
+          "status": "FAILED"
+        }
+      }
+    },
+    "expect": {
+      "status": 200,
+      "body": {
+        "id": "$requestId",
+        "result": {
+          "$any": "string"
+        },
+        "status": "FAILED"
+      }
+    }
+  }
+}

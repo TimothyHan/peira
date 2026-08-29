@@ -1,0 +1,4 @@
+{
+  "id": "CASE-missing-from",
+  "test": { "request": { "method": "get", "route": "/thing" }, "expect": { "status": 200 } }
+}

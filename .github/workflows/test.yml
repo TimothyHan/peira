@@ -1,0 +1,22 @@
+name: test
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+      - name: gate — corpus validates and runs green against the fixture
+        run: |
+          node bin/peira.js validate cases --bed test/fixtures/bed.json
+          node test/fixtures/server.js 4477 &
+          sleep 1
+          node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42

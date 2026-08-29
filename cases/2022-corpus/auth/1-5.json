@@ -1,0 +1,46 @@
+{
+  "id": "CASE-2022-1-5",
+  "title": "As a user, I should receive 401 Unauthorized when I fetch the request detail that are made by other users",
+  "notes": "Ported as observed in 2022: asserts 401. Test-plan AC 1.4 says 403 — the pre-registered PR2 adjudication specimen (RFC 0001 §8).",
+  "from": {
+    "intent": "2022-test-plan/1.5",
+    "hash": "7b942a5264ab"
+  },
+  "setup": [
+    {
+      "request": {
+        "method": "post",
+        "route": "/groovy/submit",
+        "auth": "$users.user_1",
+        "body": {
+          "code": "1+5"
+        }
+      },
+      "capture": {
+        "requestId": "body.id"
+      }
+    }
+  ],
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_2",
+      "query": {
+        "id": "$requestId"
+      }
+    },
+    "expect": {
+      "status": 401,
+      "body": {
+        "error": "Unauthorized",
+        "message": "",
+        "path": "/groovy/status",
+        "status": 401,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}

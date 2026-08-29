@@ -1,0 +1,14 @@
+{
+  "baseUrl": "http://127.0.0.1:4477",
+  "users": {
+    "user_1": { "username": "user_1", "password": "pass_1" },
+    "user_2": { "username": "user_2", "password": "pass_2" }
+  },
+  "reset": { "method": "post", "url": "/__reset" },
+  "drain": {
+    "route": "/groovy/status",
+    "idParam": "id",
+    "statusPath": "body.status",
+    "terminal": ["COMPLETED", "FAILED"]
+  }
+}

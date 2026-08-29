@@ -1,0 +1,30 @@
+{
+  "id": "CASE-2022-3-5",
+  "title": "As a service endpoint, I should respond with 404 Not found when the id does not exist in the database",
+  "from": {
+    "intent": "2022-test-plan/3.5",
+    "hash": "5b76b32ce12c"
+  },
+  "test": {
+    "request": {
+      "method": "get",
+      "route": "/groovy/status",
+      "auth": "$users.user_1",
+      "query": {
+        "id": "00000000-aaaa-1111-bbbb-222222222222"
+      }
+    },
+    "expect": {
+      "status": 404,
+      "body": {
+        "error": "Not Found",
+        "message": "",
+        "path": "/groovy/status",
+        "status": 404,
+        "timestamp": {
+          "$any": "string"
+        }
+      }
+    }
+  }
+}
