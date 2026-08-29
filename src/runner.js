@@ -227,7 +227,7 @@ export async function runCase(caseObj, { bed, baseUrl, seed, evidence, steps = n
     captureAuth: {},
     captureOrder: [],
   };
-  evidence.append({ event: 'case-start', case: caseId });
+  evidence.append({ event: 'case-start', case: caseId, definition: caseObj });
 
   let result = { id: caseId, verdict: 'pass' };
   try {

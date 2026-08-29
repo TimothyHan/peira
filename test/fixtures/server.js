@@ -1,8 +1,12 @@
 // The validation bed (RFC 0001 §8): a zero-dep HTTP server implementing the observable
 // semantics the 2022 corpus recorded — basic auth, submit/status resources, async jobs on a
-// capacity-2 queue, PENDING → IN_PROGRESS → COMPLETED/FAILED, and the 2022 AUT's error
-// envelope. It ships plain: deliberate behavior shifts (plants) are PR5's mechanism.
-// The fixture never knows which case is calling; timing comes only from pinned constants.
+// capacity-2 queue, PENDING → IN_PROGRESS → COMPLETED/FAILED, the 2022 AUT's error envelope,
+// and PR3's exclusive /secure/echo plant.
+//
+// PR5 adds the plant mechanism: `startFixture({ plant })` activates ONE pre-registered
+// behavior shift from test/fixtures/plants.js (id string or flags object). No plant → the
+// fixture behaves byte-identically to its unplanted self (regression-tested); the fixture
+// still never knows which case is calling. Timing comes only from pinned constants.
 
 import { createServer } from 'node:http';
 import { randomUUID, createHmac } from 'node:crypto';
@@ -11,6 +15,7 @@ import {
   FIXTURE_JOB_SHORT_MS,
   FIXTURE_QUEUE_CAPACITY,
 } from '../../src/constants.js';
+import { PLANTS } from './plants.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_USERS = { user_1: 'pass_1', user_2: 'pass_2' };
@@ -69,20 +74,23 @@ function evaluate(code) {
 
 // --- server ---
 
-export function startFixture({ port = 0, users = DEFAULT_USERS } = {}) {
+export function startFixture({ port = 0, users = DEFAULT_USERS, plant = null } = {}) {
+  const flags = typeof plant === 'string' ? (PLANTS[plant]?.flags ?? (() => { throw new Error(`unknown plant "${plant}"`); })()) : (plant ?? {});
   const jobs = new Map();
   let running = 0;
+  let requestCount = 0;
   const pendingQueue = [];
   const timers = new Set();
+  const capacity = flags.capacity ?? FIXTURE_QUEUE_CAPACITY;
 
   function promote() {
-    while (running < FIXTURE_QUEUE_CAPACITY && pendingQueue.length > 0) {
+    while (running < capacity && pendingQueue.length > 0) {
       const job = pendingQueue.shift();
       job.status = 'IN_PROGRESS';
       running += 1;
       const timer = setTimeout(() => {
         timers.delete(timer);
-        job.status = job.outcome.status;
+        job.status = flags.failedCompleted && job.outcome.status === 'FAILED' ? 'COMPLETED' : job.outcome.status;
         job.result = job.outcome.result;
         running -= 1;
         promote();
@@ -97,20 +105,38 @@ export function startFixture({ port = 0, users = DEFAULT_USERS } = {}) {
     jobs.clear();
     pendingQueue.length = 0;
     running = 0;
+    requestCount = 0;
   }
-
-  const envelope = (status, error, path, message = '') => ({
-    error,
-    message,
-    path,
-    status,
-    timestamp: new Date().toISOString(),
-  });
 
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
+
+    const envelope = (status, error, message = '') => {
+      const body = {
+        error: flags.labelMap?.[error] ?? error,
+        message: message === '' && flags.envelopeMessage ? flags.envelopeMessage : message,
+        path: flags.pathWithQuery && url.search ? url.pathname + url.search : url.pathname,
+        status: flags.envelopeStatusString ? String(status) : status,
+        timestamp: flags.timestampNumeric ? Date.now() : new Date().toISOString(),
+      };
+      if (flags.dropEnvelopeField) delete body[flags.dropEnvelopeField];
+      return body;
+    };
+
     const send = (status, body) => {
-      res.writeHead(status, { 'content-type': 'application/json' });
+      const mapped = flags.routeStatus?.[url.pathname]?.[status] ?? status;
+      if (body !== null && typeof body === 'object' && !Array.isArray(body)) {
+        for (const r of flags.rename ?? []) {
+          if (r.route === url.pathname && r.from in body) {
+            body[r.to] = body[r.from];
+            delete body[r.from];
+          }
+        }
+        for (const d of flags.drop ?? []) {
+          if (d.route === url.pathname) delete body[d.field];
+        }
+      }
+      res.writeHead(mapped, { 'content-type': 'application/json' });
       res.end(JSON.stringify(body));
     };
 
@@ -122,15 +148,26 @@ export function startFixture({ port = 0, users = DEFAULT_USERS } = {}) {
         return send(200, { reset: true });
       }
 
+      // nondeterministic-fault plants fire before anything else
+      requestCount += 1;
+      const n = flags.failEveryN;
+      if ((n && (!n.route || n.route === url.pathname) && requestCount % n.n === 0) ||
+          (flags.failFirstN && requestCount <= flags.failFirstN) ||
+          (flags.failProb && (!flags.failProb.route || flags.failProb.route === url.pathname) && Math.random() < flags.failProb.p)) {
+        return send(500, envelope(500, 'Internal Server Error'));
+      }
+
       // basic auth on everything else
       const header = req.headers.authorization ?? '';
       let username = null;
       if (header.startsWith('Basic ')) {
         const [user, ...rest] = Buffer.from(header.slice(6), 'base64').toString().split(':');
-        if (users[user] !== undefined && users[user] === rest.join(':')) username = user;
+        if (users[user] !== undefined && (users[user] === rest.join(':') || flags.authAcceptAny)) username = user;
+      } else if (flags.anonAccept) {
+        username = Object.keys(users)[0];
       }
       if (username === null) {
-        return send(401, envelope(401, 'Unauthorized', url.pathname));
+        return send(401, envelope(401, 'Unauthorized'));
       }
 
       if (req.method === 'POST' && url.pathname === '/groovy/submit') {
@@ -138,55 +175,70 @@ export function startFixture({ port = 0, users = DEFAULT_USERS } = {}) {
         try {
           payload = JSON.parse(raw || 'null');
         } catch {
-          return send(400, envelope(400, 'Bad Request', url.pathname));
+          return send(400, envelope(400, 'Bad Request'));
         }
-        const keys = payload !== null && typeof payload === 'object' ? Object.keys(payload) : null;
-        if (keys === null || keys.length !== 1 || keys[0] !== 'code' || typeof payload.code !== 'string') {
-          return send(400, envelope(400, 'Bad Request', url.pathname));
+        const isObj = payload !== null && typeof payload === 'object' && !Array.isArray(payload);
+        const keys = isObj ? Object.keys(payload) : null;
+        const shapeOk =
+          (keys !== null && keys.length === 1 && keys[0] === 'code' && typeof payload.code === 'string') ||
+          (flags.acceptInvalidSubmit === 'empty' && keys !== null && keys.length === 0) ||
+          (flags.acceptInvalidSubmit === 'garbage' && keys !== null && keys.includes('code') && typeof payload.code === 'string') ||
+          (flags.acceptInvalidSubmit === 'numeric' && keys !== null && keys.length === 1 && keys[0] === 'code');
+        if (!shapeOk) {
+          return send(400, envelope(400, 'Bad Request'));
         }
-        const syntax = syntaxError(payload.code);
-        if (syntax !== null) {
-          return send(400, envelope(400, 'Bad Request', url.pathname, syntax));
+        const code = String(payload.code ?? '');
+        const syntax = syntaxError(code);
+        if (syntax !== null && flags.acceptInvalidSubmit !== 'syntax') {
+          return send(400, envelope(400, 'Bad Request', syntax));
         }
-        const job = { id: randomUUID(), owner: username, status: 'PENDING', result: null, outcome: evaluate(payload.code) };
+        const job = { id: randomUUID(), owner: username, status: 'PENDING', result: null, outcome: evaluate(code) };
         jobs.set(job.id, job);
         pendingQueue.push(job);
         promote();
         return send(200, { id: job.id });
       }
 
-      // PR3's exclusive plant: an endpoint no day-one primitive can drive — the signature must
-      // be computed. Shared demo secret is stated in the intent; principal passwords are never
-      // signing keys. No 2022-corpus route or behavior is touched.
       if (req.method === 'POST' && url.pathname === '/secure/echo') {
         let payload;
         try {
           payload = JSON.parse(raw || 'null');
         } catch {
-          return send(400, envelope(400, 'Bad Request', url.pathname));
+          return send(400, envelope(400, 'Bad Request'));
         }
         const keys = payload !== null && typeof payload === 'object' ? Object.keys(payload).sort() : null;
         if (keys === null || keys.join(',') !== 'payload,signature' || typeof payload.payload !== 'string' || typeof payload.signature !== 'string') {
-          return send(400, envelope(400, 'Bad Request', url.pathname));
+          return send(400, envelope(400, 'Bad Request'));
         }
         const expected = createHmac('sha256', 'peira-demo-secret').update(payload.payload).digest('hex');
         if (payload.signature !== expected) {
-          return send(400, envelope(400, 'Bad Request', url.pathname, 'invalid signature'));
+          return send(400, envelope(400, 'Bad Request', 'invalid signature'));
         }
         return send(200, { echo: payload.payload, verified: true });
       }
 
       if (req.method === 'GET' && url.pathname === '/groovy/status') {
-        if (!url.searchParams.has('id')) return send(400, envelope(400, 'Bad Request', url.pathname));
+        if (!url.searchParams.has('id')) return send(400, envelope(400, 'Bad Request'));
         const id = url.searchParams.get('id');
-        if (!UUID.test(id)) return send(400, envelope(400, 'Bad Request', url.pathname));
+        if (!UUID.test(id)) {
+          return flags.invalidId500
+            ? send(500, envelope(500, 'Internal Server Error'))
+            : send(400, envelope(400, 'Bad Request'));
+        }
         const job = jobs.get(id);
-        if (!job) return send(404, envelope(404, 'Not Found', url.pathname));
-        if (job.owner !== username) return send(401, envelope(401, 'Unauthorized', url.pathname));
-        return send(200, { id: job.id, status: job.status, result: job.result });
+        if (!job) {
+          return flags.unknownId200
+            ? send(200, { id, status: 'PENDING', result: null })
+            : send(404, envelope(404, 'Not Found'));
+        }
+        if (job.owner !== username && !flags.crossUser200) return send(401, envelope(401, 'Unauthorized'));
+        let status = flags.stuckPending ? 'PENDING' : job.status;
+        status = flags.statusLabelMap?.[status] ?? status;
+        const result = flags.stuckPending || (flags.resultNull && job.status === 'COMPLETED') ? null : job.result;
+        return send(200, { id: job.id, status, result });
       }
 
-      return send(404, envelope(404, 'Not Found', url.pathname));
+      return send(404, envelope(404, 'Not Found'));
     });
   });
 
@@ -204,8 +256,11 @@ export function startFixture({ port = 0, users = DEFAULT_USERS } = {}) {
   });
 }
 
-// CLI: `node test/fixtures/server.js [port]`
+// CLI: `node test/fixtures/server.js [port] [--plant <shift-id>]`
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { url } = await startFixture({ port: Number(process.argv[2] ?? 4477) });
-  console.log(`peira fixture listening on ${url}`);
+  const plantIdx = process.argv.indexOf('--plant');
+  const plant = plantIdx !== -1 ? process.argv[plantIdx + 1] : null;
+  const portArg = process.argv.slice(2).find((a) => /^\d+$/.test(a));
+  const { url } = await startFixture({ port: Number(portArg ?? 4477), plant });
+  console.log(`peira fixture listening on ${url}${plant ? ` [plant: ${plant}]` : ''}`);
 }

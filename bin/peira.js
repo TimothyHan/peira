@@ -17,6 +17,7 @@ import { checkStale } from '../src/stale.js';
 import { compileSections } from '../src/compile.js';
 import { claudeCliTransport } from '../src/llm.js';
 import { COMPILE_MODEL } from '../src/constants.js';
+import { triageRun } from '../src/triage.js';
 
 function reportValidation(results, parseErrors) {
   let errorCount = parseErrors.length;
@@ -181,6 +182,22 @@ if (command === 'validate') {
   console.log(`sections: ${JSON.stringify(outcomes)} | manifest: ${join(flags.out, 'compile-manifest.json')}`);
   const failedTransport = manifest.sections.some((s) => s.outcome === 'transport-error');
   process.exit(failedTransport ? 1 : 0);
+} else if (command === 'triage') {
+  if (!flags.evidence || !flags.intent) {
+    console.error('peira triage needs --evidence <run.jsonl> and --intent <dir>');
+    process.exit(2);
+  }
+  const evidenceText = readFileSync(flags.evidence, 'utf8');
+  const sections = loadIntentDir(flags.intent);
+  const { proposals, called } = await triageRun({ evidenceText, sections, llm: claudeCliTransport() });
+  const outPath = flags.out ?? flags.evidence.replace(/\.jsonl$/, '') + '-triage.json';
+  writeFileSync(outPath, JSON.stringify(proposals, null, 2) + '\n');
+  for (const v of proposals.infra) console.log(`INFRA ${v.case} — ${v.bucket}`);
+  for (const v of proposals.verdicts) console.log(`${v.classification.toUpperCase().padEnd(5)} ${v.case} — ${v.rationale}`);
+  for (const msg of proposals.refused) console.error(`refused: ${msg}`);
+  for (const id of proposals.uncovered) console.error(`uncovered: ${id} — no gate-passing verdict proposed`);
+  console.log(called ? `\nproposals (nothing applied): ${outPath}` : `\nno failures to triage — nothing was sent to the model (${outPath})`);
+  process.exit(0);
 } else if (command === 'stats') {
   const { loaded, parseErrors } = loadCases(casesDir);
   for (const msg of parseErrors) console.error(`ERROR ${msg}`);
