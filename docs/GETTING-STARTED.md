@@ -139,6 +139,37 @@ adjudicated runs as flat evidence records:
 peira evidence --evidence run.jsonl --triage run-triage.json     # applied/contradicted JSONL
 ```
 
+## Understanding seeds (test data by formula)
+
+The seed is the replay number for a run: one integer that every "random" value is *derived*
+from, rather than data being stored or truly random.
+
+- **What it controls:** `$unique.*` discriminators in cases, and every hole draw in minted
+  invariant cases (which principals, which generated expression). All are computed as
+  `hash(seed, case id, key)` — pure functions, no stored data, no real randomness.
+- **What it never changes:** the case set and its claims. A seed varies the incidental
+  values, never what is asserted.
+- **Reproduction:** omit `--seed` and Peira picks one, but always prints it and records it in
+  the evidence log and reports. Any failure replays exactly: `peira run … --seed <that seed>`.
+  A minted case even carries its full coordinates (`template`, `seed`, `instance`) in its
+  lineage — three numbers regenerate it from nothing.
+- **Strong oracles on fresh data:** the expression generator produces data *paired with its
+  known answer* (`47 * 12` arrives with `"564"`), so minted cases assert exact results for
+  values that didn't exist until the run started — no weak "some string" oracles.
+- **A verdict that flips across seeds is a signal, not noise:** for a correct, deterministic
+  service, verdicts are identical across seeds even though payloads differ. A seed-dependent
+  failure means either a value-dependent bug (exactly what invariant sampling exists to
+  catch) or nondeterminism — flake territory, where triage prescribes a re-run.
+- **CI strategy:** use a fresh seed per pipeline run (`--seed ${{ github.run_id }}`) so
+  invariants probe new corners of their space every run, while every red run stays one
+  command from exact reproduction.
+- **The honest caveat (RFC invariant 8):** the seed pins Peira's choices, not the world's.
+  Same-seed determinism also needs same service state — that is what the bed's `reset` hook
+  is for.
+
+One line to remember: **cases say what must be true, the seed says which concrete data to try
+this time, and the same seed always tries the same data.**
+
 ## Steady state
 
 Requirements change → edit intent → the PR shows two readable diffs (the intent sentence and
