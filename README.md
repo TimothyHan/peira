@@ -70,7 +70,9 @@ nothing. You decide.
 - Triage over 33 pre-registered behavior shifts: **bug/drift confusion 12.1%**, drift
   detection 8/9, zero schema refusals or injection incidents across every live call.
 
-Design: [docs/DESIGN.md](docs/DESIGN.md) (RFC 0001). Experiments and findings: `docs/findings/`.
+**Full walkthrough (zero → local loop → CI): [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).**
+Command and flag reference: `peira help`. Design: [docs/DESIGN.md](docs/DESIGN.md) (RFC 0001).
+Experiments and findings: `docs/findings/`.
 
 ## Status
 

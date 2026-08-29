@@ -10,6 +10,7 @@ export const REQUEST_TIMEOUT_MS = 5000;     // socket-level timeout; hitting it 
 export const REDACT_HASH_PREFIX_LEN = 8;    // [REDACTED:<sha256-prefix>] length in evidence JSONL
 export const STEP_TIMEOUT_MS = 10000;       // per-invocation ceiling for the child-process step harness
 export const INVARIANT_CASES_PER_RUN = 5;   // instances minted per invariant template per run (PR4 D1; RFC §9 resolved)
+export const INTENT_SECTION_MAX_LINES = 40; // intent-lint advisory: bigger sections make stale detection and triage coarse
 
 // Compiler (authoring time only — RFC 0001 invariant 1)
 export const COMPILE_MODEL = 'claude-opus-5'; // decision D1, 2026-08-29

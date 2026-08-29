@@ -3,7 +3,8 @@
 export { runCases, runCase, uniqueValue, runHarness } from './runner.js';
 export { validateCase, validateCaseSet, validateStep, validateTemplate, loadSteps, loadTemplates, HOLE_KINDS } from './validate.js';
 export { loadCases, listCaseFiles } from './load.js';
-export { parseIntent, loadIntentDir, hashSection, normalizeText } from './intent.js';
+export { parseIntent, loadIntentDir, hashSection, normalizeText, lintIntent } from './intent.js';
+export { adoptDocument, gateAdoptedDocument, buildAdoptPrompt } from './adopt.js';
 export { checkStale } from './stale.js';
 export { compileSections, buildContract, buildPrompt } from './compile.js';
 export { claudeCliTransport } from './llm.js';

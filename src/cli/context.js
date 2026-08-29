@@ -13,7 +13,22 @@ export const USAGE = `usage: peira <command>
   stats    [casesDir] [--steps <dir>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
   evidence --evidence <run.jsonl> [--triage <proposals.json>] [--out <path>]
-  render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--steps <dir>] [--templates <dir>] [--out <path>]`;
+  render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--triage <proposals.json>] [--format md|html] [--out <path>]
+  adopt    <messy.md> --out <intent/name.md>
+
+flags:
+  --bed <path>        bed config JSON: {baseUrl, users?, reset?, drain?} — the only place Peira learns about your service
+  --base-url <url>    override the bed's baseUrl (e.g. point the same cases at CI vs local)
+  --seed <n>          run seed; same seed + same service state → same verdicts (default: random, always printed)
+  --evidence <path>   write the run's evidence JSONL (run) / read it (triage, evidence, render)
+  --intent <dir>      intent directory — stale check + lint (validate), sections (compile, triage, render)
+  --steps <dir>       steps registry (default: <casesDir>/steps, else ./steps)
+  --templates <dir>   templates registry (default: <casesDir>/templates, else ./templates)
+  --out <dir|file>    output target — compile: cases dir; triage/evidence/render/adopt: file
+  --section <id>      compile only this intent section (repeatable; targeted recompile merges the manifest)
+  --triage <path>     triage proposals JSON to fold into the Akela evidence export
+
+docs: docs/GETTING-STARTED.md | design: docs/DESIGN.md`;
 
 export function buildContext(argv) {
   const [, , command, ...rest] = argv;
@@ -31,6 +46,7 @@ export function buildContext(argv) {
       triage: { type: 'string' },
       steps: { type: 'string' },
       templates: { type: 'string' },
+      format: { type: 'string' },
     },
   });
 
