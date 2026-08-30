@@ -163,6 +163,38 @@ standings per section. The ledger lives in `.peira/` plus an `akela.json` config
 project root — commit both, never edit them; trust is earned by runs, not by hand. Note:
 intent sections live at `##` heading level — that is the sectioning the ledger indexes.
 
+## 6. Use it through your agent (the primary way)
+
+Peira is agent-native by design: the authoring surfaces already run on your own Claude
+session, and the zero-LLM runner is exactly what makes agent-driven testing trustworthy — an
+agent cannot wiggle a red run green; it can only fix the service or propose an intent change
+you approve. In practice you talk to your agent in intent-language ("add coverage: cancelling
+a shipped order must be refused") and it edits the plan, compiles, runs, renders the report,
+and drafts triage for *your* adjudication.
+
+Drop this into your project's `CLAUDE.md` (or your agent's equivalent):
+
+```markdown
+# CLAUDE.md — API testing with Peira
+
+- Tests are compiled from intent/*.md. NEVER edit cases/*.json by hand —
+  edit the intent section, then recompile exactly that section:
+    peira compile intent --out cases --bed bed.json --section <id>
+- Run and keep the evidence (note the printed seed for exact replays):
+    peira run cases --bed bed.json --evidence run.jsonl
+- On failures, triage and PRESENT the proposals — adjudication belongs
+  to the human, never to you:
+    peira triage --evidence run.jsonl --intent intent
+- When the human wants to see results, render the visual report:
+    peira render cases --intent intent --evidence run.jsonl --format html --out report.html
+- After adjudication, record the run so intent sections earn trust:
+    peira evidence --evidence run.jsonl --triage run-triage.json --intent intent
+```
+
+The guardrails hold regardless of who types: the schema gate refuses malformed output rather
+than patching it, triage only ever proposes, and the evidence ledger records what was decided
+with the reason quoted verbatim.
+
 ## Understanding seeds (test data by formula)
 
 The seed is the replay number for a run: one integer that every "random" value is *derived*
