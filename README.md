@@ -24,7 +24,7 @@ No LLM at runtime, ever. Same cases, same seed, same service state → same verd
 
 ```bash
 git clone <repo> peira && cd peira
-node test/fixtures/server.js 4477 &          # the demo service (a re-creation of a 2022 AUT)
+node test/fixtures/server.js 4477 &          # the demo service (a re-creation of a real production AUT)
 node bin/peira.js validate cases --bed test/fixtures/bed.json
 node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
 ```
@@ -61,13 +61,13 @@ nothing. You decide.
    across runs — `peira trust` shows the standings. A portable JSONL export is written
    alongside.
 
-## Measured, not promised (v0.1, against the in-repo bed and its 2022 ancestor)
+## Measured, not promised (v0.1, against the in-repo bed and its legacy suite)
 
-- The five-primitive DSL re-expressed **27/27** of the ancestor's hand-written specs — zero
+- The five-primitive DSL re-expressed **27/27** of the original hand-written specs — zero
   escape hatches, zero sleeps.
-- Compiling the ancestor's 2022 test plan **verbatim** reproduced every hand-written behavior
-  and surfaced **three intent/implementation divergences** the 2022 suite silently encoded —
-  including one nobody had ever tested.
+- Compiling the original test plan **verbatim** reproduced every hand-written behavior
+  and surfaced **three intent/implementation divergences** the hand-written suite silently
+  encoded — including one nobody had ever tested.
 - One invariant sentence mints 5 fresh seeded probes per run; the known bug it guards can
   never rotate out of coverage.
 - Triage over 33 pre-registered behavior shifts: **bug/drift confusion 12.1%**, drift

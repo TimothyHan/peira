@@ -66,7 +66,7 @@ For all orders o, for all users u ≠ owner(o): GET /orders/{o} as u → 403.
   keep one independently-changing promise per section. `peira validate --intent` lints for
   oversized sections and fragile derived ids.
 - **Already have a test plan?** Two paths. A well-structured document ingests verbatim —
-  zero edits (Peira's own 4-year-old ancestor plan did). A messy one (Confluence export,
+  zero edits (Peira's own reference plan did). A messy one (Confluence export,
   ticket dump) goes through the one-time adoption assist:
 
 ```bash
