@@ -61,6 +61,40 @@ test('weak-oracle warnings: status-only and empty-body expects warn but pass', (
   }
 });
 
+test('expect.headers is a valid assertion surface: schema admits it, matchers are checked, oracle is not weak', () => {
+  const good = makeCase({
+    test: {
+      request: { method: 'get', route: '/x' },
+      expect: { status: 200, headers: { 'content-type': { $contains: 'application/json' } } },
+    },
+  });
+  const { errors, warnings } = validateCase(good);
+  assert.deepEqual(errors, []);
+  assert.deepEqual(warnings, []); // a header assertion is a real oracle, not status-only
+
+  const badMatcher = makeCase({
+    test: { request: { method: 'get', route: '/x' }, expect: { status: 200, headers: { etag: { $contains: 7 } } } },
+  });
+  assert.ok(validateCase(badMatcher).errors.some((e) => /\$contains takes a string/.test(e)), String(validateCase(badMatcher).errors));
+
+  const badToken = makeCase({
+    test: { request: { method: 'get', route: '/x' }, expect: { status: 200, headers: { location: '/orders/{{neverCaptured}}' } } },
+  });
+  assert.ok(validateCase(badToken).errors.some((e) => /\$neverCaptured/.test(e)));
+
+  const nonStringValue = makeCase({
+    test: { request: { method: 'get', route: '/x' }, expect: { status: 200, headers: { 'x-limit': 100 } } },
+  });
+  assert.ok(validateCase(nonStringValue).errors.length > 0, 'header values are strings or matchers — a number is refused by the schema');
+});
+
+test('a $contains matcher with extra keys is refused', () => {
+  const c = makeCase({
+    test: { request: { method: 'get', route: '/x' }, expect: { status: 200, body: { msg: { $contains: 'x', also: 1 } } } },
+  });
+  assert.ok(validateCase(c).errors.some((e) => /\$contains matcher must stand alone/.test(e)));
+});
+
 test('drain with nothing captured warns', () => {
   const { warnings } = validateCase(makeCase({ teardown: { drain: true } }));
   assert.ok(warnings.some((w) => /drain/.test(w)));

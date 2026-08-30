@@ -44,4 +44,17 @@ export class EvidenceLog {
     if (this.filePath) appendFileSync(this.filePath, JSON.stringify(redacted) + '\n');
     return redacted;
   }
+
+  /**
+   * Fold another EvidenceLog's events into this one. The source log already redacted at its
+   * own write time (redaction is not idempotent — re-hashing a redaction tag would corrupt
+   * it), so events are adopted verbatim. Only EvidenceLog instances may be adopted; the
+   * "no other module writes to the log" invariant holds.
+   */
+  adopt(source: EvidenceLog): void {
+    for (const event of source.events) {
+      this.events.push(event);
+      if (this.filePath) appendFileSync(this.filePath, JSON.stringify(event) + '\n');
+    }
+  }
 }

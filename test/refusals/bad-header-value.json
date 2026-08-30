@@ -1,0 +1,8 @@
+{
+  "id": "CASE-bad-header-value",
+  "from": { "intent": "refusal-catalog", "hash": "abcdef" },
+  "test": {
+    "request": { "method": "get", "route": "/thing" },
+    "expect": { "status": 200, "headers": { "x-rate-limit": 100 } }
+  }
+}

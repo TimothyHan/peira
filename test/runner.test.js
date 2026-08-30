@@ -80,6 +80,67 @@ test('teardown.drain leaves a clean queue: the very next job goes straight to IN
     assert.equal(state.body.status, 'IN_PROGRESS', 'queue was not drained');
   }));
 
+test('header assertions run against the live response: case-insensitive, $contains, fail with diff', () =>
+  withFixture(async ({ url }, bed) => {
+    const good = makeCase({
+      test: {
+        request: { method: 'post', route: '/groovy/submit', auth: '$users.user_1', body: { code: '1+1' } },
+        expect: { status: 200, headers: { 'Content-Type': { $contains: 'application/json' } } },
+      },
+    });
+    assert.equal((await run(good, bed, url)).verdict, 'pass');
+
+    const bad = makeCase({
+      test: {
+        request: { method: 'post', route: '/groovy/submit', auth: '$users.user_1', body: { code: '1+1' } },
+        expect: { status: 200, headers: { 'x-request-id': { $any: 'string' } } },
+      },
+    });
+    const verdict = await run(bad, bed, url);
+    assert.equal(verdict.verdict, 'fail');
+    assert.equal(verdict.diffs[0].path, 'headers.x-request-id');
+    assert.equal(verdict.diffs[0].reason, 'missing header');
+  }));
+
+test('runCases filter: --only semantics — the unselected case never runs, counts reflect the selection', () =>
+  withFixture(async ({ url }, bed) => {
+    const a = makeCase({ id: 'CASE-a', test: { request: { method: 'get', route: '/groovy/status', auth: '$users.user_1', query: { id: 'nope' } }, expect: { status: 400 } } });
+    const b = makeCase({ id: 'CASE-b', test: { request: { method: 'get', route: '/nowhere', auth: '$users.user_1' }, expect: { status: 200 } } }); // would fail if run
+    const { verdicts, counts, events } = await runCases(
+      [{ file: 'a', caseObj: a }, { file: 'b', caseObj: b }],
+      { bed, baseUrl: url, seed: 1, filter: (id) => id === 'CASE-a' },
+    );
+    assert.deepEqual(verdicts.map((v) => v.id), ['CASE-a']);
+    assert.deepEqual(counts, { pass: 1, fail: 0, error: 0 });
+    const start = events.find((e) => e.event === 'run-start');
+    assert.equal(start.cases, 1);
+    assert.equal(start.casesTotal, 2);
+    assert.ok(!events.some((e) => e.case === 'CASE-b'), 'the filtered-out case must leave no evidence');
+  }));
+
+test('runCases parallel: same verdicts in the same order, evidence grouped per case as if serial', () =>
+  withFixture(async ({ url }, bed) => {
+    const mk = (n, code, expectStatus) => makeCase({
+      id: `CASE-p${n}`,
+      setup: [{ request: { method: 'post', route: '/groovy/submit', auth: '$users.user_1', body: { code } }, capture: { requestId: 'body.id' } }],
+      test: {
+        request: { method: 'get', route: '/groovy/status', auth: '$users.user_1', query: { id: '$requestId' } },
+        expect: { status: expectStatus },
+      },
+    });
+    const cases = [mk(1, '1+1', 200), mk(2, '2+2', 200), mk(3, '3+3', 418), mk(4, '4+4', 200)];
+    const loaded = cases.map((c) => ({ file: c.id, caseObj: c }));
+
+    const serial = await runCases(loaded, { bed, baseUrl: url, seed: 7 });
+    const parallel = await runCases(loaded, { bed, baseUrl: url, seed: 7, parallel: 4 });
+
+    assert.deepEqual(parallel.verdicts.map((v) => [v.id, v.verdict]), serial.verdicts.map((v) => [v.id, v.verdict]));
+    assert.deepEqual(parallel.counts, serial.counts);
+    // evidence file order: every case's events contiguous, cases in input order — as if serial
+    const caseOrder = (events) => events.filter((e) => e.event === 'case-start' || e.event === 'case-verdict').map((e) => `${e.event}:${e.case ?? e.id}`);
+    assert.deepEqual(caseOrder(parallel.events), caseOrder(serial.events));
+  }));
+
 test('runCases: sequential order, per-case isolation of captures, summary counts', () =>
   withFixture(async ({ url }, bed) => {
     const first = makeCase({

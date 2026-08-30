@@ -63,6 +63,9 @@ export function isolationTemplate(over = {}) {
   };
 }
 
+/** A verdict list's meaning, without elapsedMs — wall-clock duration is measurement, not verdict. */
+export const verdictMeaning = (verdicts) => verdicts.map(({ elapsedMs, ...rest }) => rest);
+
 /** A minimal valid case, override what the test needs. */
 export function makeCase(overrides = {}) {
   return {

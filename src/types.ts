@@ -15,6 +15,8 @@ export interface Verdict {
   verdict: VerdictKind;
   reason?: string;
   diffs?: Diff[];
+  /** wall-clock case duration; informational — never part of a verdict's meaning */
+  elapsedMs?: number;
 }
 
 export interface Principal {

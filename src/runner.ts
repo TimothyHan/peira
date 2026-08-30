@@ -1,5 +1,8 @@
-// The deterministic runner (RFC 0001 §4.1, §4.7). Zero LLM. Sequential execution in sorted
-// file order; verdicts are pass | fail | error and the two failure kinds are never conflated:
+// The deterministic runner (RFC 0001 §4.1, §4.7). Zero LLM. Execution in sorted file order —
+// serially by default, or on a bounded worker pool (`parallel`) whose determinism holds because
+// every per-case input (seed-derived uniques, captures) is independent of the other cases, and
+// whose evidence log is flushed in case order so the file reads identically either way.
+// Verdicts are pass | fail | error and the two failure kinds are never conflated:
 // fail = an assertion did not hold; error = infrastructure failed before an assertion could.
 
 import { createHash } from 'node:crypto';
@@ -253,6 +256,7 @@ export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, ste
     captureOrder: [],
   };
   evidence.append({ event: 'case-start', case: caseId, definition: caseObj });
+  const started = performance.now();
 
   let result: Verdict = { id: caseId, verdict: 'pass' };
   try {
@@ -275,6 +279,7 @@ export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, ste
     }
   }
 
+  result.elapsedMs = Math.round(performance.now() - started);
   evidence.append({ event: 'case-verdict', ...result });
   return result;
 }
@@ -293,26 +298,59 @@ export interface RunCasesOptions {
   evidencePath?: string | null;
   steps?: Map<string, StepDef>;
   templates?: Map<string, Template>;
+  /** run only cases whose id passes; applies to minted template instances too */
+  filter?: (id: string) => boolean;
+  /** worker-pool width; 1 (default) is strictly serial */
+  parallel?: number;
 }
 
-/** Run a case set sequentially, minting invariant-template instances for this run. */
-export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map() }: RunCasesOptions): Promise<RunResult> {
+/** Run a case set in sorted file order, minting invariant-template instances for this run. */
+export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1 }: RunCasesOptions): Promise<RunResult> {
   const evidence = new EvidenceLog(evidencePath);
   const resolvedBase = (baseUrl ?? bed.baseUrl)!;
 
   // invariant templates mint fresh concrete cases for THIS run (RFC §4.4); the evidence log
   // carries each minted case in full — (template, seed, instance) regenerates it bit-for-bit
-  const minted = mintAll(templates, { bedUsers: bed.users ?? {}, seed });
-  evidence.append({ event: 'run-start', seed, baseUrl: resolvedBase, cases: loaded.length, minted: minted.length, version: TOOL_VERSION });
-  const executable = [...loaded];
+  const selectedLoaded = filter ? loaded.filter(({ caseObj }) => filter(caseObj.id)) : loaded;
+  const minted = mintAll(templates, { bedUsers: bed.users ?? {}, seed }).filter((m) => !filter || filter(m.caseObj.id));
+  evidence.append({
+    event: 'run-start',
+    seed,
+    baseUrl: resolvedBase,
+    cases: selectedLoaded.length,
+    minted: minted.length,
+    ...(filter ? { filtered: true, casesTotal: loaded.length } : {}),
+    version: TOOL_VERSION,
+  });
+  const executable = [...selectedLoaded];
   for (const m of minted) {
     evidence.append({ event: 'minted', template: m.template, seed, instance: m.instance, case: m.caseObj });
     executable.push({ file: `minted:${m.caseObj.id}`, caseObj: m.caseObj });
   }
 
-  const verdicts: Verdict[] = [];
-  for (const { caseObj } of executable) {
-    verdicts.push(await runCase(caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps }));
+  const verdicts: Verdict[] = new Array(executable.length);
+  const width = Math.max(1, Math.min(Math.floor(parallel), executable.length || 1));
+  if (width <= 1) {
+    for (let i = 0; i < executable.length; i += 1) {
+      verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps });
+    }
+  } else {
+    // each case writes to its own buffer; buffers flush into the main log strictly in case
+    // order, so the evidence file is byte-identical in shape to a serial run's
+    const buffers = executable.map(() => new EvidenceLog(null));
+    const finished: boolean[] = new Array(executable.length).fill(false);
+    let flushed = 0;
+    let next = 0;
+    const worker = async (): Promise<void> => {
+      for (;;) {
+        const i = next++;
+        if (i >= executable.length) return;
+        verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence: buffers[i], steps });
+        finished[i] = true;
+        while (flushed < executable.length && finished[flushed]) evidence.adopt(buffers[flushed++]);
+      }
+    };
+    await Promise.all(Array.from({ length: width }, worker));
   }
 
   const counts = { pass: 0, fail: 0, error: 0 };

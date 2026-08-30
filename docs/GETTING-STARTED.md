@@ -98,7 +98,17 @@ peira run cases --bed bed.json --seed 42 --evidence run.jsonl
 Verdicts are `pass | fail | error` — assertion failures and infrastructure failures are never
 conflated. The seed is always printed: any failure reproduces exactly with the same seed
 against the same service state. First runs usually surface both real bugs *and* stale intent —
-that's the point. The loop:
+that's the point.
+
+The tight dev loop and bigger suites:
+
+```bash
+peira run cases --bed bed.json --seed 42 --only CASE-order-cancel-shipped-001   # re-run one failing case
+peira run cases --bed bed.json --grep order      # every case whose id contains "order"
+peira run cases --bed bed.json --parallel 8      # worker pool; verdicts and evidence order identical to serial
+```
+
+The loop:
 
 ```bash
 peira triage --evidence run.jsonl --intent intent    # proposes bug | drift | flake; applies nothing
@@ -125,11 +135,16 @@ Commit `intent/`, `cases/`, and the bed configs. **CI runs zero LLM** — no key
 - run: npm ci
 - run: docker compose up -d orders-service
 - run: npx peira validate cases --bed bed.ci.json --intent intent
-- run: npx peira run cases --bed bed.ci.json --seed ${{ github.run_id }} --evidence run.jsonl
+- run: npx peira run cases --bed bed.ci.json --seed ${{ github.run_id }} --evidence run.jsonl --junit junit.xml
 - if: always()
   uses: actions/upload-artifact@v4
   with: { name: evidence, path: run.jsonl }
 ```
+
+`--junit` writes standard JUnit XML (pass/fail/error map to testcase/failure/error), so any CI
+test-report UI renders Peira runs without wrapper scripts. If the service has an OpenAPI
+document, `peira stats cases --openapi openapi.json` reports which endpoints have no case —
+the spec stays optional; the report only exists when you offer one.
 
 The exit code gates the merge. When CI goes red, pull the evidence artifact and triage it
 locally — adjudication stays a human act, never a bot in the pipeline. Then record the

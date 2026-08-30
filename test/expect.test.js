@@ -48,3 +48,37 @@ test('matchExpect: status, body, bodySchema', () => {
   const schemaDiffs = matchExpect({ bodySchema: { type: 'object', required: ['missing'] } }, response);
   assert.equal(schemaDiffs.length, 1);
 });
+
+test('$contains matcher: string containing the substring', () => {
+  assert.deepEqual(matchSubset({ msg: { $contains: 'zero' } }, { msg: 'Division by zero!' }), []);
+  assert.equal(matchSubset({ msg: { $contains: 'zero' } }, { msg: 'fine' }).length, 1);
+  assert.equal(matchSubset({ msg: { $contains: 'zero' } }, { msg: 42 }).length, 1); // non-string never contains
+  const diff = matchSubset({ $contains: 'x' }, null, 'headers.location')[0];
+  assert.equal(diff.path, 'headers.location');
+  assert.match(diff.reason, /containing/);
+});
+
+test('matchExpect headers: case-insensitive names, subset semantics, matchers', () => {
+  const response = {
+    status: 201,
+    headers: { 'content-type': 'application/json; charset=utf-8', location: '/orders/42' },
+    body: null,
+  };
+  assert.deepEqual(matchExpect({ headers: { 'Content-Type': { $contains: 'application/json' } } }, response), []);
+  assert.deepEqual(matchExpect({ status: 201, headers: { Location: '/orders/42' } }, response), []);
+  assert.deepEqual(matchExpect({ headers: { location: { $any: 'string' } } }, response), []);
+
+  const wrong = matchExpect({ headers: { location: '/orders/43' } }, response);
+  assert.equal(wrong[0].path, 'headers.location');
+  assert.equal(wrong[0].reason, 'value mismatch');
+});
+
+test('matchExpect headers: a missing header is a named diff', () => {
+  const response = { status: 200, headers: { 'content-type': 'application/json' }, body: null };
+  const diffs = matchExpect({ headers: { 'X-Rate-Limit': { $any: 'string' } } }, response);
+  assert.equal(diffs.length, 1);
+  assert.equal(diffs[0].path, 'headers.x-rate-limit');
+  assert.equal(diffs[0].reason, 'missing header');
+  // a response with no headers at all behaves the same, not a crash
+  assert.equal(matchExpect({ headers: { etag: 'x' } }, { status: 200, body: null }).length, 1);
+});

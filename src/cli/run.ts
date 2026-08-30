@@ -1,6 +1,9 @@
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { loadCases } from '../load.js';
 import { validateCaseSet } from '../validate.js';
 import { runCases } from '../runner.js';
+import { junitXml } from '../report-junit.js';
 import { httpRequest } from '../http.js';
 import type { CliContext } from './context.js';
 
@@ -21,19 +24,50 @@ export async function main(ctx: CliContext): Promise<number> {
   }
 
   const baseUrl = (flags['base-url'] ?? bed?.baseUrl)!;
+
+  // run-time selection: exact ids (--only) unioned with an id-substring (--grep); the whole
+  // set was already validated above — filtering narrows execution, never the gate
+  const only = flags.only ?? [];
+  const grep = flags.grep;
+  const filter = only.length > 0 || grep !== undefined
+    ? (id: string) => only.includes(id) || (grep !== undefined && id.includes(grep))
+    : undefined;
+  if (filter) {
+    const matched = loaded.filter(({ caseObj }) => filter(caseObj.id)).length;
+    if (matched === 0 && templates.size === 0) {
+      console.error(`no case matched${only.length ? ` --only ${only.join(', ')}` : ''}${grep !== undefined ? ` --grep "${grep}"` : ''} (${loaded.length} cases loaded)`);
+      return 2;
+    }
+    console.log(`selected ${matched} of ${loaded.length} cases`);
+  }
+
+  const parallel = flags.parallel !== undefined ? Number(flags.parallel) : 1;
+  if (!Number.isInteger(parallel) || parallel < 1) {
+    console.error(`--parallel must be a positive integer, got "${flags.parallel}"`);
+    return 2;
+  }
+
   if (bed?.reset?.url) {
     await httpRequest({ baseUrl, method: bed.reset.method ?? 'post', route: bed.reset.url });
   }
 
   const seed = flags.seed !== undefined ? Number(flags.seed) : Math.floor(Math.random() * 2 ** 32);
-  const { verdicts, counts } = await runCases(loaded, {
+  const result = await runCases(loaded, {
     bed: bed ?? { users: {} },
     baseUrl,
     seed,
     evidencePath: flags.evidence ?? null,
     steps,
     templates,
+    filter,
+    parallel,
   });
+  const { verdicts, counts } = result;
+
+  if (flags.junit) {
+    mkdirSync(dirname(flags.junit), { recursive: true });
+    writeFileSync(flags.junit, junitXml(result));
+  }
 
   for (const v of verdicts) {
     const line = `${v.verdict.toUpperCase().padEnd(5)} ${v.id}${v.reason ? ` — ${v.reason}` : ''}`;

@@ -12,6 +12,8 @@ export { triageRun, parseEvidence, routeVerdicts, gateTriageOutput } from './tri
 export { deriveLedgerEvidence, sectionEvidence } from './ledger.js';
 export { ensureLedgerConfig, recordRun, runEngine, engineBin, outcomeStatus, LEDGER_ENGINE_CONFIG, LedgerError } from './ledger-engine.js';
 export { computeStats, formatStats, shapeSignature, codeSkeleton } from './stats.js';
+export { junitXml } from './report-junit.js';
+export { readOpenApiEndpoints, computeCoverage, formatCoverage, routeMatches, CASE_METHODS } from './coverage.js';
 export { renderDocument, renderCase } from './render.js';
 export { mintCase, mintAll, drawHoles, prng } from './generate.js';
 export { matchSubset, matchExpect, ANY_TYPES } from './expect.js';
@@ -33,4 +35,5 @@ export type { GatedAdoption, AdoptionReport } from './adopt.js';
 export type { LedgerRecord, SectionEvidence } from './ledger.js';
 export type { RenderDocumentOptions, ReportModel } from './render.js';
 export type { Stats } from './stats.js';
+export type { Endpoint, CoverageReport } from './coverage.js';
 export type { SchemaError, JsonSchema } from './schema.js';

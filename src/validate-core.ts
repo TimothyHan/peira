@@ -38,6 +38,15 @@ export function walkMatchers(expected: unknown, path: string, errors: string[]):
       }
       return;
     }
+    if ('$contains' in obj) {
+      const keys = Object.keys(obj);
+      if (keys.length !== 1) {
+        errors.push(`${path}: a $contains matcher must stand alone, found extra keys ${JSON.stringify(keys.filter((k) => k !== '$contains'))}`);
+      } else if (typeof obj.$contains !== 'string') {
+        errors.push(`${path}: $contains takes a string, got ${JSON.stringify(obj.$contains)}`);
+      }
+      return;
+    }
     for (const [k, v] of Object.entries(obj)) walkMatchers(v, `${path}.${k}`, errors);
   } else if (Array.isArray(expected)) {
     expected.forEach((v, i) => walkMatchers(v, `${path}[${i}]`, errors));
@@ -132,6 +141,18 @@ export function checkStep(
     if ('body' in expectDef) {
       checkTokens(expectDef.body, `${where}.body`, available, errors, holes);
       walkMatchers(expectDef.body, `${where}.body`, errors);
+    }
+    if ('headers' in expectDef) {
+      checkTokens(expectDef.headers, `${where}.headers`, available, errors, holes);
+      walkMatchers(expectDef.headers, `${where}.headers`, errors);
+      // headers are strings on the wire: a value is a literal string or a matcher, nothing else
+      for (const [name, value] of Object.entries((expectDef.headers ?? {}) as Record<string, unknown>)) {
+        const isMatcher = value !== null && typeof value === 'object' && !Array.isArray(value)
+          && Object.keys(value).length === 1 && ('$any' in value || '$contains' in value);
+        if (typeof value !== 'string' && !isMatcher) {
+          errors.push(`${where}.headers.${name}: a header value is a literal string or a $any/$contains matcher, got ${JSON.stringify(value)}`);
+        }
+      }
     }
   }
 

@@ -75,6 +75,8 @@ Peira competes on the synthesis and the discipline, not the ingredients.
         ↑ recompile on intent change          ↓ triage on failure (bug | drift | flake) — proposals only
 ```
 
+Runner facilities (2026-08-30, fundamentals gap-closure): `--only <id>` / `--grep <substr>` narrow a run to named cases (the whole set still validates — filtering narrows execution, never the gate); `--parallel <n>` runs cases on a bounded worker pool — determinism holds because every per-case input (seed-derived uniques, captures) is independent across cases, and per-case evidence buffers flush into the log in case order, so the file reads identically to a serial run's; `--junit <path>` emits JUnit XML for CI (pass/fail/error map to testcase/failure/error — the taxonomy survives the format); `peira stats --openapi <spec.json>` reports endpoint coverage — which endpoints of a declared API surface have no case — keeping OpenAPI strictly optional (§4.4).
+
 ### 4.2 The intent layer
 
 A markdown folder (`intent/`). Every `##` is an addressable section, one acceptance criterion or invariant each:
@@ -122,6 +124,8 @@ Three vocabulary amendments from the 2022-corpus audit ([findings 2026-08-27](fi
 From the eng review (2026-08-27): cases may declare `teardown: { "drain": true }` — the runner polls every job id captured by the case until it reaches a terminal state (capped timeout), so a case that occupies the AUT's queue cannot poison the next case's transient-state assertions. This is the declarative replacement for the ancestor's `teardown.sleep`; wall-clock sleeps stay banned.
 
 Two clarifications from the CEO review (2026-08-27): `$unique.*` values are **derived from the run seed** — invariant 8 applies to them, so re-run-by-seed reproduces the exact payloads; and body subset-matching follows Jest `toMatchObject` semantics exactly (index-wise subset for arrays), the ancestor's proven behavior.
+
+Fundamentals gap-closure (2026-08-30), amendment (D): `expect` gains a `headers` block — response-header assertions by name (case-insensitive per RFC 9110), values a literal string or a matcher — and the matcher vocabulary gains `{"$contains": "<substring>"}` (string containing the substring; a `content-type` assertion is useless against charset suffixes without it). Header values that are neither a string nor a matcher are refused statically; the vocabulary stays closed.
 
 ### 4.4 The compiler
 
@@ -188,6 +192,7 @@ Peira is an Akela domain, the way QABuddy is: akela is a first-party runtime dep
 - Traffic capture / inference (Keploy's problem; Peira declares what *should* be, not what is).
 - LLM-as-judge assertions for fuzzy response content (a scoped, versioned exception may earn its way in later; it violates invariant 1 and needs its own RFC).
 - A vector store, a ranking model, or any tunable scoring.
+- Retries as policy. An auto-retried flake is a hidden verdict; flake is a *triage* classification a human sees, never a runner setting that makes it disappear.
 
 ## 7. Implementation sequence
 

@@ -1,7 +1,8 @@
 // Assertion semantics (RFC 0001 §4.3): subset match with Jest toMatchObject parity —
 // objects match as subsets at every level, arrays match index-wise with equal length,
-// primitives match strictly. Matcher vocabulary (closed, amendment A):
+// primitives match strictly. Matcher vocabulary (closed, amendments A and D):
 //   {"$any": "string" | "number" | "boolean"}  — type assertion
+//   {"$contains": "<substring>"}                — string containing the substring
 //   null                                        — present and exactly null
 
 import { validateSchema } from './schema.js';
@@ -9,14 +10,22 @@ import type { Diff } from './types.js';
 
 export const ANY_TYPES = ['string', 'number', 'boolean'];
 
-function isAnyMatcher(expected: unknown): expected is { $any: string } {
+function isSoleKeyMatcher(expected: unknown, key: string): boolean {
   return (
     expected !== null &&
     typeof expected === 'object' &&
     !Array.isArray(expected) &&
     Object.keys(expected).length === 1 &&
-    '$any' in expected
+    key in expected
   );
+}
+
+function isAnyMatcher(expected: unknown): expected is { $any: string } {
+  return isSoleKeyMatcher(expected, '$any');
+}
+
+function isContainsMatcher(expected: unknown): expected is { $contains: string } {
+  return isSoleKeyMatcher(expected, '$contains');
 }
 
 /**
@@ -27,6 +36,13 @@ export function matchSubset(expected: unknown, actual: unknown, path = 'body'): 
     const want = expected.$any;
     if (typeof actual !== want) {
       return [{ path, expected: `<any ${want}>`, actual, reason: `expected any ${want}, got ${actual === null ? 'null' : typeof actual}` }];
+    }
+    return [];
+  }
+  if (isContainsMatcher(expected)) {
+    const want = expected.$contains;
+    if (typeof actual !== 'string' || !actual.includes(want)) {
+      return [{ path, expected: `<contains ${JSON.stringify(want)}>`, actual, reason: `expected a string containing ${JSON.stringify(want)}` }];
     }
     return [];
   }
@@ -62,18 +78,33 @@ export function matchSubset(expected: unknown, actual: unknown, path = 'body'): 
 
 export interface ExpectDef {
   status?: number;
+  /** response-header assertions; names are matched case-insensitively */
+  headers?: Record<string, unknown>;
   body?: unknown;
   bodySchema?: Record<string, unknown>;
 }
 
 /**
- * Evaluate an `expect` block against a response `{ status, body }`.
+ * Evaluate an `expect` block against a response `{ status, headers, body }`.
  * Returns an array of diffs, empty when the expectation holds.
  */
-export function matchExpect(expectDef: ExpectDef, response: { status: number; body: unknown }): Diff[] {
+export function matchExpect(expectDef: ExpectDef, response: { status: number; headers?: Record<string, string>; body: unknown }): Diff[] {
   const diffs: Diff[] = [];
   if ('status' in expectDef && response.status !== expectDef.status) {
     diffs.push({ path: 'status', expected: expectDef.status, actual: response.status, reason: 'status mismatch' });
+  }
+  if ('headers' in expectDef && expectDef.headers) {
+    // HTTP header names are case-insensitive (RFC 9110 §5.1) — normalize both sides
+    const actualHeaders: Record<string, string> = {};
+    for (const [k, v] of Object.entries(response.headers ?? {})) actualHeaders[k.toLowerCase()] = v;
+    for (const [name, expected] of Object.entries(expectDef.headers)) {
+      const lower = name.toLowerCase();
+      if (!(lower in actualHeaders)) {
+        diffs.push({ path: `headers.${lower}`, expected, actual: undefined, reason: 'missing header' });
+      } else {
+        diffs.push(...matchSubset(expected, actualHeaders[lower], `headers.${lower}`));
+      }
+    }
   }
   if ('body' in expectDef) {
     diffs.push(...matchSubset(expectDef.body, response.body));

@@ -33,7 +33,11 @@ ${CASE_SCHEMA_TEXT}
 - A step is one request plus optional capture / pollUntil / expect.
 - "expect" uses SUBSET matching (Jest toMatchObject semantics): objects match as subsets at
   every level, arrays index-wise with equal length, primitives strictly. Matchers allowed in
-  expected bodies: {"$any": "string" | "number" | "boolean"} and literal null (present and null).
+  expected bodies and header values: {"$any": "string" | "number" | "boolean"},
+  {"$contains": "<substring>"} (string containing the substring), and literal null (present and null).
+- "expect.headers" asserts response headers by name (case-insensitive), e.g.
+  {"headers": {"content-type": {"$contains": "application/json"}}} or an exact
+  {"headers": {"location": "/orders/{{orderId}}"}}. Only assert headers the intent names.
 - "auth" is "$users.<alias>" for a bed principal, a literal {"username","password"} object for
   negative auth tests, or absent for anonymous.${principals.length > 0 ? ` Available principals: ${principals.map((p) => `$users.${p}`).join(', ')}.` : ''}
 - "capture" maps an alias to a response path (e.g. {"requestId": "body.id"}); later steps

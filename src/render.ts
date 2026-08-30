@@ -13,6 +13,7 @@ function fmtExpected(expected: unknown): string {
   const walk = (node: any): any => {
     if (node !== null && typeof node === 'object' && !Array.isArray(node)) {
       if ('$any' in node && Object.keys(node).length === 1) return `<any ${node.$any}>`;
+      if ('$contains' in node && Object.keys(node).length === 1) return `<contains ${JSON.stringify(node.$contains)}>`;
       return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]));
     }
     if (Array.isArray(node)) return node.map(walk);
@@ -36,6 +37,7 @@ function fmtRequest(req: any): string {
 function fmtExpectPhrase(expect: any): string {
   const parts: string[] = [];
   if ('status' in expect) parts.push(`the response is ${expect.status}`);
+  if ('headers' in expect) parts.push(`the headers match ${fmtExpected(expect.headers)}`);
   if ('body' in expect) parts.push(`the body matches ${fmtExpected(expect.body)}`);
   if ('bodySchema' in expect) parts.push(`the body satisfies the schema ${cap(JSON.stringify(expect.bodySchema), 100)}`);
   return parts.join(', and ') || 'nothing is asserted';

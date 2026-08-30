@@ -20,6 +20,11 @@ export interface CliFlags {
   templates?: string;
   format?: string;
   'no-ledger'?: boolean;
+  only?: string[];
+  grep?: string;
+  junit?: string;
+  parallel?: string;
+  openapi?: string;
 }
 
 export interface CliContext {
@@ -36,8 +41,9 @@ export interface CliContext {
 export const USAGE = `usage: peira <command>
   validate [casesDir] [--bed <path>] [--intent <dir>] [--steps <dir>] [--templates <dir>]
   run      [casesDir] --bed <path> [--base-url <url>] [--seed <n>] [--evidence <path>] [--steps <dir>] [--templates <dir>]
+           [--only <case-id>]... [--grep <substr>] [--parallel <n>] [--junit <path>]
   compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>]
-  stats    [casesDir] [--steps <dir>]
+  stats    [casesDir] [--steps <dir>] [--openapi <spec.json>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
   evidence --evidence <run.jsonl> [--triage <proposals.json>] --intent <dir> [--out <path>] [--no-ledger]
            records the run into the evidence ledger; also writes the portable JSONL export
@@ -57,6 +63,11 @@ flags:
   --section <id>      compile only this intent section (repeatable; targeted recompile merges the manifest)
   --triage <path>     triage proposals JSON to fold into the ledger evidence export
   --no-ledger         write the JSONL export only; skip recording into the evidence ledger
+  --only <case-id>    run only this case (repeatable; the whole set still validates first)
+  --grep <substr>     run only cases whose id contains <substr> (combines with --only as a union)
+  --parallel <n>      run up to n cases concurrently; verdicts and evidence order stay identical to a serial run
+  --junit <path>      also write the run as JUnit XML (pass/fail/error map to testcase/failure/error)
+  --openapi <path>    OpenAPI JSON document — stats adds an endpoint-coverage report (which endpoints have no case)
 
 docs: docs/GETTING-STARTED.md | design: docs/DESIGN.md`;
 
@@ -78,6 +89,11 @@ export function buildContext(argv: string[]): CliContext {
       templates: { type: 'string' },
       format: { type: 'string' },
       'no-ledger': { type: 'boolean' },
+      only: { type: 'string', multiple: true },
+      grep: { type: 'string' },
+      junit: { type: 'string' },
+      parallel: { type: 'string' },
+      openapi: { type: 'string' },
     },
   });
 

@@ -191,6 +191,10 @@
         "status": {
           "type": "integer"
         },
+        "headers": {
+          "$comment": "response-header assertions; names are matched case-insensitively. Free map: name -> literal string | matcher; value shapes are checked statically in validate.js",
+          "type": "object"
+        },
         "body": {},
         "bodySchema": {
           "type": "object"

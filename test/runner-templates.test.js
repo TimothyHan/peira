@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runCases } from '../dist/runner.js';
 import { validateTemplate } from '../dist/validate.js';
-import { withFixture } from './helpers.js';
+import { withFixture, verdictMeaning } from './helpers.js';
 import { isolationTemplate } from './helpers.js';
 
 const submitTemplate = () => ({
@@ -64,6 +64,6 @@ test('same seed, fresh fixture → identical verdict sequences including minted 
     const first = await runCases([], { bed, baseUrl: url, seed: 42, templates });
     reset();
     const second = await runCases([], { bed, baseUrl: url, seed: 42, templates });
-    assert.equal(JSON.stringify(first.verdicts), JSON.stringify(second.verdicts));
+    assert.equal(JSON.stringify(verdictMeaning(first.verdicts)), JSON.stringify(verdictMeaning(second.verdicts)));
     assert.deepEqual(first.counts, { pass: 5, fail: 5, error: 0 });
   }));

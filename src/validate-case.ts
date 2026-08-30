@@ -42,7 +42,7 @@ export function validateCase(caseObjIn: unknown, { bedUsers, steps }: CaseValida
   const asserts = (t.expect && Object.keys(t.expect).length > 0) || t.pollUntil;
   if (!asserts) {
     warnings.push('test asserts nothing — no expect and no pollUntil');
-  } else if (t.expect && !('body' in t.expect) && !('bodySchema' in t.expect) && !t.pollUntil) {
+  } else if (t.expect && !('body' in t.expect) && !('bodySchema' in t.expect) && !('headers' in t.expect) && !t.pollUntil) {
     warnings.push(`weak oracle: expect checks status only (${t.expect.status ?? '?'}) with no body assertion`);
   } else if (t.expect && 'body' in t.expect && typeof t.expect.body === 'object' && t.expect.body !== null && Object.keys(t.expect.body).length === 0) {
     warnings.push('weak oracle: expect.body is an empty subset — it matches any body');
