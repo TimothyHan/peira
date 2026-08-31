@@ -1,5 +1,0 @@
-{"event":"applied","intent":"jp-comments-reference","hash":"52fdef45a65a","case":"CASE-jp-comments-reference-001","seed":42}
-{"event":"applied","intent":"jp-create-echo","hash":"0139f0b74648","case":"CASE-jp-create-echo-001","seed":42}
-{"event":"applied","intent":"jp-post-fetch","hash":"f9a1f12a161a","case":"CASE-jp-post-fetch-001","seed":42}
-{"event":"applied","intent":"jp-post-unknown","hash":"eeb8255a6995","case":"CASE-jp-post-unknown-001","seed":42}
-{"event":"applied","intent":"jp-collection-shape","hash":"74fdea2c0c1c","case":"CASE-posts-collection-shape-001","seed":42}

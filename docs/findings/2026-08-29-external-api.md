@@ -30,8 +30,9 @@ evidence). Reproduce: `peira run experiments/jsonplaceholder --bed experiments/j
 
 ## Akela seam, exercised on the same run
 
-`peira evidence --evidence experiments/jsonplaceholder/run-evidence.jsonl` →
-5 `applied` records, each binding a live intent section (id + hash) to the case and seed that
-validated it — the §4.8 grammar, produced deterministically from run artifacts alone.
+`peira evidence --evidence <that run's JSONL>` (the log itself is a per-run artifact and is not
+committed — regenerate it with `peira run experiments/jsonplaceholder --bed <jsonplaceholder bed>
+--evidence run.jsonl`) → 5 `applied` records, each binding a live intent section (id + hash) to
+the case and seed that validated it — the §4.8 grammar, produced deterministically from run artifacts alone.
 Contradicted-record paths (triaged bug → service, drift → case) are covered by the offline
 suite; untriaged failures and `error` verdicts export nothing by design (D4).
