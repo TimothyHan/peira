@@ -72,7 +72,7 @@ corpus verdicts.
 4. **The skip reasons** are worth reading in full once per model change. They are the clearest
    window into the compiler's judgment.
 
-The trend accumulates in `docs/findings/compile-eval-log.md` (kept locally, not published);
+The trend lives in [`docs/findings/compile-eval-log.md`](../docs/findings/compile-eval-log.md);
 each run's full report and compiled artifacts land in `.eval-runs/` (untracked).
 
 ## The expected-failure baseline

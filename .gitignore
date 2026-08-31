@@ -12,8 +12,3 @@ run-triage.json
 *run-evidence*.jsonl
 report.html
 TESTCASES.md
-
-# Held back from publication for now — the evidence trail and the stage-by-stage build record.
-# Publishing is one-way; these can be added deliberately later. They remain on disk locally.
-docs/findings/
-docs/plans/
