@@ -10,6 +10,8 @@
 
 import { createServer } from 'node:http';
 import { randomUUID, createHmac } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import {
   FIXTURE_JOB_LONG_MS,
   FIXTURE_JOB_SHORT_MS,
@@ -273,7 +275,10 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, plant = null } =
 }
 
 // CLI: `node test/fixtures/server.js [port] [--plant <shift-id>]`
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare real paths, not a hand-built file:// string: on Windows argv[1] is `D:\a\…`
+// while import.meta.url is `file:///D:/a/…`, so the naive form never matched and running
+// the demo service did nothing at all.
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const plantIdx = process.argv.indexOf('--plant');
   const plant = plantIdx !== -1 ? process.argv[plantIdx + 1] : null;
   const portArg = process.argv.slice(2).find((a) => /^\d+$/.test(a));

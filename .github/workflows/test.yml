@@ -1,5 +1,9 @@
-# Peira's own test suite across the platforms users run it on. Zero LLM — the suite uses
-# canned transports (PEIRA_CLAUDE_BIN), so CI needs no key and no session, same as user CI.
+# Peira's own test suite across the platforms and Node versions users run it on. Zero LLM —
+# the suite uses canned transports (PEIRA_CLAUDE_BIN), so CI needs no key and no session,
+# exactly like the CI Peira asks its users to set up.
+#
+# The Node matrix covers what package.json's `engines` field claims (>=18) rather than only
+# the version we happen to develop on: a floor nobody tests is a guess, not a contract.
 name: test
 on: [push, pull_request]
 jobs:
@@ -8,10 +12,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        node: [18, 20, 22, 24]
     runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} · node ${{ matrix.node }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with:
+          node-version: ${{ matrix.node }}
       - run: npm ci
       - run: npm test
