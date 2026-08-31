@@ -7,11 +7,15 @@
 //   1. gate pass-rate — sections that produced schema-admitted artifacts vs refused/unparseable
 //   2. lineage integrity — every accepted artifact stamped with its section id + live hash
 //   3. executable truth — the compiled cases validate, then RUN green against the fixture
-// A number that moves is the signal; record it in docs/findings/.
+//
+// A number that moves is the signal, so the run must OUTLIVE the scrollback: every run appends
+// one row to docs/findings/compile-eval-log.md and writes its full report + compiled artifacts
+// under .eval-runs/<date>-<contractHash>/ (override with --out <dir>).
+//
+//   node eval/compile-eval.js [intentDir] [--out <dir>]
 
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
+import { writeFileSync, mkdirSync, appendFileSync, existsSync } from 'node:fs';
+import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadIntentDir } from '../dist/intent.js';
 import { compileSections } from '../dist/compile.js';
@@ -22,7 +26,12 @@ import { COMPILE_MODEL } from '../dist/constants.js';
 import { startFixture } from '../test/fixtures/server.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const intentDir = process.argv[2] ?? join(here, '..', 'intent');
+const repoRoot = join(here, '..');
+const args = process.argv.slice(2);
+const outFlag = args.indexOf('--out');
+const outOverride = outFlag === -1 ? null : args[outFlag + 1];
+const positionals = args.filter((a, i) => outFlag === -1 || (i !== outFlag && i !== outFlag + 1));
+const intentDir = positionals[0] ?? join(repoRoot, 'intent');
 
 const fixture = await startFixture();
 const bed = {
@@ -73,15 +82,10 @@ if (ok && loaded.length > 0) {
 }
 await fixture.close();
 
-// artifacts, for eyeballing what the model actually produced
-const outDir = mkdtempSync(join(tmpdir(), 'peira-compile-eval-'));
-mkdirSync(join(outDir, 'cases'), { recursive: true });
-for (const { caseObj } of accepted) writeFileSync(join(outDir, 'cases', `${caseObj.id}.json`), JSON.stringify(caseObj, null, 2) + '\n');
-writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-
 const pct = (n, d) => (d === 0 ? '—' : `${((n / d) * 100).toFixed(1)}%`);
+const today = new Date().toLocaleDateString('sv');
 const report = {
-  date: new Date().toLocaleDateString('sv'),
+  date: today,
   model: COMPILE_MODEL,
   contractHash: manifest.contractHash,
   sections: sections.length,
@@ -95,7 +99,36 @@ const report = {
   validationErrors: validationErrors.length,
   verdicts: counts,
   compileMs,
+  intentDir: relative(repoRoot, intentDir) || '.',
 };
+
+// durable output: this run is expensive and rarely repeated — it must outlive the scrollback
+const outDir = outOverride ?? join(repoRoot, '.eval-runs', `${today}-${manifest.contractHash}`);
+mkdirSync(join(outDir, 'cases'), { recursive: true });
+for (const { caseObj } of accepted) writeFileSync(join(outDir, 'cases', `${caseObj.id}.json`), JSON.stringify(caseObj, null, 2) + '\n');
+for (const { stepObj } of acceptedSteps) writeFileSync(join(outDir, `${stepObj.id}.json`), JSON.stringify(stepObj, null, 2) + '\n');
+for (const { tplObj } of acceptedTemplates) writeFileSync(join(outDir, `${tplObj.id}.json`), JSON.stringify(tplObj, null, 2) + '\n');
+writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+writeFileSync(join(outDir, 'report.json'), JSON.stringify({ ...report, validationErrors, failures: verdicts.filter((v) => v.verdict !== 'pass') }, null, 2) + '\n');
+
+// one appended row per run — the history IS the signal; a number that moves is what you read
+const logPath = join(repoRoot, 'docs', 'findings', 'compile-eval-log.md');
+if (!existsSync(logPath)) {
+  writeFileSync(logPath, `# Compile eval log
+
+One row per \`npm run eval:compile\`. The point is the *trend*: gate pass-rate and green
+verdicts should hold across prompt edits and model changes — a number that moves is the
+signal to go read that run's report. Full reports and compiled artifacts live in
+\`.eval-runs/\` (untracked); this log is the durable record.
+
+| date | model | contract | sections | gate pass | cases | lineage | validation | verdicts (p/f/e) |
+|---|---|---|---|---|---|---|---|---|
+`);
+}
+appendFileSync(
+  logPath,
+  `| ${today} | ${COMPILE_MODEL} | ${manifest.contractHash} | ${sections.length} | ${report.gatePassRate} | ${accepted.length} | ${report.lineageIntact ? 'ok' : 'BROKEN'} | ${validationErrors.length === 0 ? 'clean' : `${validationErrors.length} err`} | ${counts.pass}/${counts.fail}/${counts.error} |\n`,
+);
 
 console.log('\n=== compile eval ===\n');
 console.log(`  sections            ${sections.length}  → ${JSON.stringify(outcomes)}`);
@@ -105,7 +138,8 @@ console.log(`  lineage intact      ${report.lineageIntact ? 'yes' : `NO — ${ba
 console.log(`  validation          ${validationErrors.length === 0 ? 'clean' : `${validationErrors.length} error(s)`}`);
 console.log(`  run vs fixture      ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error`);
 console.log(`  compile wall        ${(compileMs / 1000).toFixed(1)}s`);
-console.log(`\n  artifacts written to ${outDir}`);
+console.log(`\n  report + artifacts  ${relative(repoRoot, outDir) || outDir}`);
+console.log(`  history row         ${relative(repoRoot, logPath)}`);
 for (const e of validationErrors.slice(0, 10)) console.log(`    validation: ${e}`);
 for (const v of verdicts.filter((v) => v.verdict !== 'pass')) console.log(`    ${v.verdict.toUpperCase()} ${v.id} — ${v.reason ?? ''}`);
 console.log('\nJSON:');
