@@ -12,6 +12,18 @@ npm install -g peira        # Node ≥ 18; one first-party dependency — no thi
 authoring commands (`compile`, `adopt`) and the offline `triage` use a model, and they shell
 out to your own logged-in Claude Code CLI session: no API key to provision, nothing in CI.
 
+Then scaffold the project — deterministic, zero LLM, never overwrites:
+
+```bash
+peira init          # bed.json, intent/example.md, AGENTS.md (+ CLAUDE.md import), cases/
+peira init --ci     # …plus a zero-LLM GitHub Actions workflow
+```
+
+`AGENTS.md` carries the drop-in agent instructions (§6) in the cross-tool convention that
+Claude, Cursor, Copilot-style agents, and others read; `CLAUDE.md` is a one-line `@AGENTS.md`
+import so Claude Code shares the same source of truth. Steps 1–2 below then reduce to "edit
+`bed.json`, replace the example intent" — or just tell your agent what the service promises.
+
 ## 1. Describe your service — `bed.json`
 
 The bed config is the **only** place Peira learns anything about your service:
@@ -186,10 +198,11 @@ you approve. In practice you talk to your agent in intent-language ("add coverag
 a shipped order must be refused") and it edits the plan, compiles, runs, renders the report,
 and drafts triage for *your* adjudication.
 
-Drop this into your project's `CLAUDE.md` (or your agent's equivalent):
+`peira init` scaffolds this as `AGENTS.md` (with a `CLAUDE.md` import for Claude Code) —
+or drop it into your agent's instruction file yourself:
 
 ```markdown
-# CLAUDE.md — API testing with Peira
+# API testing with Peira
 
 - Tests are compiled from intent/*.md. NEVER edit cases/*.json by hand —
   edit the intent section, then recompile exactly that section:

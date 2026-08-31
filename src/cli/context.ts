@@ -28,6 +28,7 @@ export interface CliFlags {
   openapi?: string;
   watch?: boolean;
   shard?: string;
+  ci?: boolean;
 }
 
 export interface CliContext {
@@ -42,6 +43,10 @@ export interface CliContext {
 }
 
 export const USAGE = `usage: peira <command>
+  init     [dir] [--ci]
+           scaffold a project: bed.json, intent/example.md, agent instructions (AGENTS.md — the
+           cross-tool convention — plus a CLAUDE.md import for Claude Code);
+           --ci adds a zero-LLM GitHub Actions workflow. Never overwrites existing files.
   validate [casesDir] [--bed <path>] [--intent <dir>] [--steps <dir>] [--templates <dir>]
   run      [casesDir] --bed <path> [--base-url <url>] [--seed <n>] [--evidence <path>] [--steps <dir>] [--templates <dir>]
            [--only <case-id>]... [--grep <substr>] [--parallel <n>] [--junit <path>] [--shard <i>/<n>] [--watch]
@@ -103,6 +108,7 @@ export function buildContext(argv: string[]): CliContext {
       openapi: { type: 'string' },
       watch: { type: 'boolean' },
       shard: { type: 'string' },
+      ci: { type: 'boolean' },
     },
   });
 

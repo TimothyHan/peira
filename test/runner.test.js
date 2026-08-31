@@ -143,10 +143,18 @@ test('runCases parallel: same verdicts in the same order, evidence grouped per c
 
 test('bed.timeouts: the declared latency envelope overrides pinned ceilings', () =>
   withFixture(async ({ url }, bed) => {
-    // a 1ms request ceiling cannot survive a real HTTP round trip → infra error, never fail
-    const impatient = { ...bed, timeouts: { requestMs: 1 } };
-    const v1 = await run(makeCase(), impatient, url);
+    // a server that never answers: the request ceiling must fire (deterministically — a tiny
+    // timeout racing a loopback response is a coin flip) → infra error, never fail
+    const { createServer } = await import('node:http');
+    const blackhole = createServer(() => { /* accept, never respond */ });
+    await new Promise((r) => blackhole.listen(0, '127.0.0.1', r));
+    const impatient = { ...bed, timeouts: { requestMs: 200 } };
+    const t0 = performance.now();
+    const v1 = await run(makeCase(), impatient, `http://127.0.0.1:${blackhole.address().port}`);
+    blackhole.closeAllConnections();
+    await new Promise((r) => blackhole.close(r));
     assert.equal(v1.verdict, 'error');
+    assert.ok(performance.now() - t0 < 3000, 'must not wait out the pinned 5s default');
 
     // a 300ms pollUntil ceiling fails fast instead of the pinned 10s default
     const shortPoll = { ...bed, timeouts: { pollUntilMs: 300 } };

@@ -1,10 +1,12 @@
 // Case loading: recursive *.json under a root, sorted by path — sorted order IS execution order.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import type { Case, LoadedCase } from './types.js';
 
 export function listCaseFiles(root: string): string[] {
+  // a fresh project has no cases yet — an empty set, not a crash
+  if (!existsSync(root)) return [];
   const out: string[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir).sort()) {

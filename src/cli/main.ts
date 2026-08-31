@@ -4,6 +4,7 @@
 import { buildContext, USAGE } from './context.js';
 
 const COMMANDS: Record<string, () => Promise<{ main: (ctx: ReturnType<typeof buildContext>) => Promise<number> }>> = {
+  init: () => import('./init.js'),
   validate: () => import('./validate.js'),
   run: () => import('./run.js'),
   compile: () => import('./compile.js'),
