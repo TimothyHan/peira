@@ -1,7 +1,12 @@
-// Compile-quality eval: `npm run eval:compile`. OPT-IN, not part of `npm test` — it spends a
-// real Claude session, so it is a ritual (before a release, after a prompt or model change),
-// not a CI gate. The suite's canned transports prove the compile *plumbing*; this proves the
-// compile *quality*, which a prompt edit can silently degrade while every test stays green.
+// Compile eval: `npm run eval:compile`. OPT-IN, not part of `npm test` — it spends a real
+// Claude session, so it is a ritual (before a release, after a prompt or model change), not a
+// CI gate. The suite's canned transports prove the compile *plumbing*; this proves the compile
+// *quality*, which a prompt edit can silently degrade while every test stays green.
+//
+// READ eval/README.md BEFORE READING THE NUMBERS. This is not a compiler quality score: it
+// measures compiler × intent corpus × bed, holding two fixed to detect drift in the third.
+// Several figures (skip rate above all) are properties of the CORPUS, not the compiler, and
+// nothing here measures generalization to a user's own intent.
 //
 // What it measures, end to end against the repo's own intent:
 //   1. gate pass-rate — sections that produced schema-admitted artifacts vs refused/unparseable

@@ -6,8 +6,13 @@ signal to go read that run's report. Full reports and compiled artifacts live in
 `.eval-runs/` (untracked); this log is the durable record.
 
 `regressions` is the column to read: failures that are **not** on the named
-`eval/expected-failures.json` list. Expected failures (the known 401-vs-403 bug, the bed's
+`eval/expected-failures.json` baseline. Expected failures (the known 401-vs-403 bug, the bed's
 control-flow gap) are real information but not news.
+
+These numbers describe **compiler × this corpus × this bed** — not compiler quality in the
+abstract, and not generalization to anyone else's intent. `eval/README.md` explains which
+figure is a property of which, and why the skip rate says more about the document than about
+the compiler.
 
 | date | model | contract | compiled | gate pass | cases | lineage | validation | verdicts (p/f/e) | regressions |
 |---|---|---|---|---|---|---|---|---|---|

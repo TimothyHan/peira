@@ -3,6 +3,12 @@
 The first full-corpus `npm run eval:compile` — 24 sections, model `claude-opus-5`, contract
 `92d43e337f5d`, 347s wall (~14.5s/section). Raw report: `.eval-runs/2026-08-31-92d43e337f5d/`.
 
+**Scope caveat, since these numbers get quoted:** the eval measures compiler × *this* corpus ×
+*this* bed. It is regression detection on a known body of work, not a compiler quality score,
+and it measures nothing about generalization to a user's own intent. `eval/README.md` sets out
+which figure is a property of which — the skip rate in particular describes the document, not
+the compiler.
+
 Headline: **the compiler is in good shape, and the eval's own scoreboard was wrong.** Both
 findings below were produced by reading the persisted report rather than the summary line —
 which is the argument for persisting it.
