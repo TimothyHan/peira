@@ -79,6 +79,28 @@ the list shrinks when a cause is fixed rather than rotting.
 Re-classified under the new scoreboard, this run reads: 100% gate pass over 14 attempted,
 10 correctly skipped, 5 not run, 12 expected failures, **0 regressions**.
 
+## Confirmed by the second run (same day, after the fixes)
+
+| | run 1 (pre-fix) | run 2 |
+|---|---|---|
+| gate pass-rate | 58.3% (skips miscounted) | **100.0% of 14 attempted**, 0 refused |
+| cases | 44 | 42 |
+| verdicts | 35 / 19 / 0 | 36 / **11** / 0, 5 not run |
+| regressions | not measured | **0** |
+| unused expectations | — | none (both signatures matched) |
+
+Every fix held. The 19 failures became 11, all of them named: five moved out of scoring
+because they target another service, and two disappeared because the bed defects behind them
+were fixed. Both baseline signatures matched something, so neither has gone stale. Lineage
+intact, validation clean, zero refusals — twice.
+
+One property worth recording: **compilation is a model call, not a function.** Run 2 produced
+42 cases where run 1 produced 44, and 11 expected failures where the same causes produced 12.
+Counts drift a few percent between runs at identical inputs. This is the concrete vindication
+of signature-based matching — an id-keyed baseline would have reported false regressions for
+renamed cases *and* false stale entries for ones that were not regenerated.
+
 ## Cost baseline
 
-347s for 24 sections on Opus, one sequential call each. Worth knowing before the next run.
+347s and 361s for 24 sections on Opus across two runs — about 15s per section, one sequential
+call each. Worth knowing before the next run.
