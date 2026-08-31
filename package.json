@@ -22,6 +22,7 @@
     "build": "tsc -p tsconfig.json",
     "pretest": "npm run build",
     "test": "node --test test/*.test.js",
+    "bench": "npm run build && node bench/bench.js",
     "prepack": "npm run build"
   },
   "devDependencies": {

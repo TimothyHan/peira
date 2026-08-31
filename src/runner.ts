@@ -323,6 +323,7 @@ export interface RunCasesOptions {
 
 /** Run a case set in sorted file order, minting invariant-template instances for this run. */
 export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1, shard }: RunCasesOptions): Promise<RunResult> {
+  const runStarted = performance.now();
   const evidence = new EvidenceLog(evidencePath);
   const resolvedBase = (baseUrl ?? bed.baseUrl)!;
 
@@ -379,6 +380,14 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
 
   const counts = { pass: 0, fail: 0, error: 0 };
   for (const v of verdicts) counts[v.verdict] += 1;
-  evidence.append({ event: 'run-end', seed, counts });
-  return { seed, verdicts, counts, events: evidence.events };
+  // timing accounting: wallMs is the run's span; httpMs sums every logged exchange (with
+  // --parallel the sum can exceed the wall — they are totals, not a partition). On a serial
+  // poll-free workload, wallMs − httpMs is the tool's own overhead.
+  const wallMs = Math.round(performance.now() - runStarted);
+  const httpMs = evidence.events.reduce(
+    (sum, e) => sum + (e.event === 'http' ? (((e.response as { elapsedMs?: number }) ?? {}).elapsedMs ?? 0) : 0),
+    0,
+  );
+  evidence.append({ event: 'run-end', seed, counts, wallMs, httpMs });
+  return { seed, verdicts, counts, wallMs, httpMs, events: evidence.events };
 }

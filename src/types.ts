@@ -98,6 +98,10 @@ export interface RunResult {
   seed: number;
   verdicts: Verdict[];
   counts: VerdictCounts;
+  /** run span in wall-clock ms */
+  wallMs: number;
+  /** sum of every logged HTTP exchange's elapsedMs (a total, not a partition of wallMs) */
+  httpMs: number;
   /** redacted evidence events (also written to evidencePath when set) */
   events: Record<string, unknown>[];
 }

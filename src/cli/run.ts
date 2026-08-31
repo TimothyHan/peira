@@ -85,7 +85,7 @@ async function runOnce(ctx: CliContext, setup: RunSetup, extraFilter?: (file: st
     }
   }
   const shardTag = setup.shard ? ` | shard ${setup.shard.index}/${setup.shard.total}` : '';
-  console.log(`\nseed ${setup.seed}${shardTag} | ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error`);
+  console.log(`\nseed ${setup.seed}${shardTag} | ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error (${(result.wallMs / 1000).toFixed(2)}s)`);
   return counts.fail + counts.error > 0 ? 1 : 0;
 }
 
