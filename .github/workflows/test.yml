@@ -15,9 +15,9 @@ jobs:
         node: [18, 20, 22, 24]
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} · node ${{ matrix.node }}
-    # the suite runs in well under a minute; anything near this is a hang, and a hang should
-    # fail fast rather than sit on a runner until the six-hour default
-    timeout-minutes: 10
+    # the suite runs in ~20s; anything approaching this is a hang, not slowness, and a hang
+    # should fail fast rather than sit on a runner until the six-hour default
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

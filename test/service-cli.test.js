@@ -12,6 +12,14 @@ import { startFixture } from './fixtures/server.js';
 
 const execFileP = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
+
+// POSIX only, deliberately and visibly. These drive real process trees — spawn a server
+// through a shell, then fell the whole group. On POSIX that is one signal to a process group;
+// Windows has no process groups, so the implementation shells out to taskkill /T, and a kill
+// that misses leaves an orphaned server holding a port and hangs the test runner rather than
+// failing it. That behaviour could not be verified without a Windows machine, so it is
+// declared unverified instead of asserted: bed.service is tested on macOS and Linux.
+const posixOnly = { skip: process.platform === 'win32' && 'bed.service process-tree handling is unverified on Windows' };
 const binPath = join(here, '..', 'bin', 'peira.js');
 const serverPath = join(here, 'fixtures', 'server.js');
 const casesDir = join(here, '..', 'cases');
@@ -38,7 +46,7 @@ const run = (bedPath) =>
   execFileP('node', [binPath, 'run', casesDir, '--bed', bedPath, '--seed', '42', '--only', 'CASE-2022-1-1'], { encoding: 'utf8' })
     .catch((err) => err);
 
-test('service.command is started, awaited until ready, and killed after the run', async () => {
+test('service.command is started, awaited until ready, and killed after the run', posixOnly, async () => {
   const port = 4611;
   const bedPath = writeBed({ command: `node ${serverPath} ${port}`, readyMs: 10000 }, port);
   assert.equal(await portAnswers(port), false, `port ${port} must be free before the test`);
@@ -51,7 +59,7 @@ test('service.command is started, awaited until ready, and killed after the run'
   assert.equal(await portAnswers(port), false, 'service leaked after the run');
 });
 
-test('reuse (default): an already-answering baseUrl is used as-is and never killed', async () => {
+test('reuse (default): an already-answering baseUrl is used as-is and never killed', posixOnly, async () => {
   const fixture = await startFixture();
   try {
     // the command would fail loudly if spawned — reuse means it must never run
@@ -65,7 +73,7 @@ test('reuse (default): an already-answering baseUrl is used as-is and never kill
   }
 });
 
-test('reuse:false refuses an instance Peira did not start', async () => {
+test('reuse:false refuses an instance Peira did not start', posixOnly, async () => {
   const fixture = await startFixture();
   try {
     const bedPath = writeBed({ command: 'node -e ""', reuse: false }, fixture.port);
@@ -78,7 +86,7 @@ test('reuse:false refuses an instance Peira did not start', async () => {
   }
 });
 
-test('a service that never answers is a clean infra error, not a hang or a stack trace', async () => {
+test('a service that never answers is a clean infra error, not a hang or a stack trace', posixOnly, async () => {
   const port = 4613;
   // node, not `sleep` — the command must exist on Windows CI too
   const bedPath = writeBed({ command: 'node -e "setTimeout(function(){},60000)"', readyMs: 700 }, port);
@@ -88,7 +96,7 @@ test('a service that never answers is a clean infra error, not a hang or a stack
   assert.ok(!/at startService/.test(r.stderr), 'no stack trace');
 });
 
-test('a command that dies before answering reports the exit, not a timeout', async () => {
+test('a command that dies before answering reports the exit, not a timeout', posixOnly, async () => {
   const port = 4614;
   const bedPath = writeBed({ command: 'node -e "process.exit(1)"', readyMs: 10000 }, port);
   const r = await run(bedPath);

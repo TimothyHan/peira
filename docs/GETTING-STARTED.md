@@ -143,7 +143,8 @@ peira run cases --bed bed.json --intent intent --watch   # re-run on change, map
 ```
 
 Watch mode is verified on macOS and Linux; its file-event delivery on Windows is unverified
-(everything else in the tool is tested on both). Watch mode maps changes by lineage, not an
+(as is `bed.service`'s process-tree handling — everything else is tested on Linux and Windows
+across Node 18, 20, 22, and 24). Watch mode maps changes by lineage, not an
 import graph: editing a case re-runs exactly that
 case; editing the bed or a registry re-runs everything; editing intent re-runs *nothing* —
 verdicts can't change, so it re-checks staleness and names the affected cases instead, and
