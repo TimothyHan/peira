@@ -60,8 +60,15 @@ review that diff; a full recompile is a rare, reviewed event like a major-versio
 
 **Fixed:** the eval excludes sections targeting another service from the run (reporting them
 as "not run" rather than failed), and carries `eval/expected-failures.json` — a named, reasoned
-list subtracted from the count so the run reports **regressions**. A listed case that starts
-passing is reported too, so the list shrinks when a cause is fixed rather than rotting.
+baseline subtracted from the count so the run reports **regressions**.
+
+The baseline matches on **diff signature, not case id**. Case ids are chosen by the model on
+every compile (`CASE-submit-valid-loop-script-003`), so an id-keyed list would report the same
+known issues as fresh regressions under new names on the very next run. Signatures — `status
+expected 403 got 401`, `body.result got null` — survive recompilation. A failure counts as
+expected only when *every* one of its diffs matches, so a case that breaks in a known way
+**and** a new way stays visible; and a signature that stops matching anything is reported, so
+the list shrinks when a cause is fixed rather than rotting.
 
 Re-classified under the new scoreboard, this run reads: 100% gate pass over 14 attempted,
 10 correctly skipped, 5 not run, 12 expected failures, **0 regressions**.

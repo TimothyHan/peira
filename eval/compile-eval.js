@@ -94,12 +94,23 @@ await fixture.close();
 
 // expected failures: named, reasoned, and subtracted — so the count reports REGRESSIONS.
 // A listed case that passes is reported too: its reason has gone stale and should be removed.
-const expected = JSON.parse(readFileSync(join(here, 'expected-failures.json'), 'utf8')).byCasePrefix;
-const reasonFor = (id) => expected.find((e) => id.startsWith(e.prefix))?.reason ?? null;
+const signatures = JSON.parse(readFileSync(join(here, 'expected-failures.json'), 'utf8')).signatures;
+const diffMatches = (sig, d) =>
+  d.path === sig.when.path &&
+  (!('expected' in sig.when) || JSON.stringify(sig.when.expected) === JSON.stringify(d.expected)) &&
+  (!('actual' in sig.when) || JSON.stringify(sig.when.actual) === JSON.stringify(d.actual));
+// expected only if EVERY diff is accounted for — a known failure that also breaks in a new
+// way must stay visible
+const signatureFor = (v) => {
+  if (!v.diffs || v.diffs.length === 0) return null;
+  const hits = v.diffs.map((d) => signatures.find((s) => diffMatches(s, d)));
+  return hits.every(Boolean) ? signatures.find((s) => s.id === hits[0].id) : null;
+};
 const failed = verdicts.filter((v) => v.verdict !== 'pass');
-const unexpectedFailures = failed.filter((v) => reasonFor(v.id) === null);
-const expectedFailures = failed.filter((v) => reasonFor(v.id) !== null);
-const stalePrefixes = expected.filter((e) => verdicts.some((v) => v.id.startsWith(e.prefix) && v.verdict === 'pass'));
+const unexpectedFailures = failed.filter((v) => signatureFor(v) === null);
+const expectedFailures = failed.filter((v) => signatureFor(v) !== null);
+const usedSignatures = new Set(expectedFailures.map((v) => signatureFor(v).id));
+const staleSignatures = signatures.filter((s) => !usedSignatures.has(s.id));
 
 const pct = (n, d) => (d === 0 ? '—' : `${((n / d) * 100).toFixed(1)}%`);
 const today = new Date().toLocaleDateString('sv');
@@ -121,7 +132,7 @@ const report = {
   verdicts: counts,
   unexpectedFailures: unexpectedFailures.length,
   expectedFailures: expectedFailures.length,
-  staleExpectations: stalePrefixes.map((e) => e.prefix),
+  unusedExpectations: staleSignatures.map((s) => s.id),
   compileMs,
   intentDir: relative(repoRoot, intentDir) || '.',
 };
@@ -137,7 +148,7 @@ writeFileSync(join(outDir, 'report.json'), JSON.stringify({
   ...report,
   validationErrors,
   unexpected: unexpectedFailures,
-  expected: expectedFailures.map((v) => ({ id: v.id, reason: reasonFor(v.id), diffs: v.diffs })),
+  expected: expectedFailures.map((v) => ({ id: v.id, signature: signatureFor(v).id, reason: signatureFor(v).reason, diffs: v.diffs })),
   notRun: external.map(({ caseObj }) => caseObj.id),
 }, null, 2) + '\n');
 
@@ -174,7 +185,7 @@ console.log(`  validation          ${validationErrors.length === 0 ? 'clean' : `
 console.log(`  run vs bed          ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error${external.length ? `  (${external.length} not run — target another service)` : ''}`);
 console.log(`  → regressions       ${unexpectedFailures.length === 0 ? 'none — every failure is a named, expected one' : `${unexpectedFailures.length} UNEXPECTED failure(s)`}`);
 console.log(`  → expected          ${expectedFailures.length} (bed scope / known bug — see eval/expected-failures.json)`);
-if (stalePrefixes.length > 0) console.log(`  → stale expectations ${stalePrefixes.map((e) => e.prefix).join(', ')} now PASS — remove them`);
+if (staleSignatures.length > 0) console.log(`  → unused expectations ${staleSignatures.map((s) => s.id).join(', ')} matched nothing — the cause may be fixed; consider removing`);
 console.log(`  compile wall        ${(compileMs / 1000).toFixed(1)}s`);
 console.log(`\n  report + artifacts  ${relative(repoRoot, outDir) || outDir}`);
 console.log(`  history row         ${isCorpusRun ? relative(repoRoot, logPath) : 'skipped — not the repo corpus, so it stays out of the trend'}`);
