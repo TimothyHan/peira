@@ -23,6 +23,7 @@
     "pretest": "npm run build",
     "test": "node --test test/*.test.js",
     "bench": "npm run build && node bench/bench.js",
+    "eval:compile": "npm run build && node eval/compile-eval.js",
     "prepack": "npm run build"
   },
   "devDependencies": {

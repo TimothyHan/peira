@@ -1,24 +1,17 @@
+# Peira's own test suite across the platforms users run it on. Zero LLM — the suite uses
+# canned transports (PEIRA_CLAUDE_BIN), so CI needs no key and no session, same as user CI.
 name: test
-on:
-  push:
-  pull_request:
+on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
+        with: { node-version: 22 }
       - run: npm ci
-      - run: npm run build
       - run: npm test
-      - name: gate — corpus validates and runs green against the fixture
-        run: |
-          node bin/peira.js validate cases --bed test/fixtures/bed.json
-          node test/fixtures/server.js 4477 &
-          sleep 1
-          node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42

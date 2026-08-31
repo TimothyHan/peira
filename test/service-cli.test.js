@@ -68,7 +68,7 @@ test('reuse (default): an already-answering baseUrl is used as-is and never kill
 test('reuse:false refuses an instance Peira did not start', async () => {
   const fixture = await startFixture();
   try {
-    const bedPath = writeBed({ command: 'true', reuse: false }, fixture.port);
+    const bedPath = writeBed({ command: 'node -e ""', reuse: false }, fixture.port);
     const r = await run(bedPath);
     assert.equal(r.code, 1);
     assert.match(r.stderr, /reuse is false/);
@@ -80,7 +80,8 @@ test('reuse:false refuses an instance Peira did not start', async () => {
 
 test('a service that never answers is a clean infra error, not a hang or a stack trace', async () => {
   const port = 4613;
-  const bedPath = writeBed({ command: 'sleep 60', readyMs: 700 }, port);
+  // node, not `sleep` — the command must exist on Windows CI too
+  const bedPath = writeBed({ command: 'node -e "setTimeout(function(){},60000)"', readyMs: 700 }, port);
   const r = await run(bedPath);
   assert.equal(r.code, 1);
   assert.match(r.stderr, /did not answer within 700ms/);
@@ -89,7 +90,7 @@ test('a service that never answers is a clean infra error, not a hang or a stack
 
 test('a command that dies before answering reports the exit, not a timeout', async () => {
   const port = 4614;
-  const bedPath = writeBed({ command: 'false', readyMs: 10000 }, port);
+  const bedPath = writeBed({ command: 'node -e "process.exit(1)"', readyMs: 10000 }, port);
   const r = await run(bedPath);
   assert.equal(r.code, 1);
   assert.match(r.stderr, /exited before/);

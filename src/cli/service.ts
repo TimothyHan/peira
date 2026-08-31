@@ -39,10 +39,11 @@ export async function startService(service: NonNullable<BedConfig['service']>, b
     return { started: false, stop: () => {} };
   }
 
+  const windows = process.platform === 'win32';
   const child: ChildProcess = spawn(service.command, {
     shell: true,
     cwd: service.cwd,
-    detached: true, // its own process group, so stop() can kill the command's children too
+    detached: !windows, // its own process group, so stop() can kill the command's children too
     stdio: ['ignore', 'ignore', 'inherit'],
   });
   let exited = false;
@@ -53,7 +54,12 @@ export async function startService(service: NonNullable<BedConfig['service']>, b
   const stop = (): void => {
     if (exited || child.pid === undefined) return;
     try {
-      process.kill(-child.pid, 'SIGTERM');
+      if (windows) {
+        // no process groups on Windows — taskkill /T fells the whole tree
+        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        process.kill(-child.pid, 'SIGTERM');
+      }
     } catch {
       // the group is already gone — nothing to leak
     }
