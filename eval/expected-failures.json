@@ -1,0 +1,37 @@
+{
+  "$comment": "Cases known to fail against the in-repo bed for reasons that are NOT compiler defects. Each entry must name why, so the list stays auditable and shrinks when a cause is fixed. The eval subtracts these to report regressions instead of a permanently red count; a listed case that PASSES is reported too — the reason has gone stale.",
+  "byCasePrefix": [
+    {
+      "prefix": "CASE-result-isolation-",
+      "reason": "BUG-2022-01: the bed answers 401 where the intent requires 403. This is the known defect the invariant exists to catch — these failing is the tool working."
+    },
+    {
+      "prefix": "CASE-result-hidden-from-non-submitter",
+      "reason": "BUG-2022-01, same 401-vs-403 divergence."
+    },
+    {
+      "prefix": "CASE-security-fetch-other-users-request",
+      "reason": "BUG-2022-01, same 401-vs-403 divergence."
+    },
+    {
+      "prefix": "CASE-submit-valid-loop-script",
+      "reason": "Bed scope (DESIGN.md §8): the fixture does not execute control flow — a loop completes with a null result. Correct against the real service."
+    },
+    {
+      "prefix": "CASE-submit-valid-conditional-script",
+      "reason": "Bed scope: no control flow — a conditional completes with a null result."
+    },
+    {
+      "prefix": "CASE-submit-valid-function-definition-and-run",
+      "reason": "Bed scope: a defined function is accepted, but invoking it yields no computed result."
+    },
+    {
+      "prefix": "CASE-submit-valid-class-definition-and-run",
+      "reason": "Bed scope: a class can be declared but not instantiated and called."
+    },
+    {
+      "prefix": "CASE-queued-request-executes-when-capacity-frees",
+      "reason": "Bed scope: the queued script's result is computed by the evaluator, which returns null for the construct used."
+    }
+  ]
+}

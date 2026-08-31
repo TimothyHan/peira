@@ -27,10 +27,16 @@ function stripComments(code) {
 }
 
 function syntaxError(code) {
+  const src = stripComments(code);
   const counts = { '(': 0, ')': 0, '{': 0, '}': 0 };
-  for (const ch of stripComments(code)) if (ch in counts) counts[ch] += 1;
+  for (const ch of src) if (ch in counts) counts[ch] += 1;
   if (counts['('] !== counts[')'] || counts['{'] !== counts['}']) {
     return `startup failed: unexpected token: unbalanced ${counts['('] !== counts[')'] ? 'parentheses' : 'braces'}`;
+  }
+  // a declaration with no right-hand side ("def x =") is a real Groovy syntax error; the bed
+  // used to accept it with 200, which is a wrong answer rather than a missing one
+  if (/\b(?:def|int|long|double|float|boolean|char|byte|short|String)\s+[A-Za-z_]\w*\s*=\s*(?:;|\n|$)/.test(src)) {
+    return 'startup failed: unexpected token: expression expected after "="';
   }
   return null;
 }
@@ -56,6 +62,15 @@ function evaluate(code) {
       return { duration, status: 'FAILED', result: 'java.lang.ArithmeticException: Division by zero' };
     }
     return { duration, status: 'COMPLETED', result: String(value) };
+  }
+
+  // an explicit throw fails with its own message, the way the real runner reported it —
+  // without this the unknown-method scan below claims RuntimeException() does not exist
+  const thrown = src.match(/\bthrow\s+new\s+([A-Za-z_][\w.]*)\s*\(\s*(?:'([^']*)'|"([^"]*)")?\s*\)/);
+  if (thrown) {
+    const type = thrown[1].includes('.') ? thrown[1] : `java.lang.${thrown[1]}`;
+    const message = thrown[2] ?? thrown[3];
+    return { duration, status: 'FAILED', result: message ? `${type}: ${message}` : type };
   }
 
   const defined = new Set(['sleep', 'if', 'for', 'while', 'switch', 'catch', 'return']);
