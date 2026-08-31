@@ -5,6 +5,7 @@ import { validateCaseSet } from '../validate.js';
 import { runCases } from '../runner.js';
 import { junitXml } from '../report-junit.js';
 import { httpRequest } from '../http.js';
+import { verdictColor, dim } from './color.js';
 import type { CliContext } from './context.js';
 
 export async function main(ctx: CliContext): Promise<number> {
@@ -48,7 +49,14 @@ export async function main(ctx: CliContext): Promise<number> {
   }
 
   if (bed?.reset?.url) {
-    await httpRequest({ baseUrl, method: bed.reset.method ?? 'post', route: bed.reset.url });
+    try {
+      await httpRequest({ baseUrl, method: bed.reset.method ?? 'post', route: bed.reset.url });
+    } catch (err) {
+      // the service is unreachable before anything ran — report it like the error verdict it is
+      console.error(verdictColor('error')(`ERROR bed.reset ${bed.reset.url}: ${(err as Error).message}`));
+      console.error('the service never answered — nothing was run');
+      return 1;
+    }
   }
 
   const seed = flags.seed !== undefined ? Number(flags.seed) : Math.floor(Math.random() * 2 ** 32);
@@ -71,9 +79,9 @@ export async function main(ctx: CliContext): Promise<number> {
 
   for (const v of verdicts) {
     const line = `${v.verdict.toUpperCase().padEnd(5)} ${v.id}${v.reason ? ` — ${v.reason}` : ''}`;
-    (v.verdict === 'pass' ? console.log : console.error)(line);
+    (v.verdict === 'pass' ? console.log : console.error)(verdictColor(v.verdict)(line));
     for (const d of v.diffs ?? []) {
-      console.error(`        ${d.path}: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.actual)} (${d.reason})`);
+      console.error(dim(`        ${d.path}: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.actual)} (${d.reason})`));
     }
   }
   console.log(`\nseed ${seed} | ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error`);

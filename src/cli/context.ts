@@ -5,6 +5,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadSteps, loadTemplates, type RegistryResult } from '../validate.js';
+import { red, yellow } from './color.js';
 import type { BedConfig, StepDef, Template } from '../types.js';
 
 export interface CliFlags {
@@ -104,7 +105,7 @@ export function buildContext(argv: string[]): CliContext {
     let errorCount = 0;
     for (const r of results) {
       for (const msg of r.errors) {
-        console.error(`ERROR ${r.file}: ${msg}`);
+        console.error(`${red('ERROR')} ${r.file}: ${msg}`);
         errorCount += 1;
       }
     }
@@ -133,13 +134,13 @@ export function buildContext(argv: string[]): CliContext {
 
     reportValidation(results: Array<{ file: string; errors: string[]; warnings: string[] }>, parseErrors: string[]) {
       let errorCount = parseErrors.length;
-      for (const msg of parseErrors) console.error(`ERROR ${msg}`);
+      for (const msg of parseErrors) console.error(`${red('ERROR')} ${msg}`);
       for (const r of results) {
         for (const msg of r.errors) {
-          console.error(`ERROR ${r.file}: ${msg}`);
+          console.error(`${red('ERROR')} ${r.file}: ${msg}`);
           errorCount += 1;
         }
-        for (const msg of r.warnings) console.error(`warn  ${r.file}: ${msg}`);
+        for (const msg of r.warnings) console.error(`${yellow('warn')}  ${r.file}: ${msg}`);
       }
       return errorCount;
     },

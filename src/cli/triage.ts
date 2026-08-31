@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { loadIntentDir } from '../intent.js';
 import { triageRun } from '../triage.js';
 import { claudeCliTransport } from '../llm.js';
+import { triageColor, dim } from './color.js';
 import type { CliContext } from './context.js';
 
 export async function main(ctx: CliContext): Promise<number> {
@@ -16,8 +17,10 @@ export async function main(ctx: CliContext): Promise<number> {
   const outPath = flags.out ?? flags.evidence.replace(/\.jsonl$/, '') + '-triage.json';
   writeFileSync(outPath, JSON.stringify(proposals, null, 2) + '\n');
 
-  for (const v of proposals.infra) console.log(`INFRA ${v.case} — ${v.bucket}`);
-  for (const v of proposals.verdicts) console.log(`${v.classification.toUpperCase().padEnd(5)} ${v.case} — ${v.rationale}`);
+  for (const v of proposals.infra) console.log(dim(`INFRA ${v.case} — ${v.bucket}`));
+  for (const v of proposals.verdicts) {
+    console.log(triageColor(v.classification)(`${v.classification.toUpperCase().padEnd(5)} ${v.case} — ${v.rationale}`));
+  }
   for (const msg of proposals.refused) console.error(`refused: ${msg}`);
   for (const id of proposals.uncovered) console.error(`uncovered: ${id} — no gate-passing verdict proposed`);
   console.log(called ? `\nproposals (nothing applied): ${outPath}` : `\nno failures to triage — nothing was sent to the model (${outPath})`);
