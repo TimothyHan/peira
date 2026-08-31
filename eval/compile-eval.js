@@ -162,6 +162,7 @@ writeFileSync(join(outDir, 'report.json'), JSON.stringify({
 // would otherwise enter a 1-section row into a table about the 24-section corpus.
 const logPath = join(repoRoot, 'docs', 'findings', 'compile-eval-log.md');
 const isCorpusRun = resolve(intentDir) === resolve(join(repoRoot, 'intent'));
+if (isCorpusRun) mkdirSync(dirname(logPath), { recursive: true }); // not published, so absent in a fresh clone
 if (isCorpusRun && !existsSync(logPath)) {
   writeFileSync(logPath, `# Compile eval log
 

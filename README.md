@@ -75,7 +75,7 @@ nothing. You decide.
 
 **Full walkthrough (zero → local loop → CI): [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).**
 Command and flag reference: `peira help`. Design: [docs/DESIGN.md](docs/DESIGN.md) (RFC 0001).
-Experiments and findings: `docs/findings/`.
+Compiled experiment artifacts: `experiments/`.
 
 ## Status
 
