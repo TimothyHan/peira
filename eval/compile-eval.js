@@ -15,7 +15,7 @@
 //   node eval/compile-eval.js [intentDir] [--out <dir>]
 
 import { writeFileSync, mkdirSync, appendFileSync, existsSync } from 'node:fs';
-import { join, dirname, relative } from 'node:path';
+import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadIntentDir } from '../dist/intent.js';
 import { compileSections } from '../dist/compile.js';
@@ -111,9 +111,12 @@ for (const { tplObj } of acceptedTemplates) writeFileSync(join(outDir, `${tplObj
 writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 writeFileSync(join(outDir, 'report.json'), JSON.stringify({ ...report, validationErrors, failures: verdicts.filter((v) => v.verdict !== 'pass') }, null, 2) + '\n');
 
-// one appended row per run — the history IS the signal; a number that moves is what you read
+// One appended row per run — the history IS the signal; a number that moves is what you read.
+// Only runs against the repo's OWN intent join the trend: a scratch dir (the cheap first run)
+// would otherwise enter a 1-section row into a table about the 24-section corpus.
 const logPath = join(repoRoot, 'docs', 'findings', 'compile-eval-log.md');
-if (!existsSync(logPath)) {
+const isCorpusRun = resolve(intentDir) === resolve(join(repoRoot, 'intent'));
+if (isCorpusRun && !existsSync(logPath)) {
   writeFileSync(logPath, `# Compile eval log
 
 One row per \`npm run eval:compile\`. The point is the *trend*: gate pass-rate and green
@@ -125,10 +128,12 @@ signal to go read that run's report. Full reports and compiled artifacts live in
 |---|---|---|---|---|---|---|---|---|
 `);
 }
-appendFileSync(
-  logPath,
-  `| ${today} | ${COMPILE_MODEL} | ${manifest.contractHash} | ${sections.length} | ${report.gatePassRate} | ${accepted.length} | ${report.lineageIntact ? 'ok' : 'BROKEN'} | ${validationErrors.length === 0 ? 'clean' : `${validationErrors.length} err`} | ${counts.pass}/${counts.fail}/${counts.error} |\n`,
-);
+if (isCorpusRun) {
+  appendFileSync(
+    logPath,
+    `| ${today} | ${COMPILE_MODEL} | ${manifest.contractHash} | ${sections.length} | ${report.gatePassRate} | ${accepted.length} | ${report.lineageIntact ? 'ok' : 'BROKEN'} | ${validationErrors.length === 0 ? 'clean' : `${validationErrors.length} err`} | ${counts.pass}/${counts.fail}/${counts.error} |\n`,
+  );
+}
 
 console.log('\n=== compile eval ===\n');
 console.log(`  sections            ${sections.length}  → ${JSON.stringify(outcomes)}`);
@@ -139,7 +144,7 @@ console.log(`  validation          ${validationErrors.length === 0 ? 'clean' : `
 console.log(`  run vs fixture      ${counts.pass} pass, ${counts.fail} fail, ${counts.error} error`);
 console.log(`  compile wall        ${(compileMs / 1000).toFixed(1)}s`);
 console.log(`\n  report + artifacts  ${relative(repoRoot, outDir) || outDir}`);
-console.log(`  history row         ${relative(repoRoot, logPath)}`);
+console.log(`  history row         ${isCorpusRun ? relative(repoRoot, logPath) : 'skipped — not the repo corpus, so it stays out of the trend'}`);
 for (const e of validationErrors.slice(0, 10)) console.log(`    validation: ${e}`);
 for (const v of verdicts.filter((v) => v.verdict !== 'pass')) console.log(`    ${v.verdict.toUpperCase()} ${v.id} — ${v.reason ?? ''}`);
 console.log('\nJSON:');
