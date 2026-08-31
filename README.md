@@ -61,7 +61,7 @@ nothing. You decide.
    across runs — `peira trust` shows the standings. A portable JSONL export is written
    alongside.
 
-## Measured, not promised (v0.1, against the in-repo bed and its legacy suite)
+## Measured, not promised (against the in-repo bed and its legacy suite)
 
 - The five-primitive DSL re-expressed **27/27** of the original hand-written specs — zero
   escape hatches, zero sleeps.
@@ -79,7 +79,7 @@ Experiments and findings: `docs/findings/`.
 
 ## Status
 
-v0.2-dev. Written in TypeScript; ships compiled JS with full type declarations. One
+v0.2.0. Written in TypeScript; ships compiled JS with full type declarations. One
 first-party runtime dependency (same author, itself dependency-free: no third-party code on
 the trust path), Node ≥ 18. Single AUT per run. Compile and triage require
 the Claude Code CLI (they run on your session; no API key). UI testing, load testing, mocking,
