@@ -12,3 +12,6 @@ run-triage.json
 *run-evidence*.jsonl
 report.html
 TESTCASES.md
+
+# generated on Windows test runs (the .cmd shim for the canned claude stand-in)
+test/fixtures/fake-claude.cmd

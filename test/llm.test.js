@@ -9,10 +9,10 @@ import { promisify } from 'node:util';
 import { mkdtempSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { claudeCliTransport, TransportError } from '../dist/llm.js';
+import { fakeClaudeBin } from './helpers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fakeBin = join(here, 'fixtures', 'fake-claude.js');
-chmodSync(fakeBin, 0o755);
+const fakeBin = fakeClaudeBin();
 
 test('the prompt travels over stdin and stdout comes back verbatim', async () => {
   process.env.FAKE_CLAUDE_ECHO = '1';

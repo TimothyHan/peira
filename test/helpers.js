@@ -1,6 +1,9 @@
 // Shared test plumbing. Not a test file (does not match *.test.js).
 
 import { test } from 'node:test';
+import { chmodSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { startFixture } from './fixtures/server.js';
 
 /**
@@ -61,6 +64,22 @@ export function isolationTemplate(over = {}) {
     },
     ...over,
   };
+}
+
+/**
+ * Path to the canned `claude` stand-in, in a form the platform can actually execute.
+ * POSIX runs the .js directly via its shebang; Windows cannot spawn a .js at all, so we
+ * emit a .cmd shim beside it (the same shape npm uses for real CLI binaries).
+ */
+export function fakeClaudeBin() {
+  const js = join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'fake-claude.js');
+  if (process.platform !== 'win32') {
+    chmodSync(js, 0o755);
+    return js;
+  }
+  const cmd = js.replace(/\.js$/, '.cmd');
+  writeFileSync(cmd, `@echo off\r\nnode "%~dp0fake-claude.js" %*\r\n`);
+  return cmd;
 }
 
 /** A verdict list's meaning, without elapsedMs — wall-clock duration is measurement, not verdict. */

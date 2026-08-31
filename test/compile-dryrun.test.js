@@ -8,11 +8,12 @@ import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, readdirSync, existsSy
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { fakeClaudeBin } from './helpers.js';
 
 const execFileP = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
 const binPath = join(here, '..', 'bin', 'peira.js');
-const fakeBin = join(here, 'fixtures', 'fake-claude.js');
+const fakeBin = fakeClaudeBin();
 
 function project() {
   const dir = mkdtempSync(join(tmpdir(), 'peira-dryrun-'));
@@ -23,7 +24,6 @@ function project() {
 }
 
 const compile = (p, ...args) => {
-  chmodSync(fakeBin, 0o755);
   return execFileP('node', [binPath, 'compile', p.intentDir, ...args], {
     encoding: 'utf8',
     env: { ...process.env, PEIRA_CLAUDE_BIN: fakeBin },

@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 test('npm pack ships exactly bin + dist + schema + README + package.json', async () => {
-  const { stdout } = await promisify(execFile)('npm', ['pack', '--dry-run', '--json'], { cwd: root });
+  // npm is a .cmd shim on Windows, which execFile cannot run without a shell
+  const { stdout } = await promisify(execFile)('npm', ['pack', '--dry-run', '--json'], { cwd: root, shell: process.platform === 'win32' });
   const [report] = JSON.parse(stdout);
   const files = report.files.map((f) => f.path).sort();
   // LICENSE ships whatever the `files` field says — npm always includes it

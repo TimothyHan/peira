@@ -13,7 +13,13 @@ export { TransportError };
 export function claudeCliTransport({ bin = process.env.PEIRA_CLAUDE_BIN ?? 'claude', model = COMPILE_MODEL }: { bin?: string; model?: string } = {}): (prompt: string) => Promise<string> {
   return (prompt: string) =>
     new Promise<string>((resolve, reject) => {
-      const child = spawn(bin, ['-p', '--model', model], { stdio: ['pipe', 'pipe', 'pipe'] });
+      // Windows installs CLIs as .cmd shims, which spawn() cannot execute directly (it fails
+      // with EFTYPE/ENOENT); the shell resolves them. `bin` is our own constant or the
+      // operator's PEIRA_CLAUDE_BIN, never model output, so this is not an injection surface.
+      const child = spawn(bin, ['-p', '--model', model], {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: process.platform === 'win32',
+      });
       let stdout = '';
       let stderr = '';
       const timer = setTimeout(() => {

@@ -9,10 +9,10 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runCases } from '../dist/runner.js';
 import { EvidenceLog } from '../dist/evidence.js';
-import { withFixture, makeCase } from './helpers.js';
+import { withFixture, makeCase, fakeClaudeBin } from './helpers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const fakeBin = join(here, 'fixtures', 'fake-claude.js');
+const fakeBin = fakeClaudeBin();
 const binPath = join(here, '..', 'bin', 'peira.js');
 
 test('peira triage: evidence in → schema-gated proposals out; drift diff names the section', () =>
