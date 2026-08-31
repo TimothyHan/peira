@@ -142,7 +142,9 @@ peira run cases --bed bed.json --parallel 8      # worker pool; verdicts and evi
 peira run cases --bed bed.json --intent intent --watch   # re-run on change, mapped by lineage
 ```
 
-Watch mode maps changes by lineage, not an import graph: editing a case re-runs exactly that
+Watch mode is verified on macOS and Linux; its file-event delivery on Windows is unverified
+(everything else in the tool is tested on both). Watch mode maps changes by lineage, not an
+import graph: editing a case re-runs exactly that
 case; editing the bed or a registry re-runs everything; editing intent re-runs *nothing* —
 verdicts can't change, so it re-checks staleness and names the affected cases instead, and
 recompiling stays your call (never an LLM on a save hook). The seed is pinned per session so
