@@ -7,7 +7,7 @@ import { green, dim } from './color.js';
 import type { CliContext } from './context.js';
 
 const BED_JSON = `{
-  "$comment": "the only place Peira learns about your service. Optional keys: users (named principals for basic auth), reset (one wipe-state call before each run), drain (how to ask your service whether an async job settled), timeouts (a slow environment's latency envelope) — see 'peira help' and docs/GETTING-STARTED.md",
+  "$comment": "the only place Peira learns about your service. Optional keys: users (named principals for basic auth), reset (one wipe-state call before each run), drain (how to ask your service whether an async job settled), timeouts (a slow environment's latency envelope), service (how 'peira run' starts the app under test: {command, cwd?, readyMs?, reuse?}) — see 'peira help' and docs/GETTING-STARTED.md",
   "baseUrl": "http://localhost:3000"
 }
 `;

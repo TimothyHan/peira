@@ -9,6 +9,7 @@ export const DRAIN_TIMEOUT_MS = 15000;      // queue depth 2 x long job x safety
 export const REQUEST_TIMEOUT_MS = 5000;     // socket-level timeout; hitting it is an `error`, not a `fail`
 export const REDACT_HASH_PREFIX_LEN = 8;    // [REDACTED:<sha256-prefix>] length in evidence JSONL
 export const STEP_TIMEOUT_MS = 10000;       // per-invocation ceiling for the child-process step harness
+export const SERVICE_READY_TIMEOUT_MS = 30000; // default wait for bed.service to answer (override: service.readyMs)
 export const INVARIANT_CASES_PER_RUN = 5;   // instances minted per invariant template per run (PR4 D1; RFC §9 resolved)
 export const INTENT_SECTION_MAX_LINES = 40; // intent-lint advisory: bigger sections make stale detection and triage coarse
 

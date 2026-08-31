@@ -60,8 +60,10 @@ export const USAGE = `usage: peira <command>
   adopt    <messy.md> --out <intent/name.md>
 
 flags:
-  --bed <path>        bed config JSON: {baseUrl, users?, reset?, drain?, timeouts?} — the only place Peira learns about your
-                      service; timeouts declares its latency envelope: {requestMs?, pollUntilMs?, drainMs?, stepMs?}
+  --bed <path>        bed config JSON: {baseUrl, users?, reset?, drain?, timeouts?, service?} — the only place Peira learns
+                      about your service; timeouts declares its latency envelope: {requestMs?, pollUntilMs?, drainMs?, stepMs?};
+                      service starts the app under test for 'run': {command, cwd?, readyMs?, reuse?} — an already-answering
+                      baseUrl is reused (and never killed) unless reuse is false
   --base-url <url>    override the bed's baseUrl (e.g. point the same cases at CI vs local)
   --seed <n>          run seed; same seed + same service state → same verdicts (default: random, always printed)
   --evidence <path>   write the run's evidence JSONL (run) / read it (triage, evidence, render)

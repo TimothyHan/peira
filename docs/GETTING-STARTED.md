@@ -54,6 +54,15 @@ Everything except `baseUrl` is optional:
   staging environment isn't broken, it's slow): `{"requestMs": 15000, "pollUntilMs": 60000,
   "drainMs": 60000, "stepMs": 20000}`, each optional. These are ceilings only — hitting one
   is still an `error` verdict, never a `fail`.
+- **`service`** — how `peira run` starts the app under test, so "start your server first"
+  stops being a manual step: `{"command": "npm run dev", "cwd": "../my-service",
+  "readyMs": 30000, "reuse": true}`. With `reuse` (the default) an already-answering
+  `baseUrl` is used as-is and never killed — the dev-loop case; otherwise the command runs
+  in its own process group, Peira waits until `baseUrl` answers (any HTTP response counts —
+  a 404 proves something is listening), and kills the whole group when the run ends. In
+  watch mode it lives for the whole session. Set `"reuse": false` in `bed.ci.json` so CI
+  fails loudly on a port squatter instead of testing a stale instance. Only `run` manages
+  processes — the read-only commands never spawn anything.
 
 Keep one bed file per environment (`bed.json`, `bed.ci.json`): same cases, different target —
 a slow staging bed can declare generous `timeouts` while CI keeps the tight defaults.

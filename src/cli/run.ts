@@ -9,6 +9,7 @@ import { loadIntentDir } from '../intent.js';
 import { checkStale } from '../stale.js';
 import { verdictColor, yellow, dim } from './color.js';
 import { planReaction, watchTree, debounced, type WatchTargets } from './watch.js';
+import { startService, type RunningService } from './service.js';
 import type { CliContext } from './context.js';
 
 interface RunSetup {
@@ -196,7 +197,23 @@ export async function main(ctx: CliContext): Promise<number> {
     return 2;
   }
 
-  const code = await runOnce(ctx, setup);
-  if (!flags.watch) return code; // watch survives a red first run — fix, save, it re-runs
-  return watchLoop(ctx, setup);
+  let service: RunningService | null = null;
+  if (bed?.service) {
+    try {
+      service = await startService(bed.service, setup.baseUrl);
+      console.log(dim(service.started ? `service: started "${bed.service.command}" — ${setup.baseUrl} answering` : `service: reusing the instance already answering at ${setup.baseUrl}`));
+    } catch (err) {
+      console.error(verdictColor('error')(`ERROR ${(err as Error).message}`));
+      console.error('nothing was run');
+      return 1;
+    }
+  }
+
+  try {
+    const code = await runOnce(ctx, setup);
+    if (!flags.watch) return code; // watch survives a red first run — fix, save, it re-runs
+    return await watchLoop(ctx, setup); // the service lives for the whole watch session
+  } finally {
+    service?.stop();
+  }
 }

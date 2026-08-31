@@ -35,6 +35,12 @@ export interface BedConfig {
    * determinism claim for transient-state assertions (invariant 8).
    */
   timeouts?: { requestMs?: number; pollUntilMs?: number; drainMs?: number; stepMs?: number };
+  /**
+   * How to start the service under test (`peira run` only; read-only commands never spawn).
+   * With reuse (default true) an already-answering baseUrl is used as-is and never killed;
+   * a server Peira started is killed — whole process group — when the run ends.
+   */
+  service?: { command: string; cwd?: string; readyMs?: number; reuse?: boolean };
 }
 
 /** Case lineage: which intent section (at which hash) this case was compiled from. */
