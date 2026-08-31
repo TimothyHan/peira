@@ -85,6 +85,18 @@ very next run. A failure counts as expected only when *every* one of its diffs m
 case that breaks in a known way **and** a new way stays visible. A signature that matches
 nothing is reported, so the list shrinks when a cause is fixed instead of rotting.
 
+## This is not the user-facing check
+
+Users get compile-quality feedback on *their* intent from the shipped CLI, not from this
+harness: **`peira compile --dry-run`** reports how much of a document compiles and prints the
+reason for every skip and refusal, writing nothing. That is the question a user actually has
+("how well does my intent compile?"), and `peira validate` plus `peira run` cover the rest.
+
+This harness stays internal because everything that makes it a *regression* detector is
+repo-specific: the in-repo fixture, our bed principals, the jsonplaceholder exclusion, and an
+expected-failure baseline describing *our* bed's known bugs. None of that is meaningful on
+someone else's project.
+
 ## Cost
 
 One sequential model call per section on the pinned compile model — 24 sections took 347s on

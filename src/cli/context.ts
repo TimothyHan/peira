@@ -29,6 +29,7 @@ export interface CliFlags {
   watch?: boolean;
   shard?: string;
   ci?: boolean;
+  'dry-run'?: boolean;
 }
 
 export interface CliContext {
@@ -50,7 +51,7 @@ export const USAGE = `usage: peira <command>
   validate [casesDir] [--bed <path>] [--intent <dir>] [--steps <dir>] [--templates <dir>]
   run      [casesDir] --bed <path> [--base-url <url>] [--seed <n>] [--evidence <path>] [--steps <dir>] [--templates <dir>]
            [--only <case-id>]... [--grep <substr>] [--parallel <n>] [--junit <path>] [--shard <i>/<n>] [--watch]
-  compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>]
+  compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>] [--dry-run]
   stats    [casesDir] [--steps <dir>] [--openapi <spec.json>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
   evidence --evidence <run.jsonl> [--triage <proposals.json>] --intent <dir> [--out <path>] [--no-ledger]
@@ -72,6 +73,8 @@ flags:
   --templates <dir>   templates registry (default: <casesDir>/templates, else ./templates)
   --out <dir|file>    output target — compile: cases dir; triage/evidence/render/adopt: file
   --section <id>      compile only this intent section (repeatable; targeted recompile merges the manifest)
+  --dry-run           compile and report, write nothing — how well does your intent compile, and why was a
+                      section skipped or a candidate refused? (still spends a model call per section)
   --triage <path>     triage proposals JSON to fold into the ledger evidence export
   --no-ledger         write the JSONL export only; skip recording into the evidence ledger
   --only <case-id>    run only this case (repeatable; the whole set still validates first)
@@ -111,6 +114,7 @@ export function buildContext(argv: string[]): CliContext {
       watch: { type: 'boolean' },
       shard: { type: 'string' },
       ci: { type: 'boolean' },
+      'dry-run': { type: 'boolean' },
     },
   });
 

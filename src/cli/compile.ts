@@ -9,10 +9,13 @@ import { claudeCliTransport } from '../llm.js';
 import { COMPILE_MODEL } from '../constants.js';
 import type { CliContext } from './context.js';
 
+/** Reasons are long-form model prose; keep the console readable, manifest keeps it whole. */
+const cap = (text: string, n = 180): string => (text.length > n ? text.slice(0, n).trimEnd() + ' …' : text);
+
 export async function main(ctx: CliContext): Promise<number> {
   const { flags, positionals, bed } = ctx;
-  if (!flags.out) {
-    console.error('peira compile needs --out <dir>');
+  if (!flags.out && !flags['dry-run']) {
+    console.error('peira compile needs --out <dir> (or --dry-run to check without writing)');
     return 2;
   }
   const intentDir = positionals[0] ?? 'intent';
@@ -42,8 +45,9 @@ export async function main(ctx: CliContext): Promise<number> {
     }
   }
 
-  const stepsDir = flags.steps ?? join(flags.out, 'steps');
-  const templatesDir = flags.templates ?? join(flags.out, 'templates');
+  const outDir = flags.out ?? 'cases'; // --dry-run writes nothing; the path is only for messages
+  const stepsDir = flags.steps ?? join(outDir, 'steps');
+  const templatesDir = flags.templates ?? join(outDir, 'templates');
   const { steps: existingSteps } = loadSteps(stepsDir);
   const { accepted, acceptedSteps, acceptedTemplates, manifest } = await compileSections(sections, {
     llm: claudeCliTransport(),
@@ -54,30 +58,59 @@ export async function main(ctx: CliContext): Promise<number> {
     onProgress: (msg) => console.error(msg),
   });
 
-  mkdirSync(flags.out, { recursive: true });
-  const manifestPath = join(flags.out, 'compile-manifest.json');
-  const finalManifest = mergeManifest({ manifest, manifestPath, sections, flags, out: flags.out, stepsDir, templatesDir });
+  const manifestPath = join(outDir, 'compile-manifest.json');
+  let finalManifest = manifest;
+  if (!flags['dry-run']) {
+    mkdirSync(outDir, { recursive: true });
+    finalManifest = mergeManifest({ manifest, manifestPath, sections, flags, out: outDir, stepsDir, templatesDir });
 
-  for (const { caseObj } of accepted) {
-    writeFileSync(join(flags.out, `${caseObj.id}.json`), JSON.stringify(caseObj, null, 2) + '\n');
+    for (const { caseObj } of accepted) {
+      writeFileSync(join(outDir, `${caseObj.id}.json`), JSON.stringify(caseObj, null, 2) + '\n');
+    }
+    if (acceptedSteps.length > 0) mkdirSync(stepsDir, { recursive: true });
+    for (const { stepObj } of acceptedSteps) {
+      writeFileSync(join(stepsDir, `${stepObj.id}.json`), JSON.stringify(stepObj, null, 2) + '\n');
+    }
+    if (acceptedTemplates.length > 0) mkdirSync(templatesDir, { recursive: true });
+    for (const { tplObj } of acceptedTemplates) {
+      writeFileSync(join(templatesDir, `${tplObj.id}.json`), JSON.stringify(tplObj, null, 2) + '\n');
+    }
+    writeFileSync(manifestPath, JSON.stringify(finalManifest, null, 2) + '\n');
   }
-  if (acceptedSteps.length > 0) mkdirSync(stepsDir, { recursive: true });
-  for (const { stepObj } of acceptedSteps) {
-    writeFileSync(join(stepsDir, `${stepObj.id}.json`), JSON.stringify(stepObj, null, 2) + '\n');
-  }
-  if (acceptedTemplates.length > 0) mkdirSync(templatesDir, { recursive: true });
-  for (const { tplObj } of acceptedTemplates) {
-    writeFileSync(join(templatesDir, `${tplObj.id}.json`), JSON.stringify(tplObj, null, 2) + '\n');
-  }
-  writeFileSync(manifestPath, JSON.stringify(finalManifest, null, 2) + '\n');
 
-  const outcomes = manifest.sections.reduce<Record<string, number>>((acc, s) => ((acc[s.outcome ?? 'unknown'] = (acc[s.outcome ?? 'unknown'] ?? 0) + 1), acc), {});
+  const counted = (name: string) => manifest.sections.filter((s) => s.outcome === name).length;
   const extras = [
     acceptedSteps.length > 0 ? `${acceptedSteps.length} step(s)` : null,
     acceptedTemplates.length > 0 ? `${acceptedTemplates.length} template(s)` : null,
   ].filter(Boolean).map((s) => ` + ${s}`).join('');
-  console.log(`compiled ${accepted.length} case(s)${extras} from ${sections.length} section(s) → ${flags.out}`);
-  console.log(`sections: ${JSON.stringify(outcomes)} | manifest: ${manifestPath}`);
+  console.log(
+    flags['dry-run']
+      ? `would compile ${accepted.length} case(s)${extras} from ${sections.length} section(s) — nothing written (--dry-run)`
+      : `compiled ${accepted.length} case(s)${extras} from ${sections.length} section(s) → ${outDir}`,
+  );
+  const attempted = counted('compiled') + counted('refused') + counted('unparseable') + counted('transport-error');
+  console.log(
+    `sections: ${counted('compiled')} compiled, ${counted('skipped')} skipped, ${counted('refused')} refused` +
+    `${attempted > 0 ? ` — ${((counted('compiled') / attempted) * 100).toFixed(0)}% of the ${attempted} that stated a testable claim` : ''}`,
+  );
+
+  // The reasons are the point: a skip is feedback on the INTENT (that section states no
+  // verifiable behavior), a refusal is the gate rejecting malformed model output. Both were
+  // already computed and buried in the manifest; printing them is what makes compile a
+  // usable check on your own document.
+  const skipped = manifest.sections.filter((s) => s.outcome === 'skipped');
+  if (skipped.length > 0) {
+    console.log(`\nskipped — no testable claim the DSL can state (the compiler's own reason):`);
+    for (const s of skipped) console.log(`  ${s.id}: ${cap(s.skipReason ?? 'no reason recorded')}`);
+  }
+  const refusedEntries = manifest.sections.filter((s) => (s.refused?.length ?? 0) > 0);
+  if (refusedEntries.length > 0) {
+    console.log(`\nrefused by the gate — malformed candidates, never patched (this is the gate working):`);
+    for (const s of refusedEntries) {
+      for (const r of s.refused) console.log(`  ${s.id}${r.id ? ` [${r.id}]` : ''}: ${cap(r.errors.join('; '))}`);
+    }
+  }
+  if (!flags['dry-run']) console.log(`\nmanifest: ${manifestPath}`);
   return manifest.sections.some((s) => s.outcome === 'transport-error') ? 1 : 0;
 }
 

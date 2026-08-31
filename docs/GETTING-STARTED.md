@@ -108,7 +108,14 @@ peira adopt legacy-test-plan.md --out intent/orders.md
 
 ```bash
 peira compile intent --out cases --bed bed.json
+peira compile intent --dry-run    # how well does my intent compile? report only, nothing written
 ```
+
+`--dry-run` is the feedback loop on your *document*. It reports how many sections compiled,
+and — the useful part — **why** any section was skipped ("states no verifiable behavior; names
+no route or status code") or why a candidate was refused by the gate. A skip is a note about
+your intent, not a failure of the tool: it usually means that section is prose, or a quality
+attribute no functional API case can state. Both still cost a model call per section.
 
 Runs on your Claude session. Every candidate case passes the same schema gate as a
 hand-written one; lineage is stamped mechanically; `cases/compile-manifest.json` accounts for
