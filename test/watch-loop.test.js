@@ -12,8 +12,9 @@ import { startFixture } from './fixtures/server.js';
 
 const binPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'peira.js');
 
-const caseJson = (n) => JSON.stringify({
+const caseJson = (n, title) => JSON.stringify({
   id: `CASE-w${n}`,
+  ...(title ? { title } : {}),
   from: { intent: 'watch', hash: 'abcdef' },
   test: {
     request: { method: 'get', route: '/groovy/status', auth: '$users.user_1', query: { id: 'nope' } },
@@ -55,8 +56,10 @@ test('watch mode: a case edit triggers a scoped re-run within the session', asyn
     await waitFor(/watching .*seed 7 pinned/);
     assert.match(out, /2 pass, 0 fail, 0 error/); // the initial full run
 
-    writeFileSync(join(casesDir, 'w1.json'), caseJson(1)); // touch one case
-    await waitFor(/re-running 1 case file\(s\)/);
+    // change the CONTENT, not just the mtime — an identical rewrite is a fragile trigger,
+    // and Windows in particular may coalesce or drop it
+    writeFileSync(join(casesDir, 'w1.json'), caseJson(1, 'edited to trigger the watcher'));
+    await waitFor(/re-running 1 case file\(s\)/, 30000);
     await waitFor(/1 pass, 0 fail, 0 error/); // scoped: exactly the edited case re-ran
     assert.ok(!out.includes('full re-run'), 'a case edit must not trigger a full re-run');
   } finally {
