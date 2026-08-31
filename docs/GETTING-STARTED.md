@@ -38,8 +38,13 @@ Everything except `baseUrl` is optional:
   the bed knows *how*. This replaces sleep-and-pray teardowns: the runner polls every job a
   case created — under the credentials that created it — until it settles, so one case's
   leftovers can never poison the next case's timing assertions.
+- **`timeouts`** — the service's latency envelope, when the defaults don't fit (a slow
+  staging environment isn't broken, it's slow): `{"requestMs": 15000, "pollUntilMs": 60000,
+  "drainMs": 60000, "stepMs": 20000}`, each optional. These are ceilings only — hitting one
+  is still an `error` verdict, never a `fail`.
 
-Keep one bed file per environment (`bed.json`, `bed.ci.json`): same cases, different target.
+Keep one bed file per environment (`bed.json`, `bed.ci.json`): same cases, different target —
+a slow staging bed can declare generous `timeouts` while CI keeps the tight defaults.
 
 ## 2. Write intent — `intent/*.md`
 
@@ -106,7 +111,14 @@ The tight dev loop and bigger suites:
 peira run cases --bed bed.json --seed 42 --only CASE-order-cancel-shipped-001   # re-run one failing case
 peira run cases --bed bed.json --grep order      # every case whose id contains "order"
 peira run cases --bed bed.json --parallel 8      # worker pool; verdicts and evidence order identical to serial
+peira run cases --bed bed.json --intent intent --watch   # re-run on change, mapped by lineage
 ```
+
+Watch mode maps changes by lineage, not an import graph: editing a case re-runs exactly that
+case; editing the bed or a registry re-runs everything; editing intent re-runs *nothing* —
+verdicts can't change, so it re-checks staleness and names the affected cases instead, and
+recompiling stays your call (never an LLM on a save hook). The seed is pinned per session so
+re-runs are comparable.
 
 The loop:
 
@@ -142,7 +154,9 @@ Commit `intent/`, `cases/`, and the bed configs. **CI runs zero LLM** — no key
 ```
 
 `--junit` writes standard JUnit XML (pass/fail/error map to testcase/failure/error), so any CI
-test-report UI renders Peira runs without wrapper scripts. If the service has an OpenAPI
+test-report UI renders Peira runs without wrapper scripts. At scale, fan out across machines
+with `--shard 1/3`, `--shard 2/3`, `--shard 3/3` — shards are disjoint deterministic slices
+whose union is exactly the full run. If the service has an OpenAPI
 document, `peira stats cases --openapi openapi.json` reports which endpoints have no case —
 the spec stays optional; the report only exists when you offer one.
 

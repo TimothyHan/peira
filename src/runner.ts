@@ -88,6 +88,17 @@ interface RunState {
   captureOrder: string[];
 }
 
+/** Timeout ceilings for a run: the bed's declared latency envelope over the pinned defaults. */
+function ceilings(bed: BedConfig) {
+  const t = bed.timeouts ?? {};
+  return {
+    requestMs: t.requestMs,
+    pollUntilMs: t.pollUntilMs ?? POLL_UNTIL_TIMEOUT_MS,
+    drainMs: t.drainMs ?? DRAIN_TIMEOUT_MS,
+    stepMs: t.stepMs ?? STEP_TIMEOUT_MS,
+  };
+}
+
 type StepBlock = Record<string, any>;
 
 async function executeInvocation(step: StepBlock, label: string, state: RunState): Promise<void> {
@@ -103,7 +114,7 @@ async function executeInvocation(step: StepBlock, label: string, state: RunState
   }
 
   const started = performance.now();
-  const result = await runHarness({ code: def.code, inputs, baseUrl });
+  const result = await runHarness({ code: def.code, inputs, baseUrl }, ceilings(state.bed).stepMs);
   const elapsedMs = Math.round(performance.now() - started);
 
   if (!result.ok) {
@@ -137,6 +148,7 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
   const { ctx, bed, baseUrl, evidence, caseId } = state;
   const req = step.request;
   const auth = resolveAuth(req.auth, bed);
+  const limits = ceilings(bed);
   const resolved = {
     baseUrl,
     method: req.method as string,
@@ -144,6 +156,7 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
     query: req.query === undefined ? undefined : (resolveValue(req.query, ctx) as Record<string, unknown>),
     body: req.body === undefined ? undefined : resolveValue(req.body, ctx),
     auth,
+    timeoutMs: limits.requestMs,
   };
 
   const doRequest = async (attempt: number): Promise<HttpResponse> => {
@@ -167,7 +180,7 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
 
   let response: HttpResponse;
   if (step.pollUntil) {
-    const timeoutMs = step.pollUntil.timeoutMs ?? POLL_UNTIL_TIMEOUT_MS;
+    const timeoutMs = step.pollUntil.timeoutMs ?? limits.pollUntilMs;
     const deadline = performance.now() + timeoutMs;
     const until = resolveValue(step.pollUntil.until, ctx) as ExpectDef;
     let attempt = 0;
@@ -209,7 +222,8 @@ async function drainCaptures(caseObj: Case, state: RunState): Promise<void> {
     evidence.append({ event: 'drain-skipped', case: caseId, reason: 'bed config declares no drain probe' });
     return;
   }
-  const deadline = performance.now() + DRAIN_TIMEOUT_MS;
+  const limits = ceilings(bed);
+  const deadline = performance.now() + limits.drainMs;
   for (const alias of state.captureOrder) {
     for (;;) {
       const response = await httpRequest({
@@ -218,6 +232,7 @@ async function drainCaptures(caseObj: Case, state: RunState): Promise<void> {
         route: probe.route,
         query: { [probe.idParam]: String(ctx.captures[alias]) },
         auth: state.captureAuth[alias],
+        timeoutMs: limits.requestMs,
       });
       if (response.status < 200 || response.status >= 300) {
         evidence.append({ event: 'drain-skipped', case: caseId, alias, reason: `probe returned ${response.status} — captured value is not a drainable id` });
@@ -226,7 +241,7 @@ async function drainCaptures(caseObj: Case, state: RunState): Promise<void> {
       const current = extractPath(response, probe.statusPath);
       if (probe.terminal.includes(current as string)) break;
       if (performance.now() >= deadline) {
-        throw new CaseFailure(`teardown.drain: "${alias}" still ${JSON.stringify(current)} after ${DRAIN_TIMEOUT_MS}ms`);
+        throw new CaseFailure(`teardown.drain: "${alias}" still ${JSON.stringify(current)} after ${limits.drainMs}ms`);
       }
       await sleep(POLL_INTERVAL_MS);
     }
@@ -302,10 +317,12 @@ export interface RunCasesOptions {
   filter?: (id: string) => boolean;
   /** worker-pool width; 1 (default) is strictly serial */
   parallel?: number;
+  /** 1-based deterministic slice for CI fan-out: shard `index` of `total` (interleaved) */
+  shard?: { index: number; total: number };
 }
 
 /** Run a case set in sorted file order, minting invariant-template instances for this run. */
-export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1 }: RunCasesOptions): Promise<RunResult> {
+export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1, shard }: RunCasesOptions): Promise<RunResult> {
   const evidence = new EvidenceLog(evidencePath);
   const resolvedBase = (baseUrl ?? bed.baseUrl)!;
 
@@ -313,19 +330,26 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
   // carries each minted case in full — (template, seed, instance) regenerates it bit-for-bit
   const selectedLoaded = filter ? loaded.filter(({ caseObj }) => filter(caseObj.id)) : loaded;
   const minted = mintAll(templates, { bedUsers: bed.users ?? {}, seed }).filter((m) => !filter || filter(m.caseObj.id));
+  let executable: Array<LoadedCase & { mintedFrom?: (typeof minted)[number] }> = [
+    ...selectedLoaded,
+    ...minted.map((m) => ({ file: `minted:${m.caseObj.id}`, caseObj: m.caseObj, mintedFrom: m })),
+  ];
+  // interleaved slice over the deterministic order — every shard of the same set at the same
+  // seed is disjoint, and their union is exactly the unsharded run
+  if (shard) executable = executable.filter((_, i) => i % shard.total === shard.index - 1);
+
   evidence.append({
     event: 'run-start',
     seed,
     baseUrl: resolvedBase,
-    cases: selectedLoaded.length,
-    minted: minted.length,
+    cases: executable.filter((e) => !e.mintedFrom).length,
+    minted: executable.filter((e) => e.mintedFrom).length,
     ...(filter ? { filtered: true, casesTotal: loaded.length } : {}),
+    ...(shard ? { shard: `${shard.index}/${shard.total}` } : {}),
     version: TOOL_VERSION,
   });
-  const executable = [...selectedLoaded];
-  for (const m of minted) {
-    evidence.append({ event: 'minted', template: m.template, seed, instance: m.instance, case: m.caseObj });
-    executable.push({ file: `minted:${m.caseObj.id}`, caseObj: m.caseObj });
+  for (const { mintedFrom: m } of executable) {
+    if (m) evidence.append({ event: 'minted', template: m.template, seed, instance: m.instance, case: m.caseObj });
   }
 
   const verdicts: Verdict[] = new Array(executable.length);

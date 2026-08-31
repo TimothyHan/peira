@@ -141,6 +141,47 @@ test('runCases parallel: same verdicts in the same order, evidence grouped per c
     assert.deepEqual(caseOrder(parallel.events), caseOrder(serial.events));
   }));
 
+test('bed.timeouts: the declared latency envelope overrides pinned ceilings', () =>
+  withFixture(async ({ url }, bed) => {
+    // a 1ms request ceiling cannot survive a real HTTP round trip → infra error, never fail
+    const impatient = { ...bed, timeouts: { requestMs: 1 } };
+    const v1 = await run(makeCase(), impatient, url);
+    assert.equal(v1.verdict, 'error');
+
+    // a 300ms pollUntil ceiling fails fast instead of the pinned 10s default
+    const shortPoll = { ...bed, timeouts: { pollUntilMs: 300 } };
+    const caseObj = makeCase({
+      setup: [{ request: { method: 'post', route: '/groovy/submit', auth: '$users.user_1', body: { code: '1+1' } }, capture: { requestId: 'body.id' } }],
+      test: {
+        request: { method: 'get', route: '/groovy/status', auth: '$users.user_1', query: { id: '$requestId' } },
+        pollUntil: { until: { body: { status: 'NEVER_A_STATE' } } },
+      },
+    });
+    const started = performance.now();
+    const v2 = await run(caseObj, shortPoll, url);
+    assert.equal(v2.verdict, 'fail');
+    assert.match(v2.reason, /300ms/);
+    assert.ok(performance.now() - started < 5000, 'must not wait out the pinned 10s default');
+  }));
+
+test('runCases shard: disjoint deterministic slices whose union is the full run', () =>
+  withFixture(async ({ url }, bed) => {
+    const mk = (n) => makeCase({
+      id: `CASE-s${n}`,
+      test: { request: { method: 'get', route: '/groovy/status', auth: '$users.user_1', query: { id: 'nope' } }, expect: { status: 400 } },
+    });
+    const loaded = [1, 2, 3, 4, 5].map((n) => ({ file: `s${n}`, caseObj: mk(n) }));
+    const full = await runCases(loaded, { bed, baseUrl: url, seed: 3 });
+    const a = await runCases(loaded, { bed, baseUrl: url, seed: 3, shard: { index: 1, total: 2 } });
+    const b = await runCases(loaded, { bed, baseUrl: url, seed: 3, shard: { index: 2, total: 2 } });
+    const ids = (r) => r.verdicts.map((v) => v.id);
+    assert.deepEqual(ids(a), ['CASE-s1', 'CASE-s3', 'CASE-s5']);
+    assert.deepEqual(ids(b), ['CASE-s2', 'CASE-s4']);
+    assert.deepEqual([...ids(a), ...ids(b)].sort(), ids(full).sort());
+    const start = a.events.find((e) => e.event === 'run-start');
+    assert.equal(start.shard, '1/2');
+  }));
+
 test('runCases: sequential order, per-case isolation of captures, summary counts', () =>
   withFixture(async ({ url }, bed) => {
     const first = makeCase({

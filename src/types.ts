@@ -29,6 +29,12 @@ export interface BedConfig {
   users?: Record<string, Principal>;
   drain?: { route: string; idParam: string; statusPath: string; terminal: string[] };
   reset?: { url: string; method?: string };
+  /**
+   * The service's latency envelope — timeout CEILINGS only (environment description, not tool
+   * tuning; invariant 7 carve-out). The poll interval stays a pinned constant: it carries the
+   * determinism claim for transient-state assertions (invariant 8).
+   */
+  timeouts?: { requestMs?: number; pollUntilMs?: number; drainMs?: number; stepMs?: number };
 }
 
 /** Case lineage: which intent section (at which hash) this case was compiled from. */

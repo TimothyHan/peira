@@ -77,6 +77,8 @@ Peira competes on the synthesis and the discipline, not the ingredients.
 
 Runner facilities (2026-08-30, fundamentals gap-closure): `--only <id>` / `--grep <substr>` narrow a run to named cases (the whole set still validates — filtering narrows execution, never the gate); `--parallel <n>` runs cases on a bounded worker pool — determinism holds because every per-case input (seed-derived uniques, captures) is independent across cases, and per-case evidence buffers flush into the log in case order, so the file reads identically to a serial run's; `--junit <path>` emits JUnit XML for CI (pass/fail/error map to testcase/failure/error — the taxonomy survives the format); `peira stats --openapi <spec.json>` reports endpoint coverage — which endpoints of a declared API surface have no case — keeping OpenAPI strictly optional (§4.4).
 
+Second tranche (2026-08-30, mature-runner review): `--shard <i>/<n>` takes the i-th interleaved slice of the deterministic order for CI fan-out — shards are disjoint and their union is exactly the unsharded run, which per-case seed independence makes trivially safe; `--watch` re-runs on change, mapped by *lineage* rather than an import graph — a case edit re-runs exactly those cases, bed/steps/templates edits re-run everything, and an intent edit re-runs **nothing** (the runner never reads intent) but re-checks staleness and names the affected cases, leaving recompilation a human act rather than a save hook with an LLM in the loop; the seed is pinned per watch session so re-runs are comparable. Bed-level `timeouts` is invariant 7's carve-out (§5).
+
 ### 4.2 The intent layer
 
 A markdown folder (`intent/`). Every `##` is an addressable section, one acceptance criterion or invariant each:
@@ -180,7 +182,7 @@ Peira is an Akela domain, the way QABuddy is: akela is a first-party runtime dep
 4. Every compile and every run writes a manifest — what was produced, what was dropped or refused, and why.
 5. Every escape hatch is logged. Silent fallback is a bug in Peira, not a behavior.
 6. Drift never self-heals. A case changes only through an approved intent-level decision.
-7. Thresholds and caps are constants, not configuration.
+7. Thresholds and caps are constants, not configuration. **Scoped carve-out (2026-08-30):** the bed may declare the *service's* latency envelope — `timeouts: {requestMs?, pollUntilMs?, drainMs?, stepMs?}` — because a timeout ceiling is a fact about the environment (exactly what the bed exists to state), and a pinned 5s ceiling misclassifies a slow-but-healthy service as `error`. Peira's own semantic constants stay pinned: the poll *interval* (load-bearing for invariant 8's determinism claim), mint counts, redaction prefix, lint caps.
 8. Generated cases are seeded and reproducible; verdicts are a function of (cases, seed, service state) — **scoped caveat (eng review OV-3):** transient-state assertions additionally depend on the AUT's scheduling; against the fixture this is tamed by normatively pinned timing constants (job durations, poll interval — pinned in the [PR1 plan](plans/pr1.md)), and against arbitrary AUTs transient cases are honestly race-prone, which is why they sit on the telemetry watchlist. `$unique.*` values derive from the seed.
 9. The evidence log redacts credential material by default — `Authorization`, `Cookie`, and `Set-Cookie` values are stored as `[REDACTED:<sha256-prefix>]` so equality across events survives but secrets never land in plaintext JSONL.
 
@@ -193,6 +195,10 @@ Peira is an Akela domain, the way QABuddy is: akela is a first-party runtime dep
 - LLM-as-judge assertions for fuzzy response content (a scoped, versioned exception may earn its way in later; it violates invariant 1 and needs its own RFC).
 - A vector store, a ranking model, or any tunable scoring.
 - Retries as policy. An auto-retried flake is a hidden verdict; flake is a *triage* classification a human sees, never a runner setting that makes it disappear.
+- Response snapshot testing. A snapshot encodes what the service *currently does*; Peira's oracles state what the intent *requires*. Adopting snapshots would quietly reverse the thesis (it is traffic capture's failure mode in assertion form — see the Keploy line above).
+- Mocking, stubbing, and spies. Black-box by construction: there is no in-process seam, and the absence of one is load-bearing — "the runner can't be sweet-talked" holds because neither a human nor an agent has a legal move that fakes the service. Downstream fakes are a bed-environment concern; contract-level doubles with verification are Pact's problem.
+- Benchmarking and latency assertions. Per-case `elapsedMs` lands in evidence and JUnit as telemetry, but timing is never a verdict — a latency assertion is the first step into load testing, which stays out.
+- A programmable assertion API (Chai/Jest `expect`, custom matchers). An open matcher set cannot be schema-gated, rendered to English, or diffed deterministically. Assertion power grows only by vocabulary amendment, evidenced by `stats` fallback telemetry (amendments A, C, D are the record of this working).
 
 ## 7. Implementation sequence
 

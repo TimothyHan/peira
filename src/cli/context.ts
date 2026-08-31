@@ -26,6 +26,8 @@ export interface CliFlags {
   junit?: string;
   parallel?: string;
   openapi?: string;
+  watch?: boolean;
+  shard?: string;
 }
 
 export interface CliContext {
@@ -42,7 +44,7 @@ export interface CliContext {
 export const USAGE = `usage: peira <command>
   validate [casesDir] [--bed <path>] [--intent <dir>] [--steps <dir>] [--templates <dir>]
   run      [casesDir] --bed <path> [--base-url <url>] [--seed <n>] [--evidence <path>] [--steps <dir>] [--templates <dir>]
-           [--only <case-id>]... [--grep <substr>] [--parallel <n>] [--junit <path>]
+           [--only <case-id>]... [--grep <substr>] [--parallel <n>] [--junit <path>] [--shard <i>/<n>] [--watch]
   compile  [intentDir] --out <dir> [--bed <path>] [--section <id>]... [--steps <dir>] [--templates <dir>]
   stats    [casesDir] [--steps <dir>] [--openapi <spec.json>]
   triage   --evidence <run.jsonl> --intent <dir> [--out <path>]
@@ -53,7 +55,8 @@ export const USAGE = `usage: peira <command>
   adopt    <messy.md> --out <intent/name.md>
 
 flags:
-  --bed <path>        bed config JSON: {baseUrl, users?, reset?, drain?} — the only place Peira learns about your service
+  --bed <path>        bed config JSON: {baseUrl, users?, reset?, drain?, timeouts?} — the only place Peira learns about your
+                      service; timeouts declares its latency envelope: {requestMs?, pollUntilMs?, drainMs?, stepMs?}
   --base-url <url>    override the bed's baseUrl (e.g. point the same cases at CI vs local)
   --seed <n>          run seed; same seed + same service state → same verdicts (default: random, always printed)
   --evidence <path>   write the run's evidence JSONL (run) / read it (triage, evidence, render)
@@ -68,6 +71,9 @@ flags:
   --grep <substr>     run only cases whose id contains <substr> (combines with --only as a union)
   --parallel <n>      run up to n cases concurrently; verdicts and evidence order stay identical to a serial run
   --junit <path>      also write the run as JUnit XML (pass/fail/error map to testcase/failure/error)
+  --shard <i>/<n>     run the i-th of n deterministic slices (CI fan-out; shards are disjoint, their union is the full run)
+  --watch             re-run on change: case edits re-run just those cases; bed/steps/templates re-run all;
+                      intent edits report stale cases (recompiling stays a human act). Seed is pinned per session.
   --openapi <path>    OpenAPI JSON document — stats adds an endpoint-coverage report (which endpoints have no case)
 
 docs: docs/GETTING-STARTED.md | design: docs/DESIGN.md`;
@@ -95,6 +101,8 @@ export function buildContext(argv: string[]): CliContext {
       junit: { type: 'string' },
       parallel: { type: 'string' },
       openapi: { type: 'string' },
+      watch: { type: 'boolean' },
+      shard: { type: 'string' },
     },
   });
 
