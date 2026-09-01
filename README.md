@@ -1,6 +1,14 @@
-<a href="https://timothyhan.github.io/peira/"><img src="https://raw.githubusercontent.com/TimothyHan/peira/main/docs/mark.svg" alt="Peira" width="40" height="38"></a>
+<img src="https://raw.githubusercontent.com/TimothyHan/peira/main/docs/mark.svg" alt="Peira" width="64" height="60">
 
 # Peira *(PEER-uh)*
+
+**An intent compiler for functional API testing.**
+
+[Website](https://timothyhan.github.io/peira/) · [Docs](https://timothyhan.github.io/peira/docs/)
+
+[![tests](https://github.com/TimothyHan/peira/actions/workflows/test.yml/badge.svg)](https://github.com/TimothyHan/peira/actions/workflows/test.yml)
+[![npm](https://img.shields.io/npm/v/peira.svg?color=cb3837)](https://www.npmjs.com/package/peira)
+[![node](https://img.shields.io/badge/node-%E2%89%A5%2018-5fa04e)](https://nodejs.org)
 
 You write down what your API is supposed to do, in plain markdown — one heading per promise.
 Peira turns that into test cases and runs them.
@@ -12,9 +20,6 @@ service state, same verdicts.
 When a run goes red, you are told which kind of red it is — the API genuinely did not do what you
 said it would (`fail`), or the run never got far enough to find out (`error`). An unreachable
 service can never be reported as a bug.
-
-**[timothyhan.github.io/peira](https://timothyhan.github.io/peira/)** — the walkthrough, CLI
-reference, and case anatomy, with a live look at the output. Also in Korean.
 
 ## In precise terms
 
