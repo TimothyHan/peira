@@ -1,4 +1,4 @@
-<a href="https://timothyhan.github.io/peira/"><img src="https://raw.githubusercontent.com/TimothyHan/peira/main/docs/mark.svg" alt="Peira" width="64" height="64" align="right"></a>
+<a href="https://timothyhan.github.io/peira/"><img src="https://raw.githubusercontent.com/TimothyHan/peira/main/docs/mark.svg" alt="Peira" width="40" height="38"></a>
 
 # Peira *(PEER-uh)*
 
