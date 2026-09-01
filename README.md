@@ -10,8 +10,8 @@
 [![npm](https://img.shields.io/npm/v/peira.svg?color=cb3837)](https://www.npmjs.com/package/peira)
 [![node](https://img.shields.io/badge/node-%E2%89%A5%2018-5fa04e)](https://nodejs.org)
 
-You write down what your API is supposed to do, in plain markdown — one heading per promise.
-Peira turns that into test cases and runs them.
+You write down what your API is supposed to do, in plain markdown. Peira turns that into test
+cases and runs them.
 
 The writing step uses an LLM: once, on your machine, while you are authoring. The running step
 never does. CI needs no API key — and any run replays exactly: same cases, same seed, same
@@ -23,19 +23,23 @@ service can never be reported as a bug.
 
 ## In precise terms
 
-Peira is an **intent compiler for functional API testing**. Human-owned acceptance criteria and
-invariants, written in markdown, compile (via an LLM, at authoring time only) into schema-gated
-declarative JSON test cases, executed by a deterministic runner. Procedure may escape to
-generated code; **assertions never do**. Every escape is telemetry that evolves the case DSL
-from evidence. When reality and intent disagree, an offline triage proposes — a human decides.
+Human-owned acceptance criteria and invariants, written in markdown, compile into schema-gated
+declarative JSON test cases via an LLM, executed by a deterministic runner.
 
 ```
- intent/     acceptance criteria + invariants   ← human-authored markdown, the only source of truth
- cases/      compiled declarative tests         ← LLM-compiled, schema-gated, regenerable
- templates/  invariants with typed holes        ← the runner mints N seeded cases per run
- steps/      escape-hatch procedure code        ← typed contract, child-process, cannot assert
- runner      deterministic execution            ← zero LLM; pass | fail | error, never conflated
- triage      bug | drift | flake                ← offline LLM, schema-gated, proposals only
+  intent/*.md           acceptance criteria + invariants — the only source of truth
+      │
+      │  compile · LLM, at authoring time only
+      ▼
+  cases/*.json          declarative, regenerable, each traceable to the line it came from
+      │
+      │  run · zero LLM
+      ▼
+  pass | fail | error   the API broke a promise, or the run never got that far
+      │
+      │  on fail
+      ▼
+  triage                bug | drift | flake — proposals only, a human decides
 ```
 
 No LLM at runtime, ever. Same cases, same seed, same service state → same verdicts.
@@ -46,7 +50,7 @@ The demo service and its bed live in the repo, so this one starts from a clone:
 
 ```bash
 git clone https://github.com/TimothyHan/peira && cd peira
-node test/fixtures/server.js 4477 &          # the demo service (a re-creation of a real production AUT)
+node test/fixtures/server.js 4477 &          # the demo service — a re-implementation, used as a fixture
 node bin/peira.js validate cases --bed test/fixtures/bed.json
 node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
 ```
@@ -78,12 +82,13 @@ add `users` and `drain` only if your service needs them.
 from headings, so an existing test plan ingests with zero edits.
 
 **3. Compile.** `peira compile intent --out cases --bed bed.json` runs through your own Claude
-session. Every candidate clears the same schema gate a hand-written case would, lineage is
-stamped mechanically, and the manifest accounts for every section.
+session. Every case the model proposes is checked against the same schema a hand-written one
+would be, the link back to its intent section is recorded by the tool rather than by the model,
+and the manifest accounts for every section — including the ones it declined to compile.
 
 **4. Run.** `peira run cases --bed bed.json` gives you verdicts and an evidence log, with
-credentials redacted at write time. `peira stats` reports DSL coverage and recurring escape
-shapes.
+credentials redacted at write time. `peira stats` reports how much of your suite stays
+declarative, and where cases keep falling back to code.
 
 **5. Keep cases in sync.** When intent changes, `peira validate --intent` flags stale cases and
 `peira compile --section` regenerates exactly those. When runs fail, `peira triage` proposes and
@@ -94,23 +99,34 @@ evidence ledger. Passing sections log `applied`; adjudicated drift
 logs `contradicted`, with your note verbatim. Sections earn trust across runs — `peira trust`
 shows the standings.
 
-## Measured, not promised
+## Beyond the core loop
 
-All of it against the in-repo bed and its original hand-written suite:
+Two pieces sit outside the four stages above.
 
-- The five-primitive DSL re-expressed **27/27** of the original hand-written specs — zero
-  escape hatches, zero sleeps.
-- Compiling the original test plan **verbatim** reproduced every hand-written behavior
-  and surfaced **three intent/implementation divergences** the hand-written suite silently
-  encoded — including one nobody had ever tested.
-- One invariant sentence mints 5 fresh seeded probes per run; the known bug it guards can
-  never rotate out of coverage.
-- Triage over 33 pre-registered behavior shifts: **bug/drift confusion 12.1%**, drift
-  detection 8/9, zero schema refusals or injection incidents across every live call.
+**`templates/`** — property-based testing, in the case vocabulary: you declare typed blanks, and the
+runner mints fresh seeded cases from them every run.
+
+**`steps/`** — when setup cannot be written as JSON, you write your own code and the runner
+calls it. It can act on the service, but never decide a verdict.
+
+Both are specified in full in [docs/REFERENCE.md](docs/REFERENCE.md).
+
+## Tested against the original suite
+
+The service in this repo is a re-implementation, used as a test fixture. The 27 specs and the
+test plan compiled below are the originals — written by hand, years earlier, for the service it
+re-implements.
+
+- The case vocabulary — `request`, `capture`, `expect` — re-expressed **27/27** of those specs,
+  without dropping to custom code once and without a single sleep.
+- Compiling the original test plan **verbatim** reproduced every hand-written behavior and
+  surfaced **three divergences between intent and implementation** that the hand-written suite
+  had silently encoded — including one nobody had ever tested.
+
+Triage precision, performance baselines, and the rest: [docs/findings/](docs/findings/).
 
 **Full walkthrough (zero → local loop → CI): [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).**
 Command and flag reference: `peira help`. Design: [docs/DESIGN.md](docs/DESIGN.md) (RFC 0001).
-Experiments and findings: `docs/findings/`.
 
 ## Status
 
