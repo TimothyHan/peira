@@ -1,7 +1,7 @@
 # Peira
 
-*πεῖρα (peira) — Greek: trial, test, attempt. The root of "empirical": knowledge that exists
-only because something was tried.*
+*Pronounced **PEER-uh** (/ˈpɪərə/). From Greek πεῖρα — trial, test, attempt: the root of
+"empirical", knowledge that exists only because something was tried.*
 
 Peira is an **intent compiler for functional API testing**. Human-owned acceptance criteria and
 invariants, written in markdown, compile (via an LLM, at authoring time only) into schema-gated
