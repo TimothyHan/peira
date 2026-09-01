@@ -13,7 +13,8 @@ When a run goes red, you are told which kind of red it is — the API genuinely 
 said it would (`fail`), or the run never got far enough to find out (`error`). An unreachable
 service can never be reported as a bug.
 
-**[timothyhan.github.io/peira](https://timothyhan.github.io/peira/)** — the walkthrough, CLI reference, and case anatomy, with a live look at the output. Also in Korean.
+**[timothyhan.github.io/peira](https://timothyhan.github.io/peira/)** — the walkthrough, CLI
+reference, and case anatomy, with a live look at the output. Also in Korean.
 
 ## In precise terms
 
@@ -34,10 +35,12 @@ from evidence. When reality and intent disagree, an offline triage proposes — 
 
 No LLM at runtime, ever. Same cases, same seed, same service state → same verdicts.
 
-## Quickstart (from a clone — the demo bed lives in the repo)
+## Try the demo
+
+The demo service and its bed live in the repo, so this one starts from a clone:
 
 ```bash
-git clone <repo> peira && cd peira
+git clone https://github.com/TimothyHan/peira && cd peira
 node test/fixtures/server.js 4477 &          # the demo service (a re-creation of a real production AUT)
 node bin/peira.js validate cases --bed test/fixtures/bed.json
 node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
@@ -55,27 +58,40 @@ Triage proposes an **intent-level diff** (the message text changed but the inten
 it — drift), or a **structured bug finding**, or a **re-run prescription** — and applies
 nothing. You decide.
 
-## On your own API
+## Use it on your own API
 
-1. Write `intent/*.md` — one `##` heading per acceptance criterion or invariant. Tag with
-   `<!-- peira: id=… kind=ac|invariant -->`, or don't (ids derive from headings; an existing
-   test plan ingests with zero edits).
-2. Write a bed config: `{"baseUrl": "…", "users": {…}, "drain": {…}}` — users and drain only
-   if your service needs them.
-3. `peira compile intent --out cases --bed bed.json` — compiles through your own Claude
-   session (`claude -p`); every candidate passes the same schema gate as a hand-written case,
-   lineage is stamped mechanically, and the manifest accounts for every section.
-4. `peira run cases --bed bed.json` → verdicts + evidence JSONL (credentials redacted at
-   write time). `peira stats` reports DSL coverage and recurring escape shapes.
-5. When intent changes: `peira validate --intent` flags stale cases; `peira compile --section`
-   regenerates exactly those. When runs fail: `peira triage` proposes; you adjudicate.
-6. `peira evidence --evidence run.jsonl --triage run-triage.json --intent intent` records the
-   run into Peira's evidence ledger: passing sections log `applied`, adjudicated drift logs
-   `contradicted` (with the verbatim note), and intent sections earn evidence-gated trust
-   across runs — `peira trust` shows the standings. A portable JSONL export is written
-   alongside.
+```bash
+npm install -g peira
+peira init          # bed.json, intent/example.md, agent instructions — never overwrites
+```
 
-## Measured, not promised (against the in-repo bed and its legacy suite)
+**1. Point the bed at your service.** Edit `bed.json`. A `baseUrl` is often the whole config;
+add `users` and `drain` only if your service needs them.
+
+**2. Write your promises.** One `##` heading per acceptance criterion or invariant in
+`intent/*.md`. Tagging with `<!-- peira: id=… kind=ac|invariant -->` is optional — ids derive
+from headings, so an existing test plan ingests with zero edits.
+
+**3. Compile.** `peira compile intent --out cases --bed bed.json` runs through your own Claude
+session. Every candidate clears the same schema gate a hand-written case would, lineage is
+stamped mechanically, and the manifest accounts for every section.
+
+**4. Run.** `peira run cases --bed bed.json` gives you verdicts and an evidence log, with
+credentials redacted at write time. `peira stats` reports DSL coverage and recurring escape
+shapes.
+
+**5. Keep cases in sync.** When intent changes, `peira validate --intent` flags stale cases and
+`peira compile --section` regenerates exactly those. When runs fail, `peira triage` proposes and
+you adjudicate.
+
+**6. Record the run.** `peira evidence --evidence run.jsonl --intent intent` writes it into the
+evidence ledger. Passing sections log `applied`; adjudicated drift
+logs `contradicted`, with your note verbatim. Sections earn trust across runs — `peira trust`
+shows the standings.
+
+## Measured, not promised
+
+All of it against the in-repo bed and its original hand-written suite:
 
 - The five-primitive DSL re-expressed **27/27** of the original hand-written specs — zero
   escape hatches, zero sleeps.
@@ -93,11 +109,14 @@ Experiments and findings: `docs/findings/`.
 
 ## Status
 
-v0.2.0. Written in TypeScript; ships compiled JS with full type declarations. One
-first-party runtime dependency (same author, itself dependency-free: no third-party code on
-the trust path), Node ≥ 18. Single AUT per run. Compile and triage require
-the Claude Code CLI (they run on your session; no API key). UI testing, load testing, mocking,
-and contract brokering are explicit non-goals.
+**v0.2.0.** TypeScript, shipping compiled JS with full type declarations.
+
+- **Node ≥ 18.** One first-party runtime dependency — same author, itself dependency-free, so
+  there is no third-party code on the trust path.
+- **Compile and triage need the Claude Code CLI**, running on your own session. No API key,
+  anywhere.
+- **One service under test per run.**
+- **Explicit non-goals:** UI testing, load testing, mocking, contract brokering.
 
 ## The name
 
