@@ -1,7 +1,17 @@
-# Peira
+# Peira *(PEER-uh)*
 
-*Pronounced **PEER-uh** (/ˈpɪərə/). From Greek πεῖρα — trial, test, attempt: the root of
-"empirical", knowledge that exists only because something was tried.*
+You write down what your API is supposed to do, in plain markdown — one heading per promise.
+Peira turns that into test cases and runs them.
+
+The writing step uses an LLM: once, on your machine, while you are authoring. The running step
+never does. CI needs no API key — and any run replays exactly: same cases, same seed, same
+service state, same verdicts.
+
+When a run goes red, you are told which kind of red it is — the API genuinely did not do what you
+said it would (`fail`), or the run never got far enough to find out (`error`). An unreachable
+service can never be reported as a bug.
+
+## In precise terms
 
 Peira is an **intent compiler for functional API testing**. Human-owned acceptance criteria and
 invariants, written in markdown, compile (via an LLM, at authoring time only) into schema-gated
@@ -84,6 +94,11 @@ first-party runtime dependency (same author, itself dependency-free: no third-pa
 the trust path), Node ≥ 18. Single AUT per run. Compile and triage require
 the Claude Code CLI (they run on your session; no API key). UI testing, load testing, mocking,
 and contract brokering are explicit non-goals.
+
+## The name
+
+*πεῖρα* (peira) — Greek: trial, test, attempt. The root of "empirical": knowledge that exists
+only because something was tried.
 
 ## License
 
