@@ -44,29 +44,6 @@ declarative JSON test cases via an LLM, executed by a deterministic runner.
 
 No LLM at runtime, ever. Same cases, same seed, same service state → same verdicts.
 
-## Try the demo
-
-The demo service and its bed live in the repo, so this one starts from a clone:
-
-```bash
-git clone https://github.com/TimothyHan/peira && cd peira
-node test/fixtures/server.js 4477 &          # the demo service — a re-implementation, used as a fixture
-node bin/peira.js validate cases --bed test/fixtures/bed.json
-node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
-```
-
-26 cases pass. Now break the service and watch triage adjudicate:
-
-```bash
-kill %1 && node test/fixtures/server.js 4477 --plant validation-message-text &
-node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
-node bin/peira.js triage --evidence run.jsonl --intent intent   # needs the claude CLI logged in
-```
-
-Triage proposes an **intent-level diff** (the message text changed but the intent never pinned
-it — drift), or a **structured bug finding**, or a **re-run prescription** — and applies
-nothing. You decide.
-
 ## Use it on your own API
 
 ```bash
@@ -98,6 +75,29 @@ you adjudicate.
 evidence ledger. Passing sections log `applied`; adjudicated drift
 logs `contradicted`, with your note verbatim. Sections earn trust across runs — `peira trust`
 shows the standings.
+
+## Try the demo
+
+The demo service and its bed live in the repo, so this one starts from a clone:
+
+```bash
+git clone https://github.com/TimothyHan/peira && cd peira
+node test/fixtures/server.js 4477 &          # the demo service — a re-implementation, used as a fixture
+node bin/peira.js validate cases --bed test/fixtures/bed.json
+node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
+```
+
+26 cases pass. Now break the service and watch triage adjudicate:
+
+```bash
+kill %1 && node test/fixtures/server.js 4477 --plant validation-message-text &
+node bin/peira.js run cases --bed test/fixtures/bed.json --seed 42 --evidence run.jsonl
+node bin/peira.js triage --evidence run.jsonl --intent intent   # needs the claude CLI logged in
+```
+
+Triage proposes an **intent-level diff** (the message text changed but the intent never pinned
+it — drift), or a **structured bug finding**, or a **re-run prescription** — and applies
+nothing. You decide.
 
 ## Beyond the core loop
 
