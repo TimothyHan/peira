@@ -1,3 +1,5 @@
+<a href="https://timothyhan.github.io/peira/"><img src="https://raw.githubusercontent.com/TimothyHan/peira/main/docs/mark.svg" alt="Peira" width="64" height="64" align="right"></a>
+
 # Peira *(PEER-uh)*
 
 You write down what your API is supposed to do, in plain markdown — one heading per promise.
@@ -10,6 +12,8 @@ service state, same verdicts.
 When a run goes red, you are told which kind of red it is — the API genuinely did not do what you
 said it would (`fail`), or the run never got far enough to find out (`error`). An unreachable
 service can never be reported as a bug.
+
+**[timothyhan.github.io/peira](https://timothyhan.github.io/peira/)** — the walkthrough, CLI reference, and case anatomy, with a live look at the output. Also in Korean.
 
 ## In precise terms
 
