@@ -109,7 +109,7 @@ runner mints fresh seeded cases from them every run.
 **`steps/`** — when setup cannot be written as JSON, you write your own code and the runner
 calls it. It can act on the service, but never decide a verdict.
 
-Both are specified in full in [docs/REFERENCE.md](docs/REFERENCE.md).
+Both are specified in full in [docs/REFERENCE.md](https://github.com/TimothyHan/peira/blob/main/docs/REFERENCE.md).
 
 ## Tested against the original suite
 
@@ -123,10 +123,10 @@ re-implements.
   surfaced **three divergences between intent and implementation** that the hand-written suite
   had silently encoded — including one nobody had ever tested.
 
-Triage precision, performance baselines, and the rest: [docs/findings/](docs/findings/).
+Triage precision, performance baselines, and the rest: [docs/findings/](https://github.com/TimothyHan/peira/tree/main/docs/findings).
 
-**Full walkthrough (zero → local loop → CI): [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md).**
-Command and flag reference: `peira help`. Design: [docs/DESIGN.md](docs/DESIGN.md) (RFC 0001).
+**Full walkthrough (zero → local loop → CI): [docs/GETTING-STARTED.md](https://github.com/TimothyHan/peira/blob/main/docs/GETTING-STARTED.md).**
+Command and flag reference: `peira help`. Design: [docs/DESIGN.md](https://github.com/TimothyHan/peira/blob/main/docs/DESIGN.md) (RFC 0001).
 
 ## Status
 
