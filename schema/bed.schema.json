@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/TimothyHan/peira/schema/bed.schema.json",
+  "title": "Peira bed config",
+  "description": "The only place Peira learns about a service (RFC 0001 §4, RFC 0002). Top level is permissive on purpose — peira init writes a $comment, and existing beds must keep working. Principal shapes under `users` are checked strictly in src/validate-bed.ts, because this validator cannot express per-value schemas.",
+  "type": "object",
+  "properties": {
+    "baseUrl": {
+      "type": "string"
+    },
+    "users": {
+      "type": "object"
+    },
+    "reset": {
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        }
+      }
+    },
+    "drain": {
+      "type": "object",
+      "required": [
+        "route",
+        "idParam",
+        "statusPath",
+        "terminal"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "type": "string"
+        },
+        "idParam": {
+          "type": "string"
+        },
+        "statusPath": {
+          "type": "string"
+        },
+        "terminal": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "timeouts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestMs": {
+          "type": "number"
+        },
+        "pollUntilMs": {
+          "type": "number"
+        },
+        "drainMs": {
+          "type": "number"
+        },
+        "stepMs": {
+          "type": "number"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "required": [
+        "command"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "readyMs": {
+          "type": "number"
+        },
+        "reuse": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "send": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "header",
+            "format"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "header": {
+              "type": "string"
+            },
+            "format": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "cookie"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "cookie": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "basicPrincipal": {
+      "type": "object",
+      "required": [
+        "username",
+        "password"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "loginPrincipal": {
+      "type": "object",
+      "required": [
+        "login"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "login": {
+          "type": "object",
+          "required": [
+            "route",
+            "token",
+            "send"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "enum": [
+                "get",
+                "post",
+                "put",
+                "delete",
+                "patch"
+              ]
+            },
+            "route": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "body": {},
+            "token": {
+              "type": "string"
+            },
+            "send": {
+              "$ref": "#/$defs/send"
+            }
+          }
+        }
+      }
+    },
+    "staticPrincipal": {
+      "type": "object",
+      "required": [
+        "token",
+        "send"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "send": {
+          "$ref": "#/$defs/send"
+        }
+      }
+    }
+  }
+}

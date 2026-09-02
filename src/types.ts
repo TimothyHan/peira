@@ -19,10 +19,39 @@ export interface Verdict {
   elapsedMs?: number;
 }
 
-export interface Principal {
+/** HTTP Basic: the original principal shape. */
+export interface BasicPrincipal {
   username: string;
   password: string;
 }
+
+/**
+ * How a token is attached to every request made as this principal (RFC 0002 §3.2). Exactly one
+ * of the two forms; `format` must contain `{{token}}`.
+ */
+export type TokenSend = { header: string; format: string; cookie?: never } | { cookie: string; header?: never; format?: never };
+
+/** A principal that logs in once per run and sends the resulting token (RFC 0002 §3.1). */
+export interface LoginPrincipal {
+  login: {
+    /** lowercase HTTP method; default post */
+    method?: string;
+    route: string;
+    body?: unknown;
+    /** capture path into the login response, e.g. body.token */
+    token: string;
+    send: TokenSend;
+  };
+}
+
+/** A principal with a fixed token and no login step — API keys (RFC 0002 §3.1). */
+export interface StaticTokenPrincipal {
+  token: string;
+  send: TokenSend;
+}
+
+/** A bed principal: Basic, login, or static token. A bed alias is exactly one of these. */
+export type Principal = BasicPrincipal | LoginPrincipal | StaticTokenPrincipal;
 
 export interface BedConfig {
   baseUrl?: string;

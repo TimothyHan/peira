@@ -39,7 +39,8 @@ A case is one JSON file. `id`, `from`, and `test` are required.
 | `request.route` | must start with `/`; may carry `$alias` / `{{token}}` references |
 | `request.query` | optional object → query string |
 | `request.body` | optional JSON body (skipped for `get`) |
-| `request.auth` | three forms: `"$users.<alias>"` (a bed principal), a literal `{"username","password"}` (negative auth tests), or absent (anonymous) |
+| `request.auth` | four forms: `"$users.<alias>"` (a bed principal — Basic, login, or static token; see the bed), a literal `{"username","password"}` (negative Basic tests), a literal `{"token": "<value>"}` with optional `send` (negative token tests; defaults to `Authorization: Bearer`), or absent (anonymous) |
+| `request.followRedirects` | default `true`. With `false` the step sees its own 3xx — `expect.status: 307` and `expect.headers.location` become assertable, and `capture: {"next": "headers.location"}` becomes meaningful |
 | `capture` | `alias → response path`. Paths are dotted and rooted at `status`, `body`, or `headers` (e.g. `body.id`, `headers.location`). A path missing from the response fails the case, naming the path. |
 | `pollUntil` | re-issues this step's request until `until` (an expect block) matches, at a pinned 100 ms interval, up to `timeoutMs` (default 10 s, or the bed's `timeouts.pollUntilMs`). Non-convergence is a **fail**. The declarative replacement for wall-clock sleeps, which are refused. |
 | `expect` | the oracle — see below |
@@ -89,11 +90,50 @@ The only place Peira learns about your service. Everything except `baseUrl` is o
 | key | meaning |
 |---|---|
 | `baseUrl` | where the service answers; `--base-url` overrides per invocation |
-| `users` | named principals for basic auth: `{"alice": {"username", "password"}}` — cases say `$users.alice`, never credentials |
+| `users` | named principals — cases say `$users.alice`, never credentials. Three shapes, exactly one per alias; see **Principals** below |
 | `reset` | `{url, method?}` — one wipe-state call before each run |
 | `drain` | `{route, idParam, statusPath, terminal[]}` — how to ask the service whether an async job settled; powers `teardown.drain` |
 | `timeouts` | latency-envelope **ceilings**: `{requestMs?, pollUntilMs?, drainMs?, stepMs?}`. Hitting one is an `error`, never a `fail`. The poll interval is pinned (determinism, invariant 8). |
 | `service` | how `peira run` starts the app under test: `{command, cwd?, readyMs?, reuse?}`. `reuse` (default true) uses an already-answering `baseUrl` as-is and never kills it; a server Peira started is killed — whole process group — when the run ends. Only `run` manages processes. |
+
+### Principals
+
+A bed alias is exactly one of these. The case vocabulary does not change for any of them: a
+case says `$users.<alias>` and the bed decides what that means per environment.
+
+```json
+"users": {
+  "alice": { "username": "alice", "password": "pw" },
+
+  "staff": {
+    "login": {
+      "method": "post",
+      "route": "/api/users/login",
+      "body": { "email": "staff@example.com", "password": "demo1234" },
+      "token": "body.token",
+      "send": { "header": "Authorization", "format": "JWT {{token}}" }
+    }
+  },
+
+  "svc": { "token": "sk_live_…", "send": { "header": "X-API-Key", "format": "{{token}}" } }
+}
+```
+
+| shape | fields | the runner |
+|---|---|---|
+| **Basic** | `username`, `password` | sends `Authorization: Basic …` |
+| **Login** | `login: {method?, route, body?, token, send}` | logs in **once per run** on first use (cached; once even under `--parallel`), captures the token at `token` — a capture path, e.g. `body.token` or `headers.x-session` — and attaches it per `send` |
+| **Static** | `token`, `send` | attaches the literal; no request. API keys |
+
+`send` is exactly one of `{"header": "<name>", "format": "<template containing {{token}}>"}` or
+`{"cookie": "<name>"}` (sends `Cookie: <name>=<token>`). `login.method` defaults to `post`;
+`login.body` may not reference `unique.*` (a login belongs to a principal, not a case).
+
+A login that is refused (non-2xx) or whose `token` path is absent makes every case on that
+principal an **`error`** — the run never got far enough to judge them — naming the principal
+and the status. Token expiry inside a run is not handled: a mid-run 401 is a `fail` like any
+other unexpected status. `peira validate --bed` checks every shape statically
+(`schema/bed.schema.json` plus the rules a schema cannot say).
 
 ## Verdicts and exit codes
 
@@ -109,13 +149,18 @@ The two failure kinds are never conflated. Exit codes: `0` all pass · `1` any f
 
 ## The evidence log — `run.jsonl`
 
-Append-only JSONL, one object per event; one file = one run. Credential material
-(`Authorization`, `Cookie`, `Set-Cookie`) is redacted at write time to
-`[REDACTED:<sha256-prefix>]` — equality across events survives, secrets never land.
+Append-only JSONL, one object per event; one file = one run. Credential material is redacted
+at write time to `[REDACTED:<sha256-prefix>]` — equality across events survives, secrets never
+land. Two rules: **by key** (`Authorization`, `Cookie`, `Set-Cookie`, `password`, `token`), and
+**by value** — every token the runner obtains or is handed is registered the moment it is
+known, and any string containing it, in any event, has the occurrence replaced by the same tag.
+The second rule is what covers a token under a custom header name or echoed back inside an
+unrelated response body. Values under 16 characters are not registered.
 
 | event | carries |
 |---|---|
 | `run-start` | `seed`, `baseUrl`, `cases`, `minted`, `version`; `filtered`/`casesTotal` under `--only`/`--grep`; `shard` under `--shard` |
+| `login` | one per login principal used: `principal`, `route`, `status`, `elapsedMs`, `outcome` (`ok` \| `refused` \| `no-token`), `redaction` (`registered` \| `too-short`). Never the request or response body. Appended just before `run-end`, in alias order, so the file has the same shape serial or parallel |
 | `minted` | a template instance in full — `(template, seed, instance)` regenerates it bit-for-bit |
 | `case-start` | the complete case definition |
 | `http` | every exchange: request `{method, route, query, body, headers}` and response `{status, headers, body, elapsedMs}`, with the poll `attempt` |

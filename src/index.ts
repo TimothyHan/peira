@@ -26,7 +26,7 @@ export { CaseFailure, InfraError, TransportError, UnresolvedTokenError } from '.
 export * as constants from './constants.js';
 
 // The public type surface (structural mirrors of the JSON-schema-gated artifacts).
-export type { VerdictKind, Diff, Verdict, Principal, BedConfig, Case, CaseLineage, LoadedCase, VerdictCounts, RunResult, StepDef, Template, HoleDecl } from './types.js';
+export type { VerdictKind, Diff, Verdict, Principal, BasicPrincipal, LoginPrincipal, StaticTokenPrincipal, TokenSend, BedConfig, Case, CaseLineage, LoadedCase, VerdictCounts, RunResult, StepDef, Template, HoleDecl } from './types.js';
 export type { IntentSection, IntentKind } from './intent.js';
 export type { HttpRequestOptions, HttpResponse } from './http.js';
 export type { CompileManifest, ManifestEntry, CompileOptions, CompileResult } from './compile.js';
@@ -37,3 +37,5 @@ export type { RenderDocumentOptions, ReportModel } from './render.js';
 export type { Stats } from './stats.js';
 export type { Endpoint, CoverageReport } from './coverage.js';
 export type { SchemaError, JsonSchema } from './schema.js';
+export { validateBed, validatePrincipal } from './validate-bed.js';
+export { SecretRegistry } from './evidence.js';

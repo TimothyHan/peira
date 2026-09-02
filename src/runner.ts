@@ -17,7 +17,9 @@ import { CaseFailure, InfraError } from './errors.js';
 import { EvidenceLog } from './evidence.js';
 import { mintAll } from './generate.js';
 import type { HarnessResult } from './step-harness.js';
-import type { BedConfig, Case, LoadedCase, Principal, RunResult, StepDef, Template, Verdict } from './types.js';
+import type { BedConfig, Case, LoadedCase, RunResult, StepDef, Template, Verdict } from './types.js';
+import { TokenStore, basicAttachment, tokenAttachment, DEFAULT_SEND, type AuthAttachment } from './auth.js';
+import { SecretRegistry } from './evidence.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -30,15 +32,26 @@ function extractPath(response: unknown, path: string): unknown {
   return path.split('.').reduce<any>((node, part) => (node == null ? undefined : node[part]), response);
 }
 
-function resolveAuth(auth: unknown, bed: BedConfig): Principal | undefined {
+/**
+ * A request's `auth` → the headers it carries. Bed principals go through the run's TokenStore
+ * (login once, cached); literals resolve here. A literal token is registered as a secret the
+ * moment it is seen, so the case definition already in the log is the only place it could
+ * have appeared — and `token` is a redacted key there (RFC 0002 §3.5).
+ */
+async function resolveAuth(auth: unknown, state: RunState): Promise<AuthAttachment | undefined> {
   if (auth === undefined) return undefined;
   if (typeof auth === 'string') {
     const alias = auth.slice('$users.'.length);
-    const principal = bed.users?.[alias];
+    const principal = state.bed.users?.[alias];
     if (!principal) throw new CaseFailure(`auth: unknown bed principal "$users.${alias}"`);
-    return principal;
+    return state.tokens.resolve(alias, principal, state.evidence);
   }
-  return auth as Principal; // literal {username, password} — negative auth tests are the security section
+  const literal = auth as Record<string, unknown>;
+  if (typeof literal.token === 'string') {
+    state.evidence.secrets.register(literal.token);
+    return tokenAttachment(literal.token, (literal.send as never) ?? DEFAULT_SEND); // amendment (F)
+  }
+  return basicAttachment(literal as { username: string; password: string }); // negative auth tests are the security section
 }
 
 const HARNESS_PATH = fileURLToPath(new URL('./step-harness.js', import.meta.url));
@@ -84,7 +97,9 @@ interface RunState {
   caseId: string;
   steps: Map<string, StepDef>;
   ctx: ResolveContext;
-  captureAuth: Record<string, Principal | undefined>;
+  tokens: TokenStore;
+  /** the raw `auth` value that captured each alias — re-resolved (cache hit) for drain */
+  captureAuth: Record<string, unknown>;
   captureOrder: string[];
 }
 
@@ -147,7 +162,7 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
   if ('step' in step) return executeInvocation(step, label, state);
   const { ctx, bed, baseUrl, evidence, caseId } = state;
   const req = step.request;
-  const auth = resolveAuth(req.auth, bed);
+  const auth = await resolveAuth(req.auth, state);
   const limits = ceilings(bed);
   const resolved = {
     baseUrl,
@@ -156,6 +171,7 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
     query: req.query === undefined ? undefined : (resolveValue(req.query, ctx) as Record<string, unknown>),
     body: req.body === undefined ? undefined : resolveValue(req.body, ctx),
     auth,
+    followRedirects: req.followRedirects as boolean | undefined,
     timeoutMs: limits.requestMs,
   };
 
@@ -210,7 +226,7 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
       throw new CaseFailure(`${label}: capture "${alias}" — path ${path} not present in response`);
     }
     ctx.captures[alias] = value;
-    state.captureAuth[alias] = auth;
+    state.captureAuth[alias] = req.auth;
     state.captureOrder.push(alias);
   }
 }
@@ -231,7 +247,7 @@ async function drainCaptures(caseObj: Case, state: RunState): Promise<void> {
         method: 'get',
         route: probe.route,
         query: { [probe.idParam]: String(ctx.captures[alias]) },
-        auth: state.captureAuth[alias],
+        auth: await resolveAuth(state.captureAuth[alias], state),
         timeoutMs: limits.requestMs,
       });
       if (response.status < 200 || response.status >= 300) {
@@ -255,11 +271,14 @@ export interface RunCaseOptions {
   seed: number;
   evidence: EvidenceLog;
   steps?: Map<string, StepDef>;
+  /** the run's login cache; a lone runCase gets a private one */
+  tokens?: TokenStore;
 }
 
 /** Run one case. */
-export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, steps = new Map() }: RunCaseOptions): Promise<Verdict> {
+export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, steps = new Map(), tokens }: RunCaseOptions): Promise<Verdict> {
   const caseId = caseObj.id;
+  const ownStore = tokens ?? new TokenStore({ baseUrl, timeoutMs: ceilings(bed).requestMs });
   const state: RunState = {
     bed,
     baseUrl,
@@ -267,6 +286,7 @@ export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, ste
     caseId,
     steps,
     ctx: { captures: {}, unique: (key) => uniqueValue(seed, caseId, key) },
+    tokens: ownStore,
     captureAuth: {},
     captureOrder: [],
   };
@@ -296,6 +316,7 @@ export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, ste
 
   result.elapsedMs = Math.round(performance.now() - started);
   evidence.append({ event: 'case-verdict', ...result });
+  if (!tokens) ownStore.flush(evidence); // standalone: nobody else will
   return result;
 }
 
@@ -324,8 +345,11 @@ export interface RunCasesOptions {
 /** Run a case set in sorted file order, minting invariant-template instances for this run. */
 export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1, shard }: RunCasesOptions): Promise<RunResult> {
   const runStarted = performance.now();
-  const evidence = new EvidenceLog(evidencePath);
+  // one secret registry for the whole run: a token learned by any case is scrubbed from every log
+  const secrets = new SecretRegistry();
+  const evidence = new EvidenceLog(evidencePath, secrets);
   const resolvedBase = (baseUrl ?? bed.baseUrl)!;
+  const tokens = new TokenStore({ baseUrl: resolvedBase, timeoutMs: ceilings(bed).requestMs });
 
   // invariant templates mint fresh concrete cases for THIS run (RFC §4.4); the evidence log
   // carries each minted case in full — (template, seed, instance) regenerates it bit-for-bit
@@ -357,12 +381,12 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
   const width = Math.max(1, Math.min(Math.floor(parallel), executable.length || 1));
   if (width <= 1) {
     for (let i = 0; i < executable.length; i += 1) {
-      verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps });
+      verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps, tokens });
     }
   } else {
     // each case writes to its own buffer; buffers flush into the main log strictly in case
     // order, so the evidence file is byte-identical in shape to a serial run's
-    const buffers = executable.map(() => new EvidenceLog(null));
+    const buffers = executable.map(() => new EvidenceLog(null, secrets));
     const finished: boolean[] = new Array(executable.length).fill(false);
     let flushed = 0;
     let next = 0;
@@ -370,7 +394,7 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
       for (;;) {
         const i = next++;
         if (i >= executable.length) return;
-        verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence: buffers[i], steps });
+        verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence: buffers[i], steps, tokens });
         finished[i] = true;
         while (flushed < executable.length && finished[flushed]) evidence.adopt(buffers[flushed++]);
       }
@@ -388,6 +412,8 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
     (sum, e) => sum + (e.event === 'http' ? (((e.response as { elapsedMs?: number }) ?? {}).elapsedMs ?? 0) : 0),
     0,
   );
+  // login events land here, in alias order — same evidence shape serial or parallel
+  tokens.flush(evidence);
   evidence.append({ event: 'run-end', seed, counts, wallMs, httpMs });
   return { seed, verdicts, counts, wallMs, httpMs, events: evidence.events };
 }

@@ -25,6 +25,7 @@ function fmtExpected(expected: unknown): string {
 function fmtAuth(auth: any): string {
   if (auth === undefined) return 'anonymously';
   if (typeof auth === 'string') return `as ${auth.slice('$users.'.length)}`;
+  if ('token' in auth) return 'with an explicit token'; // amendment (F): the value never renders
   return `with credentials "${auth.username}" / "${auth.password}"`;
 }
 

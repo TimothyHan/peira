@@ -26,7 +26,8 @@ async function runOnce(ctx: CliContext, setup: RunSetup, extraFilter?: (file: st
   const { steps, errorCount: stepErrors } = ctx.stepsRegistry();
   const { templates, errorCount: templateErrors } = ctx.templatesRegistry(steps);
   const { results, ok } = validateCaseSet(loadedAll, { bedUsers: bed?.users, steps });
-  const errorCount = ctx.reportValidation(results, parseErrors) + stepErrors + templateErrors;
+  for (const msg of ctx.bedErrors) console.error(`ERROR ${msg}`);
+  const errorCount = ctx.reportValidation(results, parseErrors) + stepErrors + templateErrors + ctx.bedErrors.length;
   if (errorCount > 0 || !ok) {
     console.error('\nvalidation failed — nothing was run');
     return 1;

@@ -39,7 +39,10 @@ ${CASE_SCHEMA_TEXT}
   {"headers": {"content-type": {"$contains": "application/json"}}} or an exact
   {"headers": {"location": "/orders/{{orderId}}"}}. Only assert headers the intent names.
 - "auth" is "$users.<alias>" for a bed principal, a literal {"username","password"} object for
-  negative auth tests, or absent for anonymous.${principals.length > 0 ? ` Available principals: ${principals.map((p) => `$users.${p}`).join(', ')}.` : ''}
+  negative Basic-auth tests, a literal {"token": "<value>"} (optionally with "send") for
+  negative token tests, or absent for anonymous. Never invent principals.
+- "followRedirects": false makes a request see its own 3xx, so a redirect can be asserted
+  (expect.status 307 plus expect.headers.location). Default is to follow.${principals.length > 0 ? ` Available principals: ${principals.map((p) => `$users.${p}`).join(', ')}.` : ''}
 - "capture" maps an alias to a response path (e.g. {"requestId": "body.id"}); later steps
   reference it as "$requestId" (whole value) or "{{requestId}}" inside strings.
 - "expect.bodySchema" is a JSON-Schema subset (type, required, properties,

@@ -4,7 +4,8 @@
 
 import { REQUEST_TIMEOUT_MS } from './constants.js';
 import { InfraError } from './errors.js';
-import type { Principal } from './types.js';
+import type { AuthAttachment } from './auth.js';
+import type { BasicPrincipal } from './types.js';
 
 export { InfraError };
 
@@ -16,8 +17,14 @@ export interface HttpRequestOptions {
   query?: Record<string, unknown>;
   /** JSON-serializable; skipped for GET */
   body?: unknown;
-  /** basic auth; absent = anonymous */
-  auth?: Principal;
+  /**
+   * Resolved credential headers, or — for direct callers such as tests and steps' ctx.aut —
+   * a Basic principal, encoded here. Absent = anonymous. Both shapes stay supported: this
+   * function is exported, and RFC 0002's back-compat criterion covers its callers too.
+   */
+  auth?: AuthAttachment | BasicPrincipal;
+  /** default true (fetch's own default); false surfaces the 3xx itself — amendment (E) */
+  followRedirects?: boolean;
   timeoutMs?: number;
 }
 
@@ -29,14 +36,22 @@ export interface HttpResponse {
   elapsedMs: number;
 }
 
-export async function httpRequest({ baseUrl, method, route, query, body, auth, timeoutMs = REQUEST_TIMEOUT_MS }: HttpRequestOptions): Promise<HttpResponse> {
+/** The Basic scheme, in one place — auth.ts builds its attachment through this too. */
+export function basicHeaders({ username, password }: BasicPrincipal): Record<string, string> {
+  return { authorization: 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64') };
+}
+
+function authHeaders(auth: AuthAttachment | BasicPrincipal | undefined): Record<string, string> {
+  if (!auth) return {};
+  if ('headers' in auth) return auth.headers;
+  return basicHeaders(auth);
+}
+
+export async function httpRequest({ baseUrl, method, route, query, body, auth, followRedirects = true, timeoutMs = REQUEST_TIMEOUT_MS }: HttpRequestOptions): Promise<HttpResponse> {
   const url = new URL(route, baseUrl);
   for (const [k, v] of Object.entries(query ?? {})) url.searchParams.set(k, String(v));
 
-  const requestHeaders: Record<string, string> = {};
-  if (auth) {
-    requestHeaders.authorization = 'Basic ' + Buffer.from(`${auth.username}:${auth.password}`).toString('base64');
-  }
+  const requestHeaders: Record<string, string> = { ...authHeaders(auth) };
   const sendBody = method !== 'get' && body !== undefined;
   if (sendBody) requestHeaders['content-type'] = 'application/json';
 
@@ -49,6 +64,8 @@ export async function httpRequest({ baseUrl, method, route, query, body, auth, t
       method: method.toUpperCase(),
       headers: requestHeaders,
       body: sendBody ? JSON.stringify(body) : undefined,
+      // undici returns the real 3xx (status + headers) under 'manual'; no opaque response
+      redirect: followRedirects ? 'follow' : 'manual',
       signal: controller.signal,
     });
   } catch (cause) {

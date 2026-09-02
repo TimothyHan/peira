@@ -179,8 +179,55 @@
                   "type": "string"
                 }
               }
+            },
+            {
+              "type": "object",
+              "required": [
+                "token"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "token": {
+                  "type": "string"
+                },
+                "send": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "header",
+                        "format"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "header": {
+                          "type": "string"
+                        },
+                        "format": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "cookie"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "cookie": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             }
           ]
+        },
+        "followRedirects": {
+          "type": "boolean"
         }
       }
     },

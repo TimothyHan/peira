@@ -18,7 +18,7 @@ test('npm pack ships exactly bin + dist + schema + README + package.json', async
   for (const file of files) {
     assert.match(file, allowed, `unexpected file in tarball: ${file}`);
   }
-  for (const required of ['bin/peira.js', 'dist/runner.js', 'dist/runner.d.ts', 'dist/compile.js', 'dist/triage.js', 'dist/ledger.js', 'dist/cli/main.js', 'dist/index.js', 'dist/index.d.ts', 'schema/case.schema.json', 'schema/step.schema.json', 'schema/triage.schema.json', 'README.md', 'LICENSE']) {
+  for (const required of ['bin/peira.js', 'dist/runner.js', 'dist/runner.d.ts', 'dist/compile.js', 'dist/triage.js', 'dist/ledger.js', 'dist/cli/main.js', 'dist/index.js', 'dist/index.d.ts', 'schema/case.schema.json', 'schema/step.schema.json', 'schema/triage.schema.json', 'schema/bed.schema.json', 'README.md', 'LICENSE']) {
     assert.ok(files.includes(required), `missing from tarball: ${required}`);
   }
   assert.ok(!files.some((f) => f.startsWith('src/')), 'TypeScript sources do not ship — dist is the artifact');

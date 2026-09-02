@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadSteps, loadTemplates, type RegistryResult } from '../validate.js';
 import { red, yellow } from './color.js';
+import { validateBed } from '../validate-bed.js';
 import type { BedConfig, StepDef, Template } from '../types.js';
 
 export interface CliFlags {
@@ -38,6 +39,8 @@ export interface CliContext {
   positionals: string[];
   casesDir: string;
   bed: BedConfig | null;
+  /** RFC 0002 §3.6 — the bed gate; every command that loads a bed reports these */
+  bedErrors: string[];
   stepsRegistry(): { steps: Map<string, StepDef>; errorCount: number };
   templatesRegistry(steps: Map<string, StepDef>): { templates: Map<string, Template>; errorCount: number };
   reportValidation(results: Array<{ file: string; errors: string[]; warnings: string[] }>, parseErrors: string[]): number;
@@ -120,6 +123,7 @@ export function buildContext(argv: string[]): CliContext {
 
   const casesDir = positionals[0] ?? 'cases';
   const bed: BedConfig | null = flags.bed ? JSON.parse(readFileSync(flags.bed, 'utf8')) : null;
+  const bedErrors = bed ? validateBed(bed).map((m) => `${flags.bed}: ${m}`) : [];
 
   const reportRegistry = (results: RegistryResult[]): number => {
     let errorCount = 0;
@@ -138,6 +142,7 @@ export function buildContext(argv: string[]): CliContext {
     positionals,
     casesDir,
     bed,
+    bedErrors,
 
     // steps registry: explicit flag, else <casesDir>/steps, else ./steps, else empty
     stepsRegistry() {

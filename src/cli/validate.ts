@@ -10,7 +10,8 @@ export async function main(ctx: CliContext): Promise<number> {
   const { steps, errorCount: stepErrors } = ctx.stepsRegistry();
   const { errorCount: templateErrors } = ctx.templatesRegistry(steps);
   const { results } = validateCaseSet(loaded, { bedUsers: bed?.users, steps });
-  let errorCount = ctx.reportValidation(results, parseErrors) + stepErrors + templateErrors;
+  for (const msg of ctx.bedErrors) console.error(`ERROR ${msg}`);
+  let errorCount = ctx.reportValidation(results, parseErrors) + stepErrors + templateErrors + ctx.bedErrors.length;
 
   if (flags.intent) {
     const sections = loadIntentDir(flags.intent);

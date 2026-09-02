@@ -39,8 +39,19 @@ The bed config is the **only** place Peira learns anything about your service:
 
 Everything except `baseUrl` is optional:
 
-- **`users`** — named principals for basic auth; cases refer to them as `$users.alice` and
-  never contain credentials.
+- **`users`** — named principals; cases refer to them as `$users.alice` and never contain
+  credentials. A principal is Basic (`{"username", "password"}`), a **login** that returns a
+  token, or a **static** API key — the case says `$users.staff` either way:
+
+  ```json
+  "staff": { "login": { "route": "/api/login", "body": { "email": "staff@example.com", "password": "…" },
+                        "token": "body.token", "send": { "header": "Authorization", "format": "Bearer {{token}}" } } },
+  "svc":   { "token": "sk_…", "send": { "header": "X-API-Key", "format": "{{token}}" } }
+  ```
+
+  A login principal logs in once per run and every case under it carries the token; a login
+  that is refused makes those cases `error`, never `fail`. `send` can also be
+  `{"cookie": "session"}`. Tokens and passwords are scrubbed from the evidence log by value.
 - **`reset`** — one HTTP call made before each run, pointed at your service's own
   wipe-test-state endpoint. Solves run-to-run contamination (the "restart the app between
   runs" problem) and is what makes same-seed determinism a testable claim.

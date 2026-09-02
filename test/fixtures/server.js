@@ -21,6 +21,8 @@ import { PLANTS } from './plants.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_USERS = { user_1: 'pass_1', user_2: 'pass_2' };
+// RFC 0002: a fixed API key the fixture accepts as user_1 — the static-token principal's target
+const DEFAULT_STATIC_TOKENS = { 'fixture-static-token-0001': 'user_1' };
 
 // --- the fixture's "groovy" semantics: just enough to honor what the corpus asserts ---
 
@@ -91,7 +93,15 @@ function evaluate(code) {
 
 // --- server ---
 
-export function startFixture({ port = 0, users = DEFAULT_USERS, plant = null } = {}) {
+export function startFixture({ port = 0, users = DEFAULT_USERS, staticTokens = DEFAULT_STATIC_TOKENS, plant = null } = {}) {
+  // RFC 0002 login: POST /login mints a session token; the auth gate accepts it as Bearer, JWT,
+  // x-api-key, or a `session` cookie. Tokens live for the fixture's life (reset keeps them).
+  const sessions = new Map();
+  const mintToken = (username) => {
+    const token = 'tok_' + randomUUID().replace(/-/g, '');
+    sessions.set(token, username);
+    return token;
+  };
   const flags = typeof plant === 'string' ? (PLANTS[plant]?.flags ?? (() => { throw new Error(`unknown plant "${plant}"`); })()) : (plant ?? {});
   const jobs = new Map();
   let running = 0;
@@ -174,10 +184,35 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, plant = null } =
         return send(500, envelope(500, 'Internal Server Error'));
       }
 
-      // basic auth on everything else
+      // RFC 0002: the login exchange and the redirect route sit BEFORE the auth gate
+      if (url.pathname === '/login') {
+        if (req.method === 'GET') return send(200, { page: 'login', next: url.searchParams.get('next') });
+        let payload;
+        try {
+          payload = JSON.parse(raw || 'null');
+        } catch {
+          return send(400, envelope(400, 'Bad Request'));
+        }
+        const ok = payload !== null && typeof payload === 'object' && users[payload.username] !== undefined && users[payload.username] === payload.password;
+        if (!ok) return send(401, envelope(401, 'Unauthorized'));
+        return send(200, { token: mintToken(payload.username), user: payload.username });
+      }
+      if (req.method === 'GET' && url.pathname === '/redirect') {
+        // bypasses send(): a redirect has no JSON body
+        res.writeHead(307, { location: '/login?next=%2Fredirect' });
+        return res.end();
+      }
+
+      // auth on everything else: Basic, or a token by header / api key / cookie
       const header = req.headers.authorization ?? '';
       let username = null;
-      if (header.startsWith('Basic ')) {
+      let presentedToken = null;
+      const bearer = /^(?:Bearer|JWT) (.+)$/.exec(header);
+      const cookieToken = /(?:^|;\s*)session=([^;]+)/.exec(req.headers.cookie ?? '')?.[1];
+      presentedToken = bearer?.[1] ?? req.headers['x-api-key'] ?? cookieToken ?? null;
+      if (presentedToken !== null) {
+        username = sessions.get(presentedToken) ?? staticTokens[presentedToken] ?? null;
+      } else if (header.startsWith('Basic ')) {
         const [user, ...rest] = Buffer.from(header.slice(6), 'base64').toString().split(':');
         if (users[user] !== undefined && (users[user] === rest.join(':') || flags.authAcceptAny)) username = user;
         if (username === null && flags.anonAccept && user === '') username = Object.keys(users)[0];
@@ -186,6 +221,11 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, plant = null } =
       }
       if (username === null) {
         return send(401, envelope(401, 'Unauthorized'));
+      }
+
+      // RFC 0002: who am I, and echo the token back — the value-based scrubbing target
+      if (req.method === 'GET' && url.pathname === '/whoami') {
+        return send(200, { user: username, ...(presentedToken !== null ? { token: presentedToken, echoed: `seen ${presentedToken} here` } : {}) });
       }
 
       if (req.method === 'POST' && url.pathname === '/groovy/submit') {
