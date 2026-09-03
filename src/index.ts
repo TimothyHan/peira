@@ -41,3 +41,7 @@ export { validateBed, validatePrincipal } from './validate-bed.js';
 export { SecretRegistry } from './evidence.js';
 export { planStamp, applyStamp } from './stamp.js';
 export type { StampPlan, StampChange } from './stamp.js';
+export { renderReference } from './reference.js';
+export { MATCHERS } from './expect.js';
+export { COMMAND_NAMES } from './cli/commands.js';
+export type { UnstampedCase } from './stale.js';

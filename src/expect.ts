@@ -1,15 +1,21 @@
 // Assertion semantics (RFC 0001 §4.3): subset match with Jest toMatchObject parity —
 // objects match as subsets at every level, arrays match index-wise with equal length,
-// primitives match strictly. Matcher vocabulary (closed, amendments A and D):
-//   {"$any": "string" | "number" | "boolean"}  — type assertion
-//   {"$contains": "<substring>"}                — string containing the substring
-//   {"$absent": true}                           — the key (or header) must NOT exist (amendment G)
-//   null                                        — present and exactly null
+// primitives match strictly. The matcher vocabulary is closed; MATCHERS below is its one
+// authoritative list — the reference, the compiler contract, and the drift test read it.
 
 import { validateSchema } from './schema.js';
 import type { Diff } from './types.js';
 
 export const ANY_TYPES = ['string', 'number', 'boolean'];
+
+/** The closed matcher vocabulary. Amendment letters are RFC 0001 §4.3's. */
+export const MATCHERS = [
+  { key: '$any', form: '{"$any": "string" | "number" | "boolean"}', meaning: 'present, of that type', amendment: 'A' },
+  { key: '$contains', form: '{"$contains": "s"} or {"$contains": ["s", ...]}', meaning: 'a string containing the substring — or every listed substring (all of). The oracle for text bodies and headers', amendment: 'D, H' },
+  { key: '$notContains', form: '{"$notContains": "s"} or {"$notContains": ["s", ...]}', meaning: 'a string containing none of the listed substrings — "must not leak X"', amendment: 'I' },
+  { key: '$absent', form: '{"$absent": true}', meaning: 'the key (or header) must not exist. Distinct from null; refused as the whole body', amendment: 'G' },
+  { key: 'null', form: 'null', meaning: 'present and exactly null', amendment: 'A' },
+] as const;
 
 function isSoleKeyMatcher(expected: unknown, key: string): boolean {
   return (
@@ -25,9 +31,15 @@ function isAnyMatcher(expected: unknown): expected is { $any: string } {
   return isSoleKeyMatcher(expected, '$any');
 }
 
-function isContainsMatcher(expected: unknown): expected is { $contains: string } {
+function isContainsMatcher(expected: unknown): expected is { $contains: string | string[] } {
   return isSoleKeyMatcher(expected, '$contains');
 }
+
+function isNotContainsMatcher(expected: unknown): expected is { $notContains: string | string[] } {
+  return isSoleKeyMatcher(expected, '$notContains');
+}
+
+const asList = (v: string | string[]): string[] => (Array.isArray(v) ? v : [v]);
 
 /** Subset matching can only say what IS there; this is the one way to say what must not be. */
 export function isAbsentMatcher(expected: unknown): expected is { $absent: true } {
@@ -46,11 +58,22 @@ export function matchSubset(expected: unknown, actual: unknown, path = 'body'): 
     return [];
   }
   if (isContainsMatcher(expected)) {
-    const want = expected.$contains;
-    if (typeof actual !== 'string' || !actual.includes(want)) {
-      return [{ path, expected: `<contains ${JSON.stringify(want)}>`, actual, reason: `expected a string containing ${JSON.stringify(want)}` }];
+    // all-of: one diff per missing substring, so the evidence names each (amendment H)
+    const wants = asList(expected.$contains);
+    if (typeof actual !== 'string') {
+      return [{ path, expected: `<contains ${JSON.stringify(expected.$contains)}>`, actual, reason: `expected a string containing ${JSON.stringify(wants[0])}` }];
     }
-    return [];
+    return wants
+      .filter((w) => !actual.includes(w))
+      .map((w) => ({ path, expected: `<contains ${JSON.stringify(w)}>`, actual, reason: `expected a string containing ${JSON.stringify(w)}` }));
+  }
+  if (isNotContainsMatcher(expected)) {
+    // none-of: one diff per substring that IS present (amendment I)
+    const bans = asList(expected.$notContains);
+    if (typeof actual !== 'string') return []; // nothing to leak
+    return bans
+      .filter((b) => actual.includes(b))
+      .map((b) => ({ path, expected: `<not contains ${JSON.stringify(b)}>`, actual, reason: `expected a string not containing ${JSON.stringify(b)}, but it does` }));
   }
   if (expected === null) {
     return actual === null ? [] : [{ path, expected: null, actual, reason: 'expected null' }];

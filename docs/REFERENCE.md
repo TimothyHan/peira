@@ -15,7 +15,7 @@ A case is one JSON file. `id`, `from`, and `test` are required.
 | `id` | `CASE-<kebab-slug>` — unique across the set (duplicates are refused) |
 | `title` | optional human title, usually the acceptance-criterion text |
 | `notes` | optional free text |
-| `from` | lineage: `{intent, hash}` — which intent section, at which content hash, produced this case. Stamped mechanically at compile time, never trusted from the model. A hash that no longer matches the live section flags the case **stale**. Minted template instances add `{template, seed, instance}`. For a case written by hand, `peira stamp cases --intent intent` fills or refreshes the hash without a model — `from.intent` is yours, `from.hash` never is — and `--check` makes stale a CI gate that exits 1. |
+| `from` | lineage: `{intent, hash}` — which intent section, at which content hash, produced this case. Stamped mechanically at compile time, never trusted from the model. A hash that no longer matches the live section flags the case **stale**. Minted template instances add `{template, seed, instance}`. For a case written by hand, leave `hash` out: `validate` warns **unstamped** (not an error), and `peira stamp cases --intent intent` fills it without a model — `from.intent` is yours, `from.hash` never is. `--check` makes unstamped or stale a CI gate that exits 1. |
 | `setup` | optional array of steps (request steps or registry-step invocations), run in order |
 | `test` | exactly one request step — the claim under test lives here |
 | `teardown` | optional `{"drain": true}` — after the verdict, the runner polls every id this case captured (via the bed's `drain` probe, under the credentials that captured it) until it reaches a terminal state |
@@ -35,6 +35,7 @@ A case is one JSON file. `id`, `from`, and `test` are required.
 
 | key | meaning |
 |---|---|
+| `request` | the HTTP request this step issues — its keys follow |
 | `request.method` | `get \| post \| put \| delete \| patch` |
 | `request.route` | must start with `/`. Inside a route use `{{alias}}` — a bare `$alias` is only the *whole* value; buried in a longer string it is literal text, and `validate` warns |
 | `request.query` | optional object → query string |
@@ -53,8 +54,8 @@ arrays match index-wise with equal length, primitives match strictly (no coercio
 | key | asserts |
 |---|---|
 | `status` | exact status code |
-| `headers` | response headers by name, **case-insensitive** (RFC 9110). Each value is a literal string or a matcher — anything else is refused statically. A missing header is a named diff. |
-| `body` | subset match against the JSON body |
+| `headers` | response headers by name, **case-insensitive** (RFC 9110). Each value is a literal string or a matcher — anything else is refused statically. A missing header is a named diff. Repeated headers arrive joined with `", "` — `Set-Cookie` included (every cookie is collected) — so `$contains` matches any one value |
+| `body` | subset match against the body. JSON bodies are parsed; **any other body — HTML, text, empty — is a string**, and `$contains` / `$notContains` are the oracle for it (`bodySchema` with `"type": "string"` applies too) |
 | `bodySchema` | a JSON-Schema subset the whole body must satisfy: `type`, `required`, `properties`, `additionalProperties`, `enum`, `items`, `pattern`, `anyOf` — for "every element has shape X" claims |
 
 ### The matcher vocabulary (closed)
@@ -62,7 +63,8 @@ arrays match index-wise with equal length, primitives match strictly (no coercio
 | matcher | meaning |
 |---|---|
 | `{"$any": "string" \| "number" \| "boolean"}` | present, of that type |
-| `{"$contains": "<substring>"}` | a string containing the substring (the `content-type` matcher) |
+| `{"$contains": "<substring>"}` or `{"$contains": ["a", "b"]}` | a string containing the substring — or **every** listed substring (all of; each missing one is its own diff). The `content-type` matcher, and the oracle for text bodies |
+| `{"$notContains": "<substring>"}` or `{"$notContains": ["a", "b"]}` | a string containing **none** of them — "must not leak X". The open-redirect guard: `"location": {"$notContains": "evil.example"}`; the positive form alone is fooled by `https://evil.example/?back=/hub` |
 | `{"$absent": true}` | the key (or header) must **not** exist. Distinct from `null`; refused as the whole body. The motivating shape is an access map that omits denied permissions — `GET /api/access` as an editor → `{"tenants": {"create": {"$absent": true}}}`: assert the omissions, not the grants. It is a different question from "can this user read what they should?", and in the field it found access-control bugs a suite of 140 positive checks had never asked about |
 | `null` | present and exactly `null` |
 
@@ -95,7 +97,7 @@ The only place Peira learns about your service. Everything except `baseUrl` is o
 | `reset` | `{url, method?}` — one wipe-state call before each run |
 | `drain` | `{route, idParam, statusPath, terminal[]}` — how to ask the service whether an async job settled; powers `teardown.drain` |
 | `timeouts` | latency-envelope **ceilings**: `{requestMs?, pollUntilMs?, drainMs?, stepMs?}`. Hitting one is an `error`, never a `fail`. The poll interval is pinned (determinism, invariant 8). |
-| `service` | how `peira run` starts the app under test: `{command, cwd?, readyMs?, reuse?}`. `reuse` (default true) uses an already-answering `baseUrl` as-is and never kills it; a server Peira started is killed — whole process group — when the run ends. Only `run` manages processes. |
+| `service` | how `peira run` starts the app under test: `{command, cwd?, readyMs?, reuse?}`. The command runs in a shell, so data prep chains in: `"./reset.sh && npm start"` — the answer when the service has no wipe endpoint for `reset`. `reuse` (default true) uses an already-answering `baseUrl` as-is and never kills it; a server Peira started is killed — whole process group — when the run ends. Only `run` manages processes. |
 
 ### Principals
 
@@ -172,6 +174,33 @@ unrelated response body. Values under 16 characters are not registered.
 
 This file is the integration surface: triage reads it, `evidence` records it into the
 ledger, `render` turns it into reports, and your dashboards may parse it too.
+
+## CLI
+
+Twelve commands; `peira help` prints every flag, and **`peira reference`** prints this entire
+vocabulary for the installed version — what an agent reads instead of `dist/`.
+
+| command | does |
+|---|---|
+| `init` | scaffold `bed.json`, an example intent, `AGENTS.md` (+ `CLAUDE.md` import), `cases/`; `--ci` adds a zero-LLM workflow. Never overwrites |
+| `validate` | the gate: schema plus the static checks; `--intent` adds stale / unstamped / missing-section reporting |
+| `run` | the deterministic runner: `--seed`, `--evidence`, `--only`, `--grep`, `--parallel`, `--junit`, `--shard`, `--watch` |
+| `compile` | intent → cases through your Claude session; `--section` for targeted recompile; `--dry-run` to see what would compile and why not |
+| `stats` | DSL coverage and recurring fallback shapes; `--openapi` adds endpoint coverage |
+| `triage` | a failed run's evidence → bug \| drift \| flake proposals, never applied |
+| `evidence` | record an adjudicated run into the trust ledger (+ portable JSONL export) |
+| `trust` | the ledger standings per intent section |
+| `render` | one-way documentation: Given/When/Then markdown or a visual HTML run report |
+| `adopt` | restructure an arbitrary document into tagged intent, with a content-preservation report |
+| `stamp` | bind hand-written cases to intent without a model; `--check` is the CI gate for lineage |
+| `reference` | the complete vocabulary of the installed version, as markdown |
+
+## Environment
+
+| variable | meaning |
+|---|---|
+| `PEIRA_CLAUDE_BIN` | the `claude` binary the model-facing commands spawn (default: `claude` on PATH). Point it at a canned-output script to exercise compile/triage/adopt with no model — the tool's own suite does |
+| `NO_COLOR` | disables ANSI colour in CLI output |
 
 ## Programmatic use
 

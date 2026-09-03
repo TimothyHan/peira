@@ -6,10 +6,12 @@
   "type": "object",
   "properties": {
     "baseUrl": {
-      "type": "string"
+      "type": "string",
+      "description": "Where the service answers. --base-url overrides per invocation."
     },
     "users": {
-      "type": "object"
+      "type": "object",
+      "description": "Named principals — cases say $users.<alias>, never credentials. Each alias is exactly one shape: Basic {username, password}; login {login: {method?, route, body?, token, send}} — logs in once per run on first use (once even under --parallel), captures the token at a path like body.token, attaches it per send; or static {token, send} for API keys. send is {header, format containing {{token}}} or {cookie}. A refused login makes every case on that principal an error, never a fail. Tokens and passwords are scrubbed from the evidence log by value."
     },
     "reset": {
       "type": "object",
@@ -19,12 +21,15 @@
       "additionalProperties": false,
       "properties": {
         "url": {
-          "type": "string"
+          "type": "string",
+          "description": "Route of the service's own wipe-state endpoint."
         },
         "method": {
-          "type": "string"
+          "type": "string",
+          "description": "HTTP method for the reset call; default post."
         }
-      }
+      },
+      "description": "One wipe-state call before each run, pointed at the service's own endpoint. When the service has no such endpoint, chain a script in service.command instead (\"./reset.sh && npm start\")."
     },
     "drain": {
       "type": "object",
@@ -37,39 +42,49 @@
       "additionalProperties": false,
       "properties": {
         "route": {
-          "type": "string"
+          "type": "string",
+          "description": "Route that reports an async job's state."
         },
         "idParam": {
-          "type": "string"
+          "type": "string",
+          "description": "Query parameter that carries the job id."
         },
         "statusPath": {
-          "type": "string"
+          "type": "string",
+          "description": "Dotted response path where the state lives, e.g. body.status."
         },
         "terminal": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "description": "States that mean the job has settled."
         }
-      }
+      },
+      "description": "How to ask the service whether an async job settled: which route, which id parameter, where the state lives in the response, which states are terminal. Powers teardown.drain."
     },
     "timeouts": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "requestMs": {
-          "type": "number"
+          "type": "number",
+          "description": "Per-request ceiling."
         },
         "pollUntilMs": {
-          "type": "number"
+          "type": "number",
+          "description": "Default pollUntil ceiling."
         },
         "drainMs": {
-          "type": "number"
+          "type": "number",
+          "description": "Ceiling for teardown.drain."
         },
         "stepMs": {
-          "type": "number"
+          "type": "number",
+          "description": "Ceiling for a registry step's child process."
         }
-      }
+      },
+      "description": "Latency-envelope ceilings for a slow environment: {requestMs?, pollUntilMs?, drainMs?, stepMs?}. Hitting one is an error, never a fail. The poll interval stays pinned (determinism)."
     },
     "service": {
       "type": "object",
@@ -79,18 +94,23 @@
       "additionalProperties": false,
       "properties": {
         "command": {
-          "type": "string"
+          "type": "string",
+          "description": "Shell command that starts the service. Runs in service.cwd."
         },
         "cwd": {
-          "type": "string"
+          "type": "string",
+          "description": "Working directory for the command."
         },
         "readyMs": {
-          "type": "number"
+          "type": "number",
+          "description": "How long to wait for baseUrl to answer (any HTTP response counts) before giving up."
         },
         "reuse": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Default true: an already-answering baseUrl is used as-is. false refuses to test an instance Peira did not start (CI)."
         }
-      }
+      },
+      "description": "How `peira run` starts the app under test: {command, cwd?, readyMs?, reuse?}. The command runs in a shell, so `prep && server` works. reuse (default true) adopts an already-answering baseUrl and never kills it; a server Peira started is killed — whole process group — when the run ends. Only run manages processes."
     }
   },
   "$defs": {
@@ -105,12 +125,15 @@
           "additionalProperties": false,
           "properties": {
             "header": {
-              "type": "string"
+              "type": "string",
+              "description": "Header name, e.g. Authorization or X-API-Key."
             },
             "format": {
-              "type": "string"
+              "type": "string",
+              "description": "Header value template; must contain {{token}}, e.g. \"Bearer {{token}}\"."
             }
-          }
+          },
+          "description": "Header form."
         },
         {
           "type": "object",
@@ -120,11 +143,14 @@
           "additionalProperties": false,
           "properties": {
             "cookie": {
-              "type": "string"
+              "type": "string",
+              "description": "Cookie name."
             }
-          }
+          },
+          "description": "Cookie form: sends Cookie: <name>=<token>."
         }
-      ]
+      ],
+      "description": "How a token is attached to every request as this principal: exactly one of the two forms."
     },
     "basicPrincipal": {
       "type": "object",
@@ -135,12 +161,15 @@
       "additionalProperties": false,
       "properties": {
         "username": {
-          "type": "string"
+          "type": "string",
+          "description": "Basic-auth username."
         },
         "password": {
-          "type": "string"
+          "type": "string",
+          "description": "Basic-auth password. Never appears in cases or in the evidence log."
         }
-      }
+      },
+      "description": "HTTP Basic: sends Authorization: Basic base64(username:password)."
     },
     "loginPrincipal": {
       "type": "object",
@@ -165,22 +194,30 @@
                 "put",
                 "delete",
                 "patch"
-              ]
+              ],
+              "description": "Lowercase HTTP method; default post."
             },
             "route": {
               "type": "string",
-              "pattern": "^/"
+              "pattern": "^/",
+              "description": "Login route, starting with /."
             },
-            "body": {},
+            "body": {
+              "description": "JSON body of the login request (the credentials). May not reference unique.* — a login belongs to a principal, not a case."
+            },
             "token": {
-              "type": "string"
+              "type": "string",
+              "description": "Capture path into the login response, e.g. body.token or headers.x-session. The value is scrubbed from the evidence log."
             },
             "send": {
-              "$ref": "#/$defs/send"
+              "$ref": "#/$defs/send",
+              "description": "How to attach the captured token to every request."
             }
-          }
+          },
+          "description": "The login request and what to do with its response."
         }
-      }
+      },
+      "description": "Logs in once per run on first use (once even under --parallel), captures the token, attaches it per send. A refused login makes every case on this principal an error, never a fail."
     },
     "staticPrincipal": {
       "type": "object",
@@ -191,12 +228,15 @@
       "additionalProperties": false,
       "properties": {
         "token": {
-          "type": "string"
+          "type": "string",
+          "description": "The token value."
         },
         "send": {
-          "$ref": "#/$defs/send"
+          "$ref": "#/$defs/send",
+          "description": "How to attach it."
         }
-      }
+      },
+      "description": "A fixed token with no login step — API keys. The value is scrubbed from the evidence log."
     }
   }
 }

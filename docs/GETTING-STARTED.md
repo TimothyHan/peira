@@ -234,18 +234,40 @@ or drop it into your agent's instruction file yourself:
 ```markdown
 # API testing with Peira
 
-- Tests are compiled from intent/*.md. NEVER edit cases/*.json by hand —
-  edit the intent section, then recompile exactly that section:
+Peira compiles a markdown test plan (intent/*.md) into JSON cases and runs them with
+no model in the loop. Everything the tool can say is in one place — read it before you
+write a case, and again after the tool is upgraded:
+
+    peira reference
+
+## The loop
+
+- Intent is the source of truth. To change a test, edit its intent section, then
+  recompile exactly that section:
     peira compile intent --out cases --bed bed.json --section <id>
-- Run and keep the evidence (note the printed seed for exact replays):
+- A case written by hand is fine; bind it to its section without a model:
+    peira stamp cases --intent intent        (--check in CI: exit 1 if anything is unstamped or stale)
+- Run and keep the evidence (the printed seed replays any failure exactly):
     peira run cases --bed bed.json --evidence run.jsonl
-- On failures, triage and PRESENT the proposals — adjudication belongs
-  to the human, never to you:
+- On failures, triage and PRESENT the proposals — adjudication belongs to the
+  human, never to you:
     peira triage --evidence run.jsonl --intent intent
-- When the human wants to see results, render the visual report:
+- When the human wants to see results:
     peira render cases --intent intent --evidence run.jsonl --format html --out report.html
 - After adjudication, record the run so intent sections earn trust:
     peira evidence --evidence run.jsonl --triage run-triage.json --intent intent
+
+## Rules the gate enforces (validate says so, with the fix in the message)
+
+- Never edit a compiled case to make a run green; fix the service or propose an intent change.
+- from.intent is yours; from.hash never is — compile stamps it, `peira stamp` fills it.
+- Inside a string use {{alias}}; a bare $alias is only the whole value.
+- No wall-clock sleeps. Eventual consistency is pollUntil; cleanup is teardown {"drain": true}.
+- Matchers stand alone: $any, $contains (string or all-of list), $notContains, $absent, null.
+  Negative claims are where the bugs are — assert what a user must NOT see or hold.
+- Cases never contain credentials: auth is "$users.<alias>"; the bed defines the alias.
+- A red run is pass | fail | error and the kinds are never conflated: error means the
+  environment failed before the claim was judged — say so, do not report it as a bug.
 ```
 
 The guardrails hold regardless of who types: the schema gate refuses malformed output rather

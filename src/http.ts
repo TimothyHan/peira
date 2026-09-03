@@ -82,9 +82,18 @@ export async function httpRequest({ baseUrl, method, route, query, body, auth, f
   } catch {
     // non-JSON body stays as text
   }
+  // Repeated headers arrive joined with ", " — except Set-Cookie, which the Fetch spec keeps
+  // as separate entries, so Object.fromEntries kept only the LAST cookie (RFC 0004 O5).
+  // getSetCookie() returns them all; join the same way so $contains matches any one of them.
+  const headers: Record<string, string> = Object.fromEntries(res.headers.entries());
+  const cookies: string[] =
+    typeof (res.headers as { getSetCookie?: () => string[] }).getSetCookie === 'function'
+      ? (res.headers as unknown as { getSetCookie: () => string[] }).getSetCookie()
+      : []; // Node < 18.14: fall back to whatever entries() gave us
+  if (cookies.length > 0) headers['set-cookie'] = cookies.join(', ');
   return {
     status: res.status,
-    headers: Object.fromEntries(res.headers.entries()),
+    headers,
     body: parsed,
     requestHeaders,
     elapsedMs: Math.round(performance.now() - started),

@@ -38,14 +38,18 @@ export function walkMatchers(expected: unknown, path: string, errors: string[]):
       }
       return;
     }
-    if ('$contains' in obj) {
-      const keys = Object.keys(obj);
-      if (keys.length !== 1) {
-        errors.push(`${path}: a $contains matcher must stand alone, found extra keys ${JSON.stringify(keys.filter((k) => k !== '$contains'))}`);
-      } else if (typeof obj.$contains !== 'string') {
-        errors.push(`${path}: $contains takes a string, got ${JSON.stringify(obj.$contains)}`);
+    for (const key of ['$contains', '$notContains'] as const) {
+      if (key in obj) {
+        const keys = Object.keys(obj);
+        const v = obj[key];
+        const okList = Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'string');
+        if (keys.length !== 1) {
+          errors.push(`${path}: a ${key} matcher must stand alone, found extra keys ${JSON.stringify(keys.filter((k) => k !== key))}`);
+        } else if (typeof v !== 'string' && !okList) {
+          errors.push(`${path}: ${key} takes a string or a non-empty array of strings, got ${JSON.stringify(v)}`);
+        }
+        return;
       }
-      return;
     }
     if ('$absent' in obj) {
       const keys = Object.keys(obj);
@@ -186,9 +190,9 @@ export function checkStep(
       // headers are strings on the wire: a value is a literal string or a matcher, nothing else
       for (const [name, value] of Object.entries((expectDef.headers ?? {}) as Record<string, unknown>)) {
         const isMatcher = value !== null && typeof value === 'object' && !Array.isArray(value)
-          && Object.keys(value).length === 1 && ('$any' in value || '$contains' in value || '$absent' in value);
+          && Object.keys(value).length === 1 && ('$any' in value || '$contains' in value || '$notContains' in value || '$absent' in value);
         if (typeof value !== 'string' && !isMatcher) {
-          errors.push(`${where}.headers.${name}: a header value is a literal string or a $any/$contains/$absent matcher, got ${JSON.stringify(value)}`);
+          errors.push(`${where}.headers.${name}: a header value is a literal string or a $any/$contains/$notContains/$absent matcher, got ${JSON.stringify(value)}`);
         }
       }
     }

@@ -64,6 +64,9 @@ export const USAGE = `usage: peira <command>
   trust    shows the ledger standings — per intent section: applied, contradicted, runs
   render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--triage <proposals.json>] [--format md|html] [--out <path>]
   adopt    <messy.md> --out <intent/name.md>
+  reference
+           print the installed version's complete vocabulary — case and bed schemas, matchers, CLI — as
+           markdown. What an agent (or you) reads instead of dist/.
   stamp    [casesDir] --intent <dir> [--check]
            bind hand-written cases to intent without a model: fills or refreshes from.hash from the live section
            text (from.intent is yours; from.hash never is). --check exits 1 if any case would change — the

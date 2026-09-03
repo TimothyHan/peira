@@ -18,21 +18,31 @@ export interface MissingIntentCase {
   intent: string;
 }
 
+/** A case with from.intent but no from.hash yet — hand-written, awaiting `peira stamp`. */
+export interface UnstampedCase {
+  file: string;
+  caseId: string;
+  intent: string;
+}
+
 export function checkStale(
   loaded: LoadedCase[],
   sections: Array<{ id: string; hash: string }>,
-): { stale: StaleCase[]; missing: MissingIntentCase[] } {
+): { stale: StaleCase[]; missing: MissingIntentCase[]; unstamped: UnstampedCase[] } {
   const live = new Map(sections.map((s) => [s.id, s.hash]));
   const stale: StaleCase[] = [];
   const missing: MissingIntentCase[] = [];
+  const unstamped: UnstampedCase[] = [];
   for (const { file, caseObj } of loaded) {
     const from = caseObj?.from;
     if (!from?.intent) continue;
     if (!live.has(from.intent)) {
       missing.push({ file, caseId: caseObj.id, intent: from.intent });
+    } else if (!from.hash) {
+      unstamped.push({ file, caseId: caseObj.id, intent: from.intent }); // RFC 0004 O3 — not stale: never stamped
     } else if (live.get(from.intent) !== from.hash) {
       stale.push({ file, caseId: caseObj.id, intent: from.intent, caseHash: from.hash, liveHash: live.get(from.intent)! });
     }
   }
-  return { stale, missing };
+  return { stale, missing, unstamped };
 }

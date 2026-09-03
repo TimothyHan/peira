@@ -38,6 +38,12 @@ export function validateCase(caseObjIn: unknown, { bedUsers, steps }: CaseValida
   ((caseObj.setup ?? []) as StepBlock[]).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps, null, warnings));
   checkStep(caseObj.test as StepBlock, 'test', available, bedUsers, errors, steps, null, warnings);
 
+  // RFC 0004 O3: a hand-written case may exist before it is stamped. Its lineage is
+  // incomplete, not wrong — say what to do about it instead of refusing it.
+  if (caseObj.from && !caseObj.from.hash) {
+    warnings.push(`unstamped: from.hash is missing — run \`peira stamp <casesDir> --intent <dir>\` to bind this case to its intent section (${caseObj.from.intent})`);
+  }
+
   const t = caseObj.test as StepBlock;
   const asserts = (t.expect && Object.keys(t.expect).length > 0) || t.pollUntil;
   if (!asserts) {

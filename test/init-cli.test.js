@@ -52,7 +52,8 @@ test('an existing AGENTS.md is kept and the block is printed for appending', asy
   const { stdout } = await init(dir);
   assert.equal(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), '# my rules\n');
   assert.match(stdout, /append this block/);
-  assert.match(stdout, /NEVER edit cases\/\*\.json by hand/);
+  assert.match(stdout, /peira reference/); // the block's first job: point the agent at the vocabulary
+  assert.match(stdout, /from\.hash never is/);
 });
 
 test('an existing CLAUDE.md is kept with a hint to add the @AGENTS.md import', async () => {

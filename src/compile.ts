@@ -11,6 +11,7 @@ import { validateCase, validateStep, validateTemplate } from './validate.js';
 import { extractJsonObject } from './model-output.js';
 import type { IntentSection } from './intent.js';
 import type { Case, Principal, StepDef, Template } from './types.js';
+import { MATCHERS } from './expect.js';
 
 const CASE_SCHEMA_TEXT = readFileSync(
   fileURLToPath(new URL('../schema/case.schema.json', import.meta.url)),
@@ -33,9 +34,9 @@ ${CASE_SCHEMA_TEXT}
 - A step is one request plus optional capture / pollUntil / expect.
 - "expect" uses SUBSET matching (Jest toMatchObject semantics): objects match as subsets at
   every level, arrays index-wise with equal length, primitives strictly. Matchers allowed in
-  expected bodies and header values: {"$any": "string" | "number" | "boolean"},
-  {"$contains": "<substring>"} (string containing the substring), {"$absent": true} (the key or
-  header must NOT exist — for APIs that express denial by omission), and literal null (present and null).
+  expected bodies and header values — the closed vocabulary, one per line:
+${MATCHERS.map((m) => `    ${m.form} — ${m.meaning}`).join('\n')}
+  Non-JSON bodies arrive as a string; $contains / $notContains are the oracle for them.
 - Inside a longer string, reference a capture as {{alias}}; a bare $alias is only the whole value.
 - "expect.headers" asserts response headers by name (case-insensitive), e.g.
   {"headers": {"content-type": {"$contains": "application/json"}}} or an exact

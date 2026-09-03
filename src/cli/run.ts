@@ -94,9 +94,12 @@ async function runOnce(ctx: CliContext, setup: RunSetup, extraFilter?: (file: st
 function reportStale(ctx: CliContext): void {
   if (!ctx.flags.intent) return;
   const { loaded } = loadCases(ctx.casesDir);
-  const { stale, missing } = checkStale(loaded, loadIntentDir(ctx.flags.intent));
+  const { stale, missing, unstamped } = checkStale(loaded, loadIntentDir(ctx.flags.intent));
   for (const s of stale) {
     console.error(yellow(`stale ${s.file}: ${s.caseId} — intent "${s.intent}" is now ${s.liveHash}, case was compiled from ${s.caseHash}`));
+  }
+  for (const u of unstamped) {
+    console.error(yellow(`unstamped ${u.file}: ${u.caseId} — no from.hash yet; peira stamp ${ctx.casesDir} --intent ${ctx.flags.intent}`));
   }
   for (const m of missing) {
     console.error(yellow(`stale ${m.file}: ${m.caseId} — intent section "${m.intent}" no longer exists`));
