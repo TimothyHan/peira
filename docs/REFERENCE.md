@@ -63,7 +63,7 @@ arrays match index-wise with equal length, primitives match strictly (no coercio
 |---|---|
 | `{"$any": "string" \| "number" \| "boolean"}` | present, of that type |
 | `{"$contains": "<substring>"}` | a string containing the substring (the `content-type` matcher) |
-| `{"$absent": true}` | the key (or header) must **not** exist — for APIs that express denial by omission. Distinct from `null`; refused as the whole body |
+| `{"$absent": true}` | the key (or header) must **not** exist. Distinct from `null`; refused as the whole body. The motivating shape is an access map that omits denied permissions — `GET /api/access` as an editor → `{"tenants": {"create": {"$absent": true}}}`: assert the omissions, not the grants. It is a different question from "can this user read what they should?", and in the field it found access-control bugs a suite of 140 positive checks had never asked about |
 | `null` | present and exactly `null` |
 
 Matchers stand alone (no extra keys) and work in `expect.body`, `pollUntil.until`, and
