@@ -35,8 +35,8 @@ export function validateCase(caseObjIn: unknown, { bedUsers, steps }: CaseValida
   const caseObj = caseObjIn as Case;
 
   const available = new Set<string>();
-  ((caseObj.setup ?? []) as StepBlock[]).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps));
-  checkStep(caseObj.test as StepBlock, 'test', available, bedUsers, errors, steps);
+  ((caseObj.setup ?? []) as StepBlock[]).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps, null, warnings));
+  checkStep(caseObj.test as StepBlock, 'test', available, bedUsers, errors, steps, null, warnings);
 
   const t = caseObj.test as StepBlock;
   const asserts = (t.expect && Object.keys(t.expect).length > 0) || t.pollUntil;

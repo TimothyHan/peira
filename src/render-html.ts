@@ -16,6 +16,7 @@ function fmtExpected(expected: unknown): string {
     if (node !== null && typeof node === 'object' && !Array.isArray(node)) {
       if ('$any' in node && Object.keys(node).length === 1) return `<any ${node.$any}>`;
       if ('$contains' in node && Object.keys(node).length === 1) return `<contains ${JSON.stringify(node.$contains)}>`;
+      if ('$absent' in node && Object.keys(node).length === 1) return '<absent>';
       return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, walk(v)]));
     }
     if (Array.isArray(node)) return node.map(walk);

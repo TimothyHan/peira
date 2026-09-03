@@ -1,6 +1,6 @@
 {
   "name": "peira",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Peira (πεῖρα) — an intent compiler for functional API testing. Under active development.",
   "license": "MIT",
   "type": "module",

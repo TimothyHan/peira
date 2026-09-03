@@ -14,6 +14,7 @@ const COMMANDS: Record<string, () => Promise<{ main: (ctx: ReturnType<typeof bui
   trust: () => import('./trust.js'),
   render: () => import('./render.js'),
   adopt: () => import('./adopt.js'),
+  stamp: () => import('./stamp.js'),
 };
 
 const ctx = buildContext(process.argv);

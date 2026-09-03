@@ -15,7 +15,7 @@ A case is one JSON file. `id`, `from`, and `test` are required.
 | `id` | `CASE-<kebab-slug>` — unique across the set (duplicates are refused) |
 | `title` | optional human title, usually the acceptance-criterion text |
 | `notes` | optional free text |
-| `from` | lineage: `{intent, hash}` — which intent section, at which content hash, produced this case. Stamped mechanically at compile time, never trusted from the model. A hash that no longer matches the live section flags the case **stale**. Minted template instances add `{template, seed, instance}`. |
+| `from` | lineage: `{intent, hash}` — which intent section, at which content hash, produced this case. Stamped mechanically at compile time, never trusted from the model. A hash that no longer matches the live section flags the case **stale**. Minted template instances add `{template, seed, instance}`. For a case written by hand, `peira stamp cases --intent intent` fills or refreshes the hash without a model — `from.intent` is yours, `from.hash` never is — and `--check` makes stale a CI gate that exits 1. |
 | `setup` | optional array of steps (request steps or registry-step invocations), run in order |
 | `test` | exactly one request step — the claim under test lives here |
 | `teardown` | optional `{"drain": true}` — after the verdict, the runner polls every id this case captured (via the bed's `drain` probe, under the credentials that captured it) until it reaches a terminal state |
@@ -36,7 +36,7 @@ A case is one JSON file. `id`, `from`, and `test` are required.
 | key | meaning |
 |---|---|
 | `request.method` | `get \| post \| put \| delete \| patch` |
-| `request.route` | must start with `/`; may carry `$alias` / `{{token}}` references |
+| `request.route` | must start with `/`. Inside a route use `{{alias}}` — a bare `$alias` is only the *whole* value; buried in a longer string it is literal text, and `validate` warns |
 | `request.query` | optional object → query string |
 | `request.body` | optional JSON body (skipped for `get`) |
 | `request.auth` | four forms: `"$users.<alias>"` (a bed principal — Basic, login, or static token; see the bed), a literal `{"username","password"}` (negative Basic tests), a literal `{"token": "<value>"}` with optional `send` (negative token tests; defaults to `Authorization: Bearer`), or absent (anonymous) |
@@ -63,6 +63,7 @@ arrays match index-wise with equal length, primitives match strictly (no coercio
 |---|---|
 | `{"$any": "string" \| "number" \| "boolean"}` | present, of that type |
 | `{"$contains": "<substring>"}` | a string containing the substring (the `content-type` matcher) |
+| `{"$absent": true}` | the key (or header) must **not** exist — for APIs that express denial by omission. Distinct from `null`; refused as the whole body |
 | `null` | present and exactly `null` |
 
 Matchers stand alone (no extra keys) and work in `expect.body`, `pollUntil.until`, and
@@ -171,6 +172,14 @@ unrelated response body. Values under 16 characters are not registered.
 
 This file is the integration surface: triage reads it, `evidence` records it into the
 ledger, `render` turns it into reports, and your dashboards may parse it too.
+
+## Programmatic use
+
+The package root exports the deterministic half of the tool, so scripts and other tools need
+never import from `dist/`: `loadIntentDir`, `hashSection`, `checkStale`, `planStamp`,
+`applyStamp`, `validateCase`, `validateBed`, `runCases`, `matchExpect`, and the types. The
+model-facing functions (`compile`, `triage`, `adopt`) are exported too and take an `llm`
+transport, so they are testable with a fake — the tool's own suite does exactly that.
 
 ## The escape hatch — steps (procedure only, never assertions)
 

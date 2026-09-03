@@ -3,6 +3,7 @@
 // primitives match strictly. Matcher vocabulary (closed, amendments A and D):
 //   {"$any": "string" | "number" | "boolean"}  — type assertion
 //   {"$contains": "<substring>"}                — string containing the substring
+//   {"$absent": true}                           — the key (or header) must NOT exist (amendment G)
 //   null                                        — present and exactly null
 
 import { validateSchema } from './schema.js';
@@ -26,6 +27,11 @@ function isAnyMatcher(expected: unknown): expected is { $any: string } {
 
 function isContainsMatcher(expected: unknown): expected is { $contains: string } {
   return isSoleKeyMatcher(expected, '$contains');
+}
+
+/** Subset matching can only say what IS there; this is the one way to say what must not be. */
+export function isAbsentMatcher(expected: unknown): expected is { $absent: true } {
+  return isSoleKeyMatcher(expected, '$absent');
 }
 
 /**
@@ -64,6 +70,10 @@ export function matchSubset(expected: unknown, actual: unknown, path = 'body'): 
     }
     const actualObj = actual as Record<string, unknown>;
     return Object.entries(expected).flatMap(([key, e]) => {
+      if (isAbsentMatcher(e)) {
+        // distinct from null: null asserts presence with a null value; $absent asserts no key at all
+        return key in actualObj ? [{ path: `${path}.${key}`, expected: '<absent>', actual: actualObj[key], reason: 'expected absent, but present' }] : [];
+      }
       if (!(key in actualObj)) {
         return [{ path: `${path}.${key}`, expected: e, actual: undefined, reason: 'missing property' }];
       }
@@ -99,7 +109,9 @@ export function matchExpect(expectDef: ExpectDef, response: { status: number; he
     for (const [k, v] of Object.entries(response.headers ?? {})) actualHeaders[k.toLowerCase()] = v;
     for (const [name, expected] of Object.entries(expectDef.headers)) {
       const lower = name.toLowerCase();
-      if (!(lower in actualHeaders)) {
+      if (isAbsentMatcher(expected)) {
+        if (lower in actualHeaders) diffs.push({ path: `headers.${lower}`, expected: '<absent>', actual: actualHeaders[lower], reason: 'expected absent, but present' });
+      } else if (!(lower in actualHeaders)) {
         diffs.push({ path: `headers.${lower}`, expected, actual: undefined, reason: 'missing header' });
       } else {
         diffs.push(...matchSubset(expected, actualHeaders[lower], `headers.${lower}`));

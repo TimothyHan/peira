@@ -47,6 +47,15 @@ export function walkMatchers(expected: unknown, path: string, errors: string[]):
       }
       return;
     }
+    if ('$absent' in obj) {
+      const keys = Object.keys(obj);
+      if (keys.length !== 1) {
+        errors.push(`${path}: an $absent matcher must stand alone, found extra keys ${JSON.stringify(keys.filter((k) => k !== '$absent'))}`);
+      } else if (obj.$absent !== true) {
+        errors.push(`${path}: $absent takes exactly true, got ${JSON.stringify(obj.$absent)}`);
+      }
+      return;
+    }
     for (const [k, v] of Object.entries(obj)) walkMatchers(v, `${path}.${k}`, errors);
   } else if (Array.isArray(expected)) {
     expected.forEach((v, i) => walkMatchers(v, `${path}[${i}]`, errors));
@@ -91,6 +100,25 @@ export function checkTokens(
   }
 }
 
+/**
+ * A `$name` inside a longer string resolves to the literal text — only "{{name}}" splices. The
+ * first thing a new user writes is "/api/news/$theirs", and nothing else would say a word
+ * (RFC 0003 P4a). A warning, not an error: "$" can start ordinary text too.
+ */
+const EMBEDDED_REF = /\$([A-Za-z_][A-Za-z0-9_.]*)/g;
+export function warnEmbeddedRefs(value: unknown, where: string, warnings: string[]): void {
+  if (typeof value === 'string') {
+    if (/^\$[A-Za-z_][A-Za-z0-9_.]*$/.test(value)) return; // whole-value form: fine
+    for (const m of value.matchAll(EMBEDDED_REF)) {
+      warnings.push(`${where}: "${value}" contains $${m[1]} inside a longer string — that resolves to the literal text; inside a string use {{${m[1]}}}`);
+    }
+  } else if (Array.isArray(value)) {
+    value.forEach((v, i) => warnEmbeddedRefs(v, `${where}[${i}]`, warnings));
+  } else if (value !== null && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) warnEmbeddedRefs(v, `${where}.${k}`, warnings);
+  }
+}
+
 export function checkStep(
   step: StepBlock,
   label: string,
@@ -99,6 +127,7 @@ export function checkStep(
   errors: string[],
   steps?: Map<string, StepDef> | null,
   holes?: Record<string, HoleDecl> | null,
+  warnings?: string[],
 ): void {
   if ('step' in step) {
     // invocation: procedure only — the schema already refused expect/capture by shape
@@ -120,6 +149,11 @@ export function checkStep(
   checkTokens(req.route, `${label}.request.route`, available, errors, holes);
   if (req.query !== undefined) checkTokens(req.query, `${label}.request.query`, available, errors, holes);
   if (req.body !== undefined) checkTokens(req.body, `${label}.request.body`, available, errors, holes);
+  if (warnings) {
+    warnEmbeddedRefs(req.route, `${label}.request.route`, warnings);
+    if (req.query !== undefined) warnEmbeddedRefs(req.query, `${label}.request.query`, warnings);
+    if (req.body !== undefined) warnEmbeddedRefs(req.body, `${label}.request.body`, warnings);
+  }
 
   if (typeof req.auth === 'string' && req.auth.startsWith('$holes.')) {
     const holeName = req.auth.slice('$holes.'.length);
@@ -139,6 +173,10 @@ export function checkStep(
     if (!expectDef) continue;
     const where = `${label}.${block === 'expect' ? 'expect' : 'pollUntil.until'}`;
     if ('body' in expectDef) {
+      const b = expectDef.body;
+      if (b !== null && typeof b === 'object' && !Array.isArray(b) && '$absent' in b) {
+        errors.push(`${where}.body: $absent applies to a key or a header, not the whole body — there is nothing for the body to be absent from`);
+      }
       checkTokens(expectDef.body, `${where}.body`, available, errors, holes);
       walkMatchers(expectDef.body, `${where}.body`, errors);
     }
@@ -148,9 +186,9 @@ export function checkStep(
       // headers are strings on the wire: a value is a literal string or a matcher, nothing else
       for (const [name, value] of Object.entries((expectDef.headers ?? {}) as Record<string, unknown>)) {
         const isMatcher = value !== null && typeof value === 'object' && !Array.isArray(value)
-          && Object.keys(value).length === 1 && ('$any' in value || '$contains' in value);
+          && Object.keys(value).length === 1 && ('$any' in value || '$contains' in value || '$absent' in value);
         if (typeof value !== 'string' && !isMatcher) {
-          errors.push(`${where}.headers.${name}: a header value is a literal string or a $any/$contains matcher, got ${JSON.stringify(value)}`);
+          errors.push(`${where}.headers.${name}: a header value is a literal string or a $any/$contains/$absent matcher, got ${JSON.stringify(value)}`);
         }
       }
     }

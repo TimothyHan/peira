@@ -279,6 +279,14 @@ from, rather than data being stored or truly random.
 - **The honest caveat (RFC invariant 8):** the seed pins Peira's choices, not the world's.
   Same-seed determinism also needs same service state — that is what the bed's `reset` hook
   is for.
+- **Same seed, same unreset service: the run collides with itself.** A case that *creates*
+  state (`"title": "peira {{unique.title}}"`) derives the same title from the same seed, so its
+  second run against the same database finds the slug already taken and reports a `fail` that
+  reads like a regression. Cases that create state need one of: a `reset`, a fresh seed per
+  run, or a service that tolerates duplicates. Many services have no wipe endpoint and a shared
+  staging environment never will — there, vary the seed locally too (`--seed $(date +%s)`), the
+  same advice CI already follows with the run id. The printed seed still replays any failure
+  exactly; what it cannot do is un-create yesterday's data.
 
 One line to remember: **cases say what must be true, the seed says which concrete data to try
 this time, and the same seed always tries the same data.**

@@ -131,6 +131,8 @@ Fundamentals gap-closure (2026-08-30), amendment (D): `expect` gains a `headers`
 
 Token principals ([RFC 0002](RFC-0002-token-principals.md), 2026-09-02), amendments (E) and (F): `request.followRedirects` (boolean, default true) — with `false` the runner passes `redirect: 'manual'` and the case sees its own 3xx, so a redirect is assertable through amendment (D)'s `expect.headers.location`; and `auth` gains a fourth form, a literal `{"token": "<value>"}` with an optional `send`, defaulting to `Authorization: Bearer` — the negative test for a token API, which the Basic literal cannot express. The bed change that motivates them (a principal may declare `login` or a static `token`) is environment description under the invariant-7 carve-out's reasoning and touches no case vocabulary.
 
+First field report ([RFC 0003](RFC-0003-field-report-0.3.0.md), 2026-09-02), amendment (G): `{"$absent": true}` — the key or header must not exist. Distinct from `null` (present, null-valued); standing alone like every matcher; refused as the whole body. Subset matching could only state presence, and an API that expresses denial by omission forced the negative claim into a weaker positive one.
+
 ### 4.4 The compiler
 
 `peira compile` sends intent sections to an LLM (authoring time, never runtime) and accepts output only through the schema gate. Every compile writes a manifest: which intent sections, at which hashes, produced which cases; which compilations were refused and why; which fell back to escape hatches. A case whose `from.hash` no longer matches the live intent text is **stale** and flagged — regenerable artifacts are never hand-patched into divergence.
@@ -154,7 +156,7 @@ Every emitted step is logged with a normalized shape signature (what it reads, w
 - **DSL coverage** — fraction of the suite that is fully declarative (the suite's health headline).
 - **Recurring fallback shapes** — "14 steps match shape `poll-with-backoff`" is the compiler telling you which primitive the DSL is missing, with evidence.
 
-Promotion is a human edit to the schema (a new primitive), after which `peira compile --migrate` re-expresses matching steps declaratively and the coverage metric rises. Demotion never happens — primitives are added from demonstrated demand, so the DSL only ratchets toward covering reality. This is Akela's promotion gate pointed at a grammar instead of a knowledge base, and it is the mechanism that keeps the DSL both minimal and sufficient — the failure mode that killed every committee-grown test DSL.
+Promotion is a human edit to the schema (a new primitive), after which `peira compile --migrate` re-expresses matching steps declaratively and the coverage metric rises. **Known blind spot (RFC 0003):** telemetry sees only what can escape. A claim that cannot be expressed *or* escaped — an absence, since steps cannot assert — never appears as a fallback; the author restates it as a weaker positive and moves on. Amendment (G) arrived as prose in a field report, not as a `stats` row. Some demand only arrives that way; the mechanism is necessary, not sufficient. Demotion never happens — primitives are added from demonstrated demand, so the DSL only ratchets toward covering reality. This is Akela's promotion gate pointed at a grammar instead of a knowledge base, and it is the mechanism that keeps the DSL both minimal and sufficient — the failure mode that killed every committee-grown test DSL.
 
 ### 4.7 Drift triage
 

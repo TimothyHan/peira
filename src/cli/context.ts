@@ -11,6 +11,8 @@ import type { BedConfig, StepDef, Template } from '../types.js';
 
 export interface CliFlags {
   bed?: string;
+  /** stamp: report what would change, write nothing, exit 1 on any change */
+  check?: boolean;
   'base-url'?: string;
   seed?: string;
   evidence?: string;
@@ -62,6 +64,10 @@ export const USAGE = `usage: peira <command>
   trust    shows the ledger standings — per intent section: applied, contradicted, runs
   render   [casesDir] [--intent <dir>] [--evidence <run.jsonl>] [--triage <proposals.json>] [--format md|html] [--out <path>]
   adopt    <messy.md> --out <intent/name.md>
+  stamp    [casesDir] --intent <dir> [--check]
+           bind hand-written cases to intent without a model: fills or refreshes from.hash from the live section
+           text (from.intent is yours; from.hash never is). --check exits 1 if any case would change — the
+           zero-LLM CI gate for lineage.
 
 flags:
   --bed <path>        bed config JSON: {baseUrl, users?, reset?, drain?, timeouts?, service?} — the only place Peira learns
@@ -118,6 +124,7 @@ export function buildContext(argv: string[]): CliContext {
       shard: { type: 'string' },
       ci: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
+      check: { type: 'boolean' },
     },
   });
 

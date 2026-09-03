@@ -34,7 +34,9 @@ ${CASE_SCHEMA_TEXT}
 - "expect" uses SUBSET matching (Jest toMatchObject semantics): objects match as subsets at
   every level, arrays index-wise with equal length, primitives strictly. Matchers allowed in
   expected bodies and header values: {"$any": "string" | "number" | "boolean"},
-  {"$contains": "<substring>"} (string containing the substring), and literal null (present and null).
+  {"$contains": "<substring>"} (string containing the substring), {"$absent": true} (the key or
+  header must NOT exist — for APIs that express denial by omission), and literal null (present and null).
+- Inside a longer string, reference a capture as {{alias}}; a bare $alias is only the whole value.
 - "expect.headers" asserts response headers by name (case-insensitive), e.g.
   {"headers": {"content-type": {"$contains": "application/json"}}} or an exact
   {"headers": {"location": "/orders/{{orderId}}"}}. Only assert headers the intent names.

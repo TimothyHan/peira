@@ -39,3 +39,5 @@ export type { Endpoint, CoverageReport } from './coverage.js';
 export type { SchemaError, JsonSchema } from './schema.js';
 export { validateBed, validatePrincipal } from './validate-bed.js';
 export { SecretRegistry } from './evidence.js';
+export { planStamp, applyStamp } from './stamp.js';
+export type { StampPlan, StampChange } from './stamp.js';
