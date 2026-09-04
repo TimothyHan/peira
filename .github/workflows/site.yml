@@ -26,12 +26,26 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: TimothyHan/peira-site
+      # The tool itself, beside the site: the metrics strip's "tests on the tool" number is
+      # produced by actually running the suite, never typed. A red suite refuses to publish.
+      - uses: actions/checkout@v4
+        with:
+          path: tool
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+      - name: count the tool's tests from a real run
+        working-directory: tool
+        run: |
+          npm ci
+          out=$(npm test 2>&1) || { echo "$out" | tail -20; echo "the tool's suite is red — refusing to publish a count"; exit 1; }
+          n=$(echo "$out" | grep -oE '^# tests [0-9]+' | grep -oE '[0-9]+')
+          test -n "$n" || { echo "could not find '# tests N' in the output"; exit 1; }
+          echo "PEIRA_TEST_COUNT=$n" >> "$GITHUB_ENV"
+          echo "tests on the tool: $n"
       - run: npm ci
-      - run: npm run build
+      - run: npm run build   # prebuild reads PEIRA_TEST_COUNT
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
