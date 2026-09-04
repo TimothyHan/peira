@@ -5,7 +5,12 @@
 # The Node matrix covers what package.json's `engines` field claims (>=18) rather than only
 # the version we happen to develop on: a floor nobody tests is a guess, not a contract.
 name: test
-on: [push, pull_request]
+# Branch pushes and PRs only: a release tag points at a SHA the branch push already tested, and
+# the second matrix it used to trigger doubled the runner load for no information.
+on:
+  push:
+    branches: [main]
+  pull_request:
 jobs:
   test:
     strategy:

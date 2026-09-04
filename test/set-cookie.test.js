@@ -20,6 +20,8 @@ test('every Set-Cookie is kept; $contains matches any one of them; other repeate
     assert.equal(res.headers['x-multi'], 'one, two');
     assert.deepEqual(matchExpect({ headers: { 'set-cookie': { $contains: ['payload-token=;', 'a=1'] } } }, res), []);
   } finally {
-    srv.close();
+    // node 18: destroy the client's idle keep-alive socket, or close() holds the process ~5 s
+    srv.closeAllConnections?.();
+    await new Promise((r) => srv.close(r));
   }
 });

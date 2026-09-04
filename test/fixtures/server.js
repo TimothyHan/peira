@@ -328,7 +328,11 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, staticTokens = D
         port: actualPort,
         url: `http://127.0.0.1:${actualPort}`,
         reset,
-        close: () => new Promise((r) => server.close(r)),
+        // Node 18's server.close() waits for idle keep-alive sockets to time out (5 s — the
+        // client's fetch keeps the connection open); Node >= 19 closes idle connections itself.
+        // Destroying them explicitly makes close() immediate on every version: this alone was
+        // ~100 tests x 5 s on the node-18 matrix cells, past the 4-minute cap.
+        close: () => new Promise((r) => { server.close(r); server.closeAllConnections?.(); }),
       });
     });
   });

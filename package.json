@@ -24,7 +24,8 @@
     "test": "node scripts/run-tests.mjs",
     "bench": "npm run build && node bench/bench.js",
     "eval:compile": "npm run build && node eval/compile-eval.js",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",

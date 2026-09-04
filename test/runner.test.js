@@ -152,6 +152,7 @@ test('bed.timeouts: the declared latency envelope overrides pinned ceilings', ()
     const t0 = performance.now();
     const v1 = await run(makeCase(), impatient, `http://127.0.0.1:${blackhole.address().port}`);
     blackhole.closeAllConnections();
+    blackhole.closeAllConnections?.(); // the aborted client's socket may still be open on node 18
     await new Promise((r) => blackhole.close(r));
     assert.equal(v1.verdict, 'error');
     assert.ok(performance.now() - t0 < 3000, 'must not wait out the pinned 5s default');
