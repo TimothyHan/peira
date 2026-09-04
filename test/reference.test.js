@@ -79,6 +79,11 @@ test('the AGENTS.md scaffold points at the reference and no longer forbids hand-
   assert.match(AGENT_INSTRUCTIONS, /\{\{alias\}\}/);
 });
 
+test('the Responses section carries the server-rendered-React caveat (RFC 0005 P2)', () => {
+  assert.match(reference, /<!-- -->/);
+  assert.match(reference, /from one expression/);
+});
+
 test('peira reference runs and prints the installed version', async () => {
   const { stdout } = await promisify(execFile)(process.execPath, [join(root, 'bin', 'peira.js'), 'reference']);
   assert.match(stdout, /^# Peira reference — v\d+\.\d+\.\d+/);

@@ -25,7 +25,7 @@ async function runOnce(ctx: CliContext, setup: RunSetup, extraFilter?: (file: st
   const { loaded: loadedAll, parseErrors } = loadCases(casesDir);
   const { steps, errorCount: stepErrors } = ctx.stepsRegistry();
   const { templates, errorCount: templateErrors } = ctx.templatesRegistry(steps);
-  const { results, ok } = validateCaseSet(loadedAll, { bedUsers: bed?.users, steps });
+  const { results, ok } = validateCaseSet(loadedAll, { bedUsers: bed?.users, steps, baseDir: casesDir });
   for (const msg of ctx.bedErrors) console.error(`ERROR ${msg}`);
   const errorCount = ctx.reportValidation(results, parseErrors) + stepErrors + templateErrors + ctx.bedErrors.length;
   if (errorCount > 0 || !ok) {
@@ -71,6 +71,7 @@ async function runOnce(ctx: CliContext, setup: RunSetup, extraFilter?: (file: st
     filter,
     parallel: setup.parallel,
     shard: setup.shard,
+    baseDir: casesDir,
   });
   const { verdicts, counts } = result;
 

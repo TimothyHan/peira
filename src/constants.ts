@@ -8,6 +8,7 @@ export const POLL_UNTIL_TIMEOUT_MS = 10000; // 10x the longest fixture job
 export const DRAIN_TIMEOUT_MS = 15000;      // queue depth 2 x long job x safety margin
 export const REQUEST_TIMEOUT_MS = 5000;     // socket-level timeout; hitting it is an `error`, not a `fail`
 export const REDACT_HASH_PREFIX_LEN = 8;    // [REDACTED:<sha256-prefix>] length in evidence JSONL
+export const MULTIPART_FIXTURE_MAX_BYTES = 256 * 1024; // a case's upload fixture stays small and reviewable; validate enforces it (RFC 0005)
 export const SECRET_MIN_LEN = 16;           // shorter values are not registered for scrubbing: a 1-char 'secret' would mangle unrelated data (RFC 0002 §8)
 export const STEP_TIMEOUT_MS = 10000;       // per-invocation ceiling for the child-process step harness
 export const SERVICE_READY_TIMEOUT_MS = 30000; // default wait for bed.service to answer (override: service.readyMs)

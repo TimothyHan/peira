@@ -163,7 +163,7 @@ The in-repo fixture has no login or token endpoint. It gains: `POST /login` retu
 
 - **Token refresh or expiry inside a run.** The origin API returns `exp`; a `login.expires` capture path is a natural follow-up once a real run is long enough to need it.
 - **OAuth authorization-code flows, PKCE, device flows.** Anything requiring a browser or a second party. A client-credentials grant is just a login request and is already covered.
-- **Multipart bodies.** The origin request agrees; a JSON-only runner is a reasonable boundary.
+- ~~**Multipart bodies.** The origin request agrees; a JSON-only runner is a reasonable boundary.~~ **Superseded by [RFC 0005](RFC-0005-field-report-0.5.0.md) (2026-09-03):** `request.multipart`, amendment (J).
 - **Per-case login as a step.** Rejected above; the principal is the unit.
 
 ## 7. Implementation sequence

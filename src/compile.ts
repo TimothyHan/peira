@@ -44,6 +44,9 @@ ${MATCHERS.map((m) => `    ${m.form} — ${m.meaning}`).join('\n')}
 - "auth" is "$users.<alias>" for a bed principal, a literal {"username","password"} object for
   negative Basic-auth tests, a literal {"token": "<value>"} (optionally with "send") for
   negative token tests, or absent for anonymous. Never invent principals.
+- "request.multipart" {fields?, files?: [{field, path, mimetype?}]} sends multipart/form-data
+  instead of "body" (never both). Files are fixture paths relative to the cases directory — name
+  a small fixture file, never inline bytes; "mimetype" is explicit so a wrong-type refusal is a case.
 - "followRedirects": false makes a request see its own 3xx, so a redirect can be asserted
   (expect.status 307 plus expect.headers.location). Default is to follow.${principals.length > 0 ? ` Available principals: ${principals.map((p) => `$users.${p}`).join(', ')}.` : ''}
 - "capture" maps an alias to a response path (e.g. {"requestId": "body.id"}); later steps

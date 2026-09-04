@@ -41,6 +41,7 @@ A case is one JSON file. `id`, `from`, and `test` are required.
 | `request.query` | optional object → query string |
 | `request.body` | optional JSON body (skipped for `get`) |
 | `request.auth` | four forms: `"$users.<alias>"` (a bed principal — Basic, login, or static token; see the bed), a literal `{"username","password"}` (negative Basic tests), a literal `{"token": "<value>"}` with optional `send` (negative token tests; defaults to `Authorization: Bearer`), or absent (anonymous) |
+| `request.multipart` | `{fields?, files?: [{field, path, mimetype?, filename?}]}` — send multipart/form-data instead of a JSON body (never both). `fields` values are strings, or objects serialised to JSON as a convenience for APIs that accept a JSON part. `files[].path` is relative to the **cases directory**: an ordinary file in the repo, never inline bytes; `validate` fails if it is missing or over 256 KB. `mimetype` is explicit so a wrong-type refusal is a case. The evidence log records names and sizes, never content |
 | `request.followRedirects` | default `true`. With `false` the step sees its own 3xx — `expect.status: 307` and `expect.headers.location` become assertable, and `capture: {"next": "headers.location"}` becomes meaningful |
 | `capture` | `alias → response path`. Paths are dotted and rooted at `status`, `body`, or `headers` (e.g. `body.id`, `headers.location`). A path missing from the response fails the case, naming the path. |
 | `pollUntil` | re-issues this step's request until `until` (an expect block) matches, at a pinned 100 ms interval, up to `timeoutMs` (default 10 s, or the bed's `timeouts.pollUntilMs`). Non-convergence is a **fail**. The declarative replacement for wall-clock sleeps, which are refused. |
@@ -55,7 +56,7 @@ arrays match index-wise with equal length, primitives match strictly (no coercio
 |---|---|
 | `status` | exact status code |
 | `headers` | response headers by name, **case-insensitive** (RFC 9110). Each value is a literal string or a matcher — anything else is refused statically. A missing header is a named diff. Repeated headers arrive joined with `", "` — `Set-Cookie` included (every cookie is collected) — so `$contains` matches any one value |
-| `body` | subset match against the body. JSON bodies are parsed; **any other body — HTML, text, empty — is a string**, and `$contains` / `$notContains` are the oracle for it (`bodySchema` with `"type": "string"` applies too) |
+| `body` | subset match against the body. JSON bodies are parsed; **any other body — HTML, text, empty — is a string**, and `$contains` / `$notContains` are the oracle for it (`bodySchema` with `"type": "string"` applies too). Server-rendered React (Next.js and others) separates adjacent text expressions with `<!-- -->`, so `총 {n}건` arrives as `총 <!-- -->2<!-- -->건` and the visible text is not a substring of the response. Assert on text that comes from one expression, or on a stable attribute value — not on visible text that spans an interpolation. |
 | `bodySchema` | a JSON-Schema subset the whole body must satisfy: `type`, `required`, `properties`, `additionalProperties`, `enum`, `items`, `pattern`, `anyOf` — for "every element has shape X" claims |
 
 ### The matcher vocabulary (closed)
@@ -186,7 +187,7 @@ vocabulary for the installed version — what an agent reads instead of `dist/`.
 | `validate` | the gate: schema plus the static checks; `--intent` adds stale / unstamped / missing-section reporting |
 | `run` | the deterministic runner: `--seed`, `--evidence`, `--only`, `--grep`, `--parallel`, `--junit`, `--shard`, `--watch` |
 | `compile` | intent → cases through your Claude session; `--section` for targeted recompile; `--dry-run` to see what would compile and why not |
-| `stats` | DSL coverage and recurring fallback shapes; `--openapi` adds endpoint coverage |
+| `stats` | DSL coverage, recurring fallback shapes, and the **refusal balance** — per intent: cases, positive (expected status < 400), negative (≥ 400), negative-oracle (`$absent` / `$notContains`), with a line naming intents that test only the happy path; `--openapi` adds endpoint coverage |
 | `triage` | a failed run's evidence → bug \| drift \| flake proposals, never applied |
 | `evidence` | record an adjudicated run into the trust ledger (+ portable JSONL export) |
 | `trust` | the ledger standings per intent section |

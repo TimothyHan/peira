@@ -7,6 +7,12 @@ import { InfraError } from './errors.js';
 import type { AuthAttachment } from './auth.js';
 import type { BasicPrincipal } from './types.js';
 
+/** A resolved multipart body: fields already interpolated, files already read (RFC 0005). */
+export interface MultipartBody {
+  fields: Record<string, string | object>;
+  files: Array<{ field: string; filename: string; mimetype: string; data: Buffer }>;
+}
+
 export { InfraError };
 
 export interface HttpRequestOptions {
@@ -15,8 +21,10 @@ export interface HttpRequestOptions {
   method: string;
   route: string;
   query?: Record<string, unknown>;
-  /** JSON-serializable; skipped for GET */
+  /** JSON-serializable; skipped for GET. Mutually exclusive with multipart. */
   body?: unknown;
+  /** multipart/form-data instead of a JSON body; fetch sets the boundary */
+  multipart?: MultipartBody;
   /**
    * Resolved credential headers, or — for direct callers such as tests and steps' ctx.aut —
    * a Basic principal, encoded here. Absent = anonymous. Both shapes stay supported: this
@@ -47,13 +55,22 @@ function authHeaders(auth: AuthAttachment | BasicPrincipal | undefined): Record<
   return basicHeaders(auth);
 }
 
-export async function httpRequest({ baseUrl, method, route, query, body, auth, followRedirects = true, timeoutMs = REQUEST_TIMEOUT_MS }: HttpRequestOptions): Promise<HttpResponse> {
+export async function httpRequest({ baseUrl, method, route, query, body, multipart, auth, followRedirects = true, timeoutMs = REQUEST_TIMEOUT_MS }: HttpRequestOptions): Promise<HttpResponse> {
   const url = new URL(route, baseUrl);
   for (const [k, v] of Object.entries(query ?? {})) url.searchParams.set(k, String(v));
 
   const requestHeaders: Record<string, string> = { ...authHeaders(auth) };
-  const sendBody = method !== 'get' && body !== undefined;
+  const sendBody = method !== 'get' && body !== undefined && !multipart;
   if (sendBody) requestHeaders['content-type'] = 'application/json';
+  let form: FormData | undefined;
+  if (multipart && method !== 'get') {
+    // no content-type header of our own: fetch writes multipart/form-data with the boundary
+    form = new FormData();
+    for (const [name, value] of Object.entries(multipart.fields)) {
+      form.append(name, typeof value === 'string' ? value : JSON.stringify(value));
+    }
+    for (const f of multipart.files) form.append(f.field, new Blob([f.data], { type: f.mimetype }), f.filename);
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -63,7 +80,7 @@ export async function httpRequest({ baseUrl, method, route, query, body, auth, f
     res = await fetch(url, {
       method: method.toUpperCase(),
       headers: requestHeaders,
-      body: sendBody ? JSON.stringify(body) : undefined,
+      body: form ?? (sendBody ? JSON.stringify(body) : undefined),
       // undici returns the real 3xx (status + headers) under 'manual'; no opaque response
       redirect: followRedirects ? 'follow' : 'manual',
       signal: controller.signal,

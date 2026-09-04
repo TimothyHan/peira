@@ -182,7 +182,7 @@
           "description": "Optional object → query string. Values may be \"$alias\" or contain {{alias}}."
         },
         "body": {
-          "description": "Optional JSON body, sent as application/json; skipped for get. Any value may reference captures or {{unique.<key>}}."
+          "description": "Optional JSON body, sent as application/json; skipped for get. Any value may reference captures or {{unique.<key>}}. Mutually exclusive with multipart."
         },
         "auth": {
           "anyOf": [
@@ -266,6 +266,47 @@
         "followRedirects": {
           "type": "boolean",
           "description": "Default true. false makes the step see its own 3xx, so expect.status 307 and expect.headers.location are assertable and capture: {\"next\": \"headers.location\"} is meaningful."
+        },
+        "multipart": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Send multipart/form-data instead of a JSON body (amendment J). Mutually exclusive with body; at least one of fields / files. Files are fixture paths relative to the cases directory — ordinary files in the repo, capped at 256 KB, never inline bytes. The evidence log records field names and per-file {field, filename, mimetype, bytes}, never content.",
+          "properties": {
+            "fields": {
+              "type": "object",
+              "description": "Form fields by name. A string is sent as-is; an object is serialised to JSON — a convenience for APIs that accept a JSON part (e.g. a `_json` field), stated as exactly that. Values interpolate like any request value."
+            },
+            "files": {
+              "type": "array",
+              "description": "Files to attach.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "field",
+                  "path"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "description": "The form field name the file is sent under."
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "Fixture path relative to the cases directory. validate fails if it is missing or over 256 KB."
+                  },
+                  "mimetype": {
+                    "type": "string",
+                    "description": "Explicit content type for the part — so a case can send a file under the WRONG type, which a MIME-refusal promise needs. Default application/octet-stream."
+                  },
+                  "filename": {
+                    "type": "string",
+                    "description": "Filename sent in the part; defaults to the path's basename."
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

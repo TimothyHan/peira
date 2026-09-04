@@ -8,6 +8,8 @@ import type { Case, LoadedCase, Principal, StepDef } from './types.js';
 export interface CaseValidationOptions {
   bedUsers?: Record<string, Principal> | null;
   steps?: Map<string, StepDef> | null;
+  /** the cases directory; multipart fixture paths are checked against it when given (RFC 0005) */
+  baseDir?: string | null;
 }
 
 export interface CaseValidationResult {
@@ -20,7 +22,7 @@ export interface CaseValidationResult {
 /**
  * Validate one case. Returns { errors, warnings }; valid iff errors is empty.
  */
-export function validateCase(caseObjIn: unknown, { bedUsers, steps }: CaseValidationOptions = {}): { errors: string[]; warnings: string[] } {
+export function validateCase(caseObjIn: unknown, { bedUsers, steps, baseDir }: CaseValidationOptions = {}): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -35,8 +37,8 @@ export function validateCase(caseObjIn: unknown, { bedUsers, steps }: CaseValida
   const caseObj = caseObjIn as Case;
 
   const available = new Set<string>();
-  ((caseObj.setup ?? []) as StepBlock[]).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps, null, warnings));
-  checkStep(caseObj.test as StepBlock, 'test', available, bedUsers, errors, steps, null, warnings);
+  ((caseObj.setup ?? []) as StepBlock[]).forEach((step, i) => checkStep(step, `setup[${i}]`, available, bedUsers, errors, steps, null, warnings, baseDir));
+  checkStep(caseObj.test as StepBlock, 'test', available, bedUsers, errors, steps, null, warnings, baseDir);
 
   // RFC 0004 O3: a hand-written case may exist before it is stamped. Its lineage is
   // incomplete, not wrong — say what to do about it instead of refusing it.

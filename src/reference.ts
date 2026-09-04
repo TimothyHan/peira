@@ -83,6 +83,8 @@ export function renderReference({ version }: { version?: string } = {}): string 
     '## Responses',
     '',
     'JSON bodies are parsed; any other body (HTML, text, empty) arrives as a string — `$contains` and `$notContains` are the oracle for it, and `bodySchema` with `type: "string"` applies too.',
+    'Server-rendered React (Next.js and others) separates adjacent text expressions with `<!-- -->`, so `총 {n}건` arrives as `총 <!-- -->2<!-- -->건` and the visible text is not a substring of the response. Assert on text that comes from one expression, or on a stable attribute value — not on visible text that spans an interpolation.',
+    'A request sends either a JSON `body` or a `multipart` form (fields plus fixture files from the cases directory); never both.',
     'Repeated response headers arrive joined with `", "`, `Set-Cookie` included (every cookie is collected), so `$contains` on a header matches any one value.',
     '',
     '## Verdicts',

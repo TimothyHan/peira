@@ -35,7 +35,12 @@ function fmtAuth(auth: any): string {
 
 function fmtRequest(req: any): string {
   const query = req.query ? '?' + Object.entries(req.query).map(([k, v]) => `${k}=${v}`).join('&') : '';
-  const body = req.body !== undefined ? ` with body ${cap(JSON.stringify(req.body))}` : '';
+  const mp = req.multipart;
+  const body = req.body !== undefined
+    ? ` with body ${cap(JSON.stringify(req.body))}`
+    : mp
+      ? ` with multipart (${Object.keys(mp.fields ?? {}).length} field(s), ${(mp.files ?? []).map((f: any) => `${f.path}${f.mimetype ? ` as ${f.mimetype}` : ''}`).join(', ') || 'no files'})`
+      : '';
   return `${req.method.toUpperCase()} ${req.route}${query} ${fmtAuth(req.auth)}${body}`;
 }
 

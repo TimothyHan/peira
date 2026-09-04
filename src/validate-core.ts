@@ -2,7 +2,9 @@
 // checking, matcher walking, and the per-step static checks. Not part of the public API —
 // import from validate.js (the barrel) instead.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
+import { MULTIPART_FIXTURE_MAX_BYTES } from './constants.js';
 import { fileURLToPath } from 'node:url';
 import { validateSchema, type JsonSchema } from './schema.js';
 import { findTokens } from './interpolate.js';
@@ -123,6 +125,45 @@ export function warnEmbeddedRefs(value: unknown, where: string, warnings: string
   }
 }
 
+/** RFC 0005 amendment (J): fixtures are files, small, present; never beside a JSON body. */
+function checkMultipart(
+  req: StepBlock,
+  label: string,
+  available: Set<string>,
+  errors: string[],
+  holes: Record<string, HoleDecl> | null | undefined,
+  warnings: string[] | undefined,
+  baseDir: string | null | undefined,
+): void {
+  const where = `${label}.request.multipart`;
+  const mp = req.multipart as { fields?: Record<string, unknown>; files?: Array<Record<string, unknown>> };
+  if (req.body !== undefined) errors.push(`${where}: multipart and body are mutually exclusive — a request sends one or the other`);
+  const fieldCount = Object.keys(mp.fields ?? {}).length;
+  const files = mp.files ?? [];
+  if (fieldCount === 0 && files.length === 0) errors.push(`${where}: at least one of fields / files`);
+  if (mp.fields !== undefined) {
+    checkTokens(mp.fields, `${where}.fields`, available, errors, holes);
+    if (warnings) warnEmbeddedRefs(mp.fields, `${where}.fields`, warnings);
+  }
+  files.forEach((f, i) => {
+    const path = f.path as string;
+    if (/^([A-Za-z]:)?[\\/]/.test(path) || path.split(/[\\/]/).includes('..')) {
+      errors.push(`${where}.files[${i}].path: must be relative to the cases directory and stay inside it — got ${JSON.stringify(path)}`);
+      return;
+    }
+    if (baseDir == null) return; // no directory known (library caller): existence is checked by the runner
+    const abs = resolvePath(baseDir, path);
+    if (!existsSync(abs)) {
+      errors.push(`${where}.files[${i}].path: fixture not found — ${path} (relative to ${baseDir})`);
+      return;
+    }
+    const size = statSync(abs).size;
+    if (size > MULTIPART_FIXTURE_MAX_BYTES) {
+      errors.push(`${where}.files[${i}].path: fixture is ${size} bytes; the cap is ${MULTIPART_FIXTURE_MAX_BYTES} — upload fixtures stay small and reviewable`);
+    }
+  });
+}
+
 export function checkStep(
   step: StepBlock,
   label: string,
@@ -132,6 +173,8 @@ export function checkStep(
   steps?: Map<string, StepDef> | null,
   holes?: Record<string, HoleDecl> | null,
   warnings?: string[],
+  /** the cases directory — multipart fixture paths resolve against it (RFC 0005) */
+  baseDir?: string | null,
 ): void {
   if ('step' in step) {
     // invocation: procedure only — the schema already refused expect/capture by shape
@@ -158,6 +201,7 @@ export function checkStep(
     if (req.query !== undefined) warnEmbeddedRefs(req.query, `${label}.request.query`, warnings);
     if (req.body !== undefined) warnEmbeddedRefs(req.body, `${label}.request.body`, warnings);
   }
+  if (req.multipart !== undefined) checkMultipart(req, label, available, errors, holes, warnings, baseDir);
 
   if (typeof req.auth === 'string' && req.auth.startsWith('$holes.')) {
     const holeName = req.auth.slice('$holes.'.length);

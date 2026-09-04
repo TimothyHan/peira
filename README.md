@@ -130,7 +130,7 @@ Command and flag reference: `peira help`. Design: [docs/DESIGN.md](https://githu
 
 ## Status
 
-**v0.5.0.** TypeScript, shipping compiled JS with full type declarations.
+**v0.6.0.** TypeScript, shipping compiled JS with full type declarations.
 
 - **Node ≥ 18.** One first-party runtime dependency — same author, itself dependency-free, so
   there is no third-party code on the trust path.

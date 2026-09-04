@@ -19,6 +19,8 @@ import { mintAll } from './generate.js';
 import type { HarnessResult } from './step-harness.js';
 import type { BedConfig, Case, LoadedCase, RunResult, StepDef, Template, Verdict } from './types.js';
 import { TokenStore, basicAttachment, tokenAttachment, DEFAULT_SEND, type AuthAttachment } from './auth.js';
+import { basename, resolve as resolvePath } from 'node:path';
+import type { MultipartBody } from './http.js';
 import { SecretRegistry } from './evidence.js';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -93,6 +95,8 @@ export function runHarness(job: HarnessJob, timeoutMs: number = STEP_TIMEOUT_MS)
 interface RunState {
   bed: BedConfig;
   baseUrl: string;
+  /** the cases directory — multipart fixture paths resolve against it (RFC 0005) */
+  baseDir: string;
   evidence: EvidenceLog;
   caseId: string;
   steps: Map<string, StepDef>;
@@ -164,12 +168,32 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
   const req = step.request;
   const auth = await resolveAuth(req.auth, state);
   const limits = ceilings(bed);
+  // multipart (amendment J): fields interpolate like a body; fixtures are read from the cases
+  // directory now, so a missing file is an infrastructure error, not a claim that failed
+  let multipart: MultipartBody | undefined;
+  if (req.multipart !== undefined) {
+    const mp = req.multipart as { fields?: Record<string, unknown>; files?: Array<{ field: string; path: string; mimetype?: string; filename?: string }> };
+    multipart = {
+      fields: (resolveValue(mp.fields ?? {}, ctx) as Record<string, string | object>),
+      files: (mp.files ?? []).map((f) => {
+        const abs = resolvePath(state.baseDir, f.path);
+        let data: Buffer;
+        try {
+          data = readFileSync(abs);
+        } catch (cause) {
+          throw new InfraError(`${label}: multipart fixture ${f.path} could not be read (${abs})`, cause);
+        }
+        return { field: f.field, filename: f.filename ?? basename(f.path), mimetype: f.mimetype ?? 'application/octet-stream', data };
+      }),
+    };
+  }
   const resolved = {
     baseUrl,
     method: req.method as string,
     route: resolveValue(req.route, ctx) as string,
     query: req.query === undefined ? undefined : (resolveValue(req.query, ctx) as Record<string, unknown>),
     body: req.body === undefined ? undefined : resolveValue(req.body, ctx),
+    multipart,
     auth,
     followRedirects: req.followRedirects as boolean | undefined,
     timeoutMs: limits.requestMs,
@@ -187,6 +211,10 @@ async function executeStep(step: StepBlock, label: string, state: RunState): Pro
         route: resolved.route,
         query: resolved.query,
         body: resolved.body,
+        // never the bytes: names and sizes are the whole record of an upload
+        ...(multipart
+          ? { multipart: { fields: Object.keys(multipart.fields), files: multipart.files.map((f) => ({ field: f.field, filename: f.filename, mimetype: f.mimetype, bytes: f.data.length })) } }
+          : {}),
         headers: response.requestHeaders,
       },
       response: { status: response.status, headers: response.headers, body: response.body, elapsedMs: response.elapsedMs },
@@ -273,15 +301,18 @@ export interface RunCaseOptions {
   steps?: Map<string, StepDef>;
   /** the run's login cache; a lone runCase gets a private one */
   tokens?: TokenStore;
+  /** the cases directory; multipart fixture paths resolve against it (default: cwd) */
+  baseDir?: string;
 }
 
 /** Run one case. */
-export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, steps = new Map(), tokens }: RunCaseOptions): Promise<Verdict> {
+export async function runCase(caseObj: Case, { bed, baseUrl, seed, evidence, steps = new Map(), tokens, baseDir = process.cwd() }: RunCaseOptions): Promise<Verdict> {
   const caseId = caseObj.id;
   const ownStore = tokens ?? new TokenStore({ baseUrl, timeoutMs: ceilings(bed).requestMs });
   const state: RunState = {
     bed,
     baseUrl,
+    baseDir,
     evidence,
     caseId,
     steps,
@@ -340,10 +371,12 @@ export interface RunCasesOptions {
   parallel?: number;
   /** 1-based deterministic slice for CI fan-out: shard `index` of `total` (interleaved) */
   shard?: { index: number; total: number };
+  /** the cases directory; multipart fixture paths resolve against it (default: cwd) */
+  baseDir?: string;
 }
 
 /** Run a case set in sorted file order, minting invariant-template instances for this run. */
-export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1, shard }: RunCasesOptions): Promise<RunResult> {
+export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evidencePath = null, steps = new Map(), templates = new Map(), filter, parallel = 1, shard, baseDir = process.cwd() }: RunCasesOptions): Promise<RunResult> {
   const runStarted = performance.now();
   // one secret registry for the whole run: a token learned by any case is scrubbed from every log
   const secrets = new SecretRegistry();
@@ -381,7 +414,7 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
   const width = Math.max(1, Math.min(Math.floor(parallel), executable.length || 1));
   if (width <= 1) {
     for (let i = 0; i < executable.length; i += 1) {
-      verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps, tokens });
+      verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence, steps, tokens, baseDir });
     }
   } else {
     // each case writes to its own buffer; buffers flush into the main log strictly in case
@@ -394,7 +427,7 @@ export async function runCases(loaded: LoadedCase[], { bed, baseUrl, seed, evide
       for (;;) {
         const i = next++;
         if (i >= executable.length) return;
-        verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence: buffers[i], steps, tokens });
+        verdicts[i] = await runCase(executable[i].caseObj, { bed, baseUrl: resolvedBase, seed, evidence: buffers[i], steps, tokens, baseDir });
         finished[i] = true;
         while (flushed < executable.length && finished[flushed]) evidence.adopt(buffers[flushed++]);
       }

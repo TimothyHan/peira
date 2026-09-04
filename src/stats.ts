@@ -38,6 +38,20 @@ export function shapeSignature(stepDef: StepDef): ShapeSignature {
   };
 }
 
+/** One row of the refusal balance (RFC 0005 P1). Classification is static, from test.expect. */
+export interface BalanceRow {
+  intent: string;
+  cases: number;
+  /** test.expect.status < 400 */
+  positive: number;
+  /** test.expect.status >= 400 */
+  negative: number;
+  /** the test's expect contains $absent or $notContains — a denial inside any status */
+  negativeOracle: number;
+  /** no test.expect.status (pollUntil-only) */
+  unclassified: number;
+}
+
 export interface Stats {
   total: number;
   declarative: number;
@@ -45,6 +59,35 @@ export interface Stats {
   coverage: number;
   steps: Array<{ id: string } & ShapeSignature>;
   recurring: Array<{ skeleton: string; ids: string[]; count: number }>;
+  /** per intent, sorted by intent id, plus a total row; intents with only positives are the review flag */
+  balance: { intents: BalanceRow[]; total: BalanceRow; positiveOnly: string[] };
+}
+
+const NEGATIVE_ORACLE = /"\$(absent|notContains)"/;
+
+/** Refusals are where multi-tenant and auth bugs live; a suite drifts positive one happy path at a time. */
+export function computeBalance(loaded: LoadedCase[]): Stats['balance'] {
+  const rows = new Map<string, BalanceRow>();
+  const blank = (intent: string): BalanceRow => ({ intent, cases: 0, positive: 0, negative: 0, negativeOracle: 0, unclassified: 0 });
+  const total = blank('total');
+  for (const { caseObj } of loaded) {
+    const intent = caseObj?.from?.intent ?? '(unbound)';
+    const row = rows.get(intent) ?? blank(intent);
+    rows.set(intent, row);
+    const test = (caseObj?.test ?? {}) as { expect?: { status?: unknown } };
+    const status = test.expect?.status;
+    const negOracle = NEGATIVE_ORACLE.test(JSON.stringify(test.expect ?? {}));
+    for (const r of [row, total]) {
+      r.cases += 1;
+      if (typeof status !== 'number') r.unclassified += 1;
+      else if (status >= 400) r.negative += 1;
+      else r.positive += 1;
+      if (negOracle) r.negativeOracle += 1;
+    }
+  }
+  const intents = [...rows.values()].sort((a, b) => a.intent.localeCompare(b.intent));
+  const positiveOnly = intents.filter((r) => r.positive > 0 && r.negative === 0 && r.negativeOracle === 0).map((r) => r.intent);
+  return { intents, total, positiveOnly };
 }
 
 export function computeStats(loaded: LoadedCase[], steps: Map<string, StepDef>): Stats {
@@ -70,7 +113,31 @@ export function computeStats(loaded: LoadedCase[], steps: Map<string, StepDef>):
     coverage: total === 0 ? 1 : (total - withSteps.length) / total,
     steps: stepReport,
     recurring,
+    balance: computeBalance(loaded),
   };
+}
+
+/** The balance as an aligned table; the unclassified column appears only when it is non-zero. */
+export function formatBalance(balance: Stats['balance']): string {
+  const showUnclassified = balance.total.unclassified > 0;
+  const cols: Array<[string, (r: BalanceRow) => string]> = [
+    ['intent', (r) => r.intent],
+    ['cases', (r) => String(r.cases)],
+    ['positive', (r) => String(r.positive)],
+    ['negative', (r) => String(r.negative)],
+    ['negative-oracle', (r) => String(r.negativeOracle)],
+    ...(showUnclassified ? ([['unclassified', (r: BalanceRow) => String(r.unclassified)]] as Array<[string, (r: BalanceRow) => string]>) : []),
+  ];
+  const rows = [...balance.intents, balance.total];
+  const widths = cols.map(([h, f]) => Math.max(h.length, ...rows.map((r) => f(r).length)));
+  const line = (cells: string[]) => cells.map((c, i) => (i === 0 ? c.padEnd(widths[i]) : c.padStart(widths[i]))).join('  ');
+  const out = ['refusal balance (positive: expected status < 400 · negative: >= 400 · negative-oracle: $absent or $notContains in the test):'];
+  out.push('  ' + line(cols.map(([h]) => h)));
+  for (const r of rows) out.push('  ' + line(cols.map(([, f]) => f(r))));
+  if (balance.positiveOnly.length > 0) {
+    out.push(`  ${balance.positiveOnly.length} intent(s) test only the happy path: ${balance.positiveOnly.join(', ')}`);
+  }
+  return out.join('\n');
 }
 
 export function formatStats(stats: Stats): string {
@@ -90,6 +157,10 @@ export function formatStats(stats: Stats): string {
     for (const g of stats.recurring) {
       lines.push(`  shape ${g.skeleton} x${g.count}: ${g.ids.join(', ')}`);
     }
+  }
+  if (stats.total > 0) {
+    lines.push('');
+    lines.push(formatBalance(stats.balance));
   }
   return lines.join('\n');
 }

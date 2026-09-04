@@ -167,9 +167,12 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, staticTokens = D
       res.end(JSON.stringify(body));
     };
 
-    let raw = '';
-    req.on('data', (chunk) => (raw += chunk));
+    // bytes, not a string: a multipart body is binary (RFC 0005); JSON routes read the text view
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
     req.on('end', () => {
+      const rawBuf = Buffer.concat(chunks);
+      const raw = rawBuf.toString('utf8');
       if (req.method === 'POST' && url.pathname === '/__reset') {
         reset();
         return send(200, { reset: true });
@@ -221,6 +224,23 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, staticTokens = D
       }
       if (username === null) {
         return send(401, envelope(401, 'Unauthorized'));
+      }
+
+      // RFC 0005: an upload endpoint with the two refusals every upload API has — wrong type,
+      // over quota — and a 201 that names what arrived. Only image/png is accepted; the
+      // "tenant's plan" allows 1024 bytes in total.
+      if (req.method === 'POST' && url.pathname === '/upload') {
+        const ct = req.headers['content-type'] ?? '';
+        const boundary = /boundary=([^;]+)/.exec(ct)?.[1];
+        if (!ct.startsWith('multipart/form-data') || !boundary) return send(400, envelope(400, 'Bad Request', 'expected multipart/form-data'));
+        const parts = parseMultipart(rawBuf, boundary);
+        const files = parts.filter((p) => p.filename !== undefined);
+        const fields = Object.fromEntries(parts.filter((p) => p.filename === undefined).map((p) => [p.name, p.data.toString('utf8')]));
+        const bad = files.find((f) => f.mimetype !== 'image/png');
+        if (bad) return send(400, envelope(400, 'Bad Request', `unsupported type: ${bad.mimetype}`));
+        const needed = files.reduce((n, f) => n + f.data.length, 0);
+        if (needed > 1024) return send(413, envelope(413, 'Payload Too Large', `quota exceeded: used 0, limit 1024, needed ${needed}`));
+        return send(201, { id: randomUUID(), by: username, fields, files: files.map((f) => ({ field: f.name, filename: f.filename, mimetype: f.mimetype, bytes: f.data.length })) });
       }
 
       // RFC 0002: who am I, and echo the token back — the value-based scrubbing target
@@ -312,6 +332,27 @@ export function startFixture({ port = 0, users = DEFAULT_USERS, staticTokens = D
       });
     });
   });
+}
+
+/** Minimal multipart/form-data parser (zero deps, like the rest of the fixture). */
+function parseMultipart(buf, boundary) {
+  const delim = Buffer.from(`--${boundary}`);
+  const parts = [];
+  let start = buf.indexOf(delim);
+  while (start !== -1) {
+    start += delim.length;
+    if (buf.slice(start, start + 2).toString() === '--') break; // closing delimiter
+    const headerEnd = buf.indexOf('\r\n\r\n', start);
+    const next = buf.indexOf(delim, headerEnd);
+    const headers = buf.slice(start, headerEnd).toString('utf8');
+    const data = buf.slice(headerEnd + 4, next - 2); // strip the CRLF before the next delimiter
+    const name = /name="([^"]*)"/.exec(headers)?.[1] ?? '';
+    const filename = /filename="([^"]*)"/.exec(headers)?.[1];
+    const mimetype = /content-type:\s*([^\r\n]+)/i.exec(headers)?.[1]?.trim();
+    parts.push({ name, filename, mimetype, data });
+    start = next;
+  }
+  return parts;
 }
 
 // CLI: `node test/fixtures/server.js [port] [--plant <shift-id>]`
