@@ -23,11 +23,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # Two checkouts as SIBLINGS. Checking the tool out inside the site tree let Next's
+      # type-check sweep tool/src/**/*.ts into the site's tsconfig (DOM libs, different rules)
+      # and fail on code the tool's own tsc compiles clean. Nothing globs across ../.
       - uses: actions/checkout@v4
         with:
           repository: TimothyHan/peira-site
-      # The tool itself, beside the site: the metrics strip's "tests on the tool" number is
-      # produced by actually running the suite, never typed. A red suite refuses to publish.
+          path: site
       - uses: actions/checkout@v4
         with:
           path: tool
@@ -35,6 +37,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            site/package-lock.json
+            tool/package-lock.json
+      # The metrics strip's "tests on the tool" number comes from actually running the suite,
+      # never typed. A red suite refuses to publish a count — and prints the failing tests.
       - name: count the tool's tests from a real run
         working-directory: tool
         run: |
@@ -48,11 +55,13 @@ jobs:
           test -n "$n" || { echo "could not find '# tests N' in the output"; exit 1; }
           echo "PEIRA_TEST_COUNT=$n" >> "$GITHUB_ENV"
           echo "tests on the tool: $n"
-      - run: npm ci
-      - run: npm run build   # prebuild reads PEIRA_TEST_COUNT
+      - working-directory: site
+        run: npm ci
+      - working-directory: site
+        run: npm run build   # prebuild reads PEIRA_TEST_COUNT
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: out
+          path: site/out
 
   deploy:
     needs: build
