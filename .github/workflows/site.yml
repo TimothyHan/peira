@@ -39,7 +39,11 @@ jobs:
         working-directory: tool
         run: |
           npm ci
-          out=$(npm test 2>&1) || { echo "$out" | tail -20; echo "the tool's suite is red — refusing to publish a count"; exit 1; }
+          out=$(npm test 2>&1) || {
+            echo "the tool's suite is red — refusing to publish a count. Failing tests:"
+            echo "$out" | grep -A 20 '^not ok' | head -120
+            exit 1
+          }
           n=$(echo "$out" | grep -oE '^# tests [0-9]+' | grep -oE '[0-9]+')
           test -n "$n" || { echo "could not find '# tests N' in the output"; exit 1; }
           echo "PEIRA_TEST_COUNT=$n" >> "$GITHUB_ENV"
