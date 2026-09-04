@@ -20,13 +20,16 @@ jobs:
         node: [18, 20, 22, 24]
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} · node ${{ matrix.node }}
-    # the suite runs in ~20s; anything approaching this is a hang, not slowness, and a hang
-    # should fail fast rather than sit on a runner until the six-hour default
-    timeout-minutes: 4
+    # A generous ceiling for the whole job: npm ci has taken >4 minutes on a slow registry and
+    # was killing healthy cells before the suite ever ran. The hang detector is on the test step.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci
+      # the suite runs in ~5s; anything approaching this is a hang, not slowness, and a hang
+      # should fail fast rather than sit on a runner until the job ceiling
       - run: npm test
+        timeout-minutes: 4
